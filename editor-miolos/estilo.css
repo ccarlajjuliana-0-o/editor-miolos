@@ -116,7 +116,7 @@ input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
 .chip.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
 .chip i{width:18px;height:18px;border-radius:50%;display:inline-block}
 .libsec{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px}
-.libsec .hd{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.libsec .lhd{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .upl{position:relative;overflow:hidden}
 .upl input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .litems{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
