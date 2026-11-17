@@ -19,17 +19,18 @@
     wire: { name: 'Wire-o (duplo anel)', mm: 18, d: 9, obs: 'Furo quadrado ou redondo (8 a 10 mm). Recomendado de 15 a 18 mm, para o anel girar sem rasgar o papel.' },
     disc: { name: 'Caderno de discos', mm: 20, d: 11, obs: 'O furo em cogumelo avança mais para dentro da folha (10 a 12 mm). Pede a maior margem: 18 a 20 mm.' },
   };
+  const bindOn = (m) => !!m && (m.bindOn !== undefined ? !!m.bindOn : num(m.holes, 0) > 0 || num(m.gutter, 0) > 0);
   const bindOf = (m) => (m && BIND[m.bind] ? m.bind : m && m.bind === undefined && num(m.holes, 0) === 20 ? 'disc' : 'custom');
   // Padrão proporcional ao lado curto da página (A5: 5,8 mm nas bordas e 12,2 mm por dentro). Furos só se houver encadernação.
   const defaults = (p, bk) => {
     const s = Math.min(p.w, p.h), r = (v) => Math.round(v * 10) / 10, k = bk !== undefined ? bk : S.meta && S.meta.mgBind, B = BIND[k];
-    return { top: r(s * 0.0392), bottom: r(s * 0.0392), inner: r(s * 0.0824), outer: r(s * 0.0392), gutter: 0, holes: B ? B.mm : 0, bind: B ? k : 'custom', hdr: 0, ftr: 0, tabs: { on: false, pos: 'side', n: 4, w: 12, r: 3, bg: 'none' }, lock: false, side: 'auto' };
+    return { top: r(s * 0.0392), bottom: r(s * 0.0392), inner: r(s * 0.0824), outer: r(s * 0.0392), gutter: 0, holes: B ? B.mm : 0, bind: B ? k : 'custom', bindOn: !!B, hdr: 0, ftr: 0, tabs: { on: false, pos: 'side', n: 4, w: 12, r: 3, bg: 'none' }, lock: false, side: 'auto' };
   };
   const tabsOf = (m) => Object.assign({ on: false, pos: 'side', n: 4, w: 12, r: 3, bg: 'none' }, m && m.tabs);
   function extras(m) { const t = tabsOf(m), w = t.on ? Math.max(0, num(t.w, 12)) : 0; return { side: t.pos === 'side' ? w : 0, top: t.pos === 'top' ? w : 0, bot: t.pos === 'bottom' ? w : 0, t }; }
   function geom(p, m) {
     if (!m) return { full: true, x0: 0, x1: p.w, top: 0, bot: p.h, y0: 0, y1: p.h, hasH: false, hasF: false, e: false, g: 0, holes: 0, X: { side: 0, top: 0, bot: 0, t: tabsOf(null) } };
-    const e = isLeft(p, m), g = num(m.gutter, 0) / 2, hdr = num(m.hdr, 0), ftr = num(m.ftr, 0), holes = Math.max(0, num(m.holes, 0)), X = extras(m);
+    const e = isLeft(p, m), bo = bindOn(m), g = bo ? num(m.gutter, 0) / 2 : 0, hdr = num(m.hdr, 0), ftr = num(m.ftr, 0), holes = bo ? Math.max(0, num(m.holes, 0)) : 0, X = extras(m);
     const L = e ? num(m.outer, 0) + X.side : num(m.inner, 0) + g + holes, R = e ? num(m.inner, 0) + g + holes : num(m.outer, 0) + X.side;
     const top = num(m.top, 0) + X.top, bot = p.h - num(m.bottom, 0) - X.bot;
     return { x0: L, x1: p.w - R, top, bot, y0: top + hdr, y1: bot - ftr, hasH: hdr > 0, hasF: ftr > 0, e, g, holes, X };
@@ -95,7 +96,7 @@
   const PAIR = { top: 'bottom', bottom: 'top', inner: 'outer', outer: 'inner' };
   const linkOn = (k) => (k === 'top' || k === 'bottom' ? S.meta.mgLinkTB === true : S.meta.mgLinkLR === true);
   const spreadOn = () => S.meta.mgLinkSpread !== false;
-  const NUMK = ['top', 'bottom', 'inner', 'outer', 'gutter', 'holes', 'hdr', 'ftr'], SPK = ['inner', 'holes', 'gutter'];
+  const NUMK = ['top', 'bottom', 'inner', 'outer', 'gutter', 'holes', 'hdr', 'ftr'], SPK = ['inner', 'holes', 'gutter', 'bindOn', 'bind'];
   const toast2 = (t) => { if (typeof toast === 'function') toast(t); };
   function partnerOf(p) { // a outra página da mesma dupla (a capa fica sozinha)
     const i = S.order.indexOf(p.id), off = S.meta.coverAlone !== false ? 1 : 0; if (i < off) return null;
@@ -295,10 +296,9 @@
       <div class="mghead"><b>Preenchimentos e Margens</b><span class="mgtools"><button type="button" class="btn sm ghost" id="mgLinkAll" aria-pressed="${allLinked}">⛓ Vincular tudo</button><button type="button" class="btn sm ghost" id="mgReset"${dis ? ' disabled' : ''}>↺ Redefinir</button><select id="mgUnit" aria-label="Unidade">${Object.keys(UNITS).map((u) => `<option${u === un ? ' selected' : ''}>${u}</option>`).join('')}</select></span></div>
       <div class="mgpair"><div class="mgrows">${row('top', 'Topo', m.top, 60, dis)}${row('bottom', 'Base', m.bottom, 60, dis)}</div>${chain('mgLkTB', linkOn('top'), dis)}</div>
       <div class="mgpair"><div class="mgrows">${row('outer', 'Externa', m.outer, 60, dis)}${row('inner', 'Interna', m.inner, 60, dis)}</div>${chain('mgLkLR', linkOn('inner'), dis)}</div>
-      <label class="pfield mgbind"><span>Tipo de encadernação</span><select id="mgBind"${dis ? ' disabled' : ''}>${Object.keys(BIND).map((k) => `<option value="${k}"${bindOf(m) === k ? ' selected' : ''}>${BIND[k].name} · ${BIND[k].mm} mm</option>`).join('')}<option value="custom"${bindOf(m) === 'custom' ? ' selected' : ''}>Personalizado</option></select></label>
-      ${BIND[bindOf(m)] ? `<p class="hint">${BIND[bindOf(m)].obs}</p>` : ''}
-      <div class="mgpair"><div class="mgrows">${row('holes', 'Furos', m.holes, 40, dis)}${row('gutter', 'Lombada', m.gutter, 30, dis)}</div>${chain('mgLkSp', spreadOn(), dis)}</div>
-      <p class="hint">Furos: espaço no lado de dentro de cada página, no meio da dupla. Lombada: total ao meio. O ⛓ de baixo mantém o lado de dentro das duas páginas da dupla iguais.</p>
+      <div class="mrow mgsw-row"><span class="mi">◎</span><span class="ml" style="flex:1">Encadernação</span>${sw('mgBindOn', bindOn(m), dis)}</div>
+      ${bindOn(m) ? `<label class="pfield mgbind"><span>Tipo de encadernação</span><select id="mgBind"${dis ? ' disabled' : ''}>${Object.keys(BIND).map((k) => `<option value="${k}"${bindOf(m) === k ? ' selected' : ''}>${BIND[k].name} · ${BIND[k].mm} mm</option>`).join('')}<option value="custom"${bindOf(m) === 'custom' ? ' selected' : ''}>Personalizado</option></select></label>
+      <div class="mgpair"><div class="mgrows">${row('holes', 'Furos', m.holes, 40, dis)}${row('gutter', 'Lombada', m.gutter, 30, dis)}</div>${chain('mgLkSp', spreadOn(), dis)}</div>` : ''}
       <label class="chk"><input type="checkbox" id="mgSafe"${S.guides ? ' checked' : ''}> Mostrar margem de segurança</label>
       <div class="mrow mgsw-row"><span class="mi">🔒</span><span class="ml" style="flex:1">Bloquear margens no editor</span>${sw('mgLock', dis, false)}</div>
       <div class="mghead"><b>Espaçamento</b></div>
@@ -314,6 +314,7 @@
   function mount(p, P) {
     const $q = (s) => P.querySelector(s), on = (s, fn) => { const e = $q(s); if (e) e.onclick = fn; };
     const blur = () => { if (document.activeElement && P.contains(document.activeElement)) document.activeElement.blur(); };
+    const bo = $q('#mgBindOn'); if (bo) bo.onchange = () => { blur(); if (bo.checked) { const k = BIND[bindOf(p.mg)] ? bindOf(p.mg) : BIND[S.meta.mgBind] ? S.meta.mgBind : 'spiral'; const h = num(p.mg.holes, 0) > 0 ? p.mg.holes : BIND[k].mm; edit(p, { bindOn: true, bind: num(p.mg.holes, 0) > 0 ? bindOf(p.mg) : k, holes: h }, null); } else edit(p, { bindOn: false }, null); };
     const bd = $q('#mgBind'); if (bd) bd.onchange = () => { blur(); const v = bd.value; edit(p, v === 'custom' ? { bind: 'custom' } : { bind: v, holes: BIND[v].mm }, null); };
     const commit = (k, v) => { blur(); if (k === 'holes') { edit(p, { holes: v, bind: BIND[bindOf(p.mg)] && BIND[bindOf(p.mg)].mm === v ? bindOf(p.mg) : 'custom' }); return; } if (k === 'hdr' || k === 'ftr') v = v > 0 ? Math.max(3, v) : 0; edit(p, { [k]: v }, PAIR[k] ? k : null); };
     const sc = $q('#mgScope'); if (sc) sc.onchange = () => { S.meta.mgScope = sc.value; Saver.m(); };
