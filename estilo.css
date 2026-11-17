@@ -238,3 +238,11 @@ input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
 .ug.v{top:0;bottom:0;width:9px;margin-left:-4px;cursor:ew-resize;background:linear-gradient(#4FB0C6,#4FB0C6) center/1px 100% no-repeat}
 .ug.h{left:0;right:0;height:9px;margin-top:-4px;cursor:ns-resize;background:linear-gradient(#4FB0C6,#4FB0C6) center/100% 1px no-repeat}
 .ib.on{background:var(--surface2);color:var(--accent)}
+
+/* proteção: lixeira, versões, nuvem */
+.notice{border:1px dashed var(--line);border-radius:16px;padding:14px 18px;margin:18px 0;background:rgba(195,152,200,.06)}
+.notice h3{margin:0 0 6px;font-size:15px}
+.vlist{display:flex;flex-direction:column;margin:10px 0}
+.vrow{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}
+.vrow small{color:var(--muted)}
+#cloudSt{font-size:12px;opacity:.8;margin-left:8px}

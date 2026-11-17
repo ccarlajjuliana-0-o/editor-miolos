@@ -367,8 +367,8 @@ function impose(list,sheets){const per=4*sheets,L=list.slice();while(L.length%pe
 
 /* ================= armazenamento (no aparelho, em IndexedDB) ================= */
 const IDB={db:null,
-  open(){return new Promise((res,rej)=>{const rq=indexedDB.open('cnu-estudio-miolos',1);
-    rq.onupgradeneeded=()=>{const d=rq.result;d.createObjectStore('meta');d.createObjectStore('pages');d.createObjectStore('lib');d.createObjectStore('assets')};
+  open(){return new Promise((res,rej)=>{const rq=indexedDB.open('cnu-estudio-miolos',2);
+    rq.onupgradeneeded=()=>{const d=rq.result;['meta','pages','lib','assets','versoes'].forEach(n=>{if(!d.objectStoreNames.contains(n))d.createObjectStore(n)})};
     rq.onsuccess=()=>{this.db=rq.result;res()};rq.onerror=()=>rej(rq.error)})},
   tx(st,mode,fn){return new Promise((res,rej)=>{const t=this.db.transaction(st,mode),out=fn(t);t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})},
   get(st,k){return this.tx(st,'readonly',t=>t.objectStore(st).get(k))},

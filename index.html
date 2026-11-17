@@ -33,6 +33,8 @@
         <button class="btn sm ghost" id="logoReset" hidden>Usar logo padrão</button>
         <button class="btn sm" id="bkBtn">Baixar backup</button>
         <span class="btn sm upl">Restaurar backup<input type="file" id="bkUp" accept=".json,application/json" aria-label="Restaurar backup"></span>
+        <button class="btn sm" id="trashBtn">Lixeira</button>
+        <button class="btn sm" id="syncBtn" hidden>Sincronizar agora</button>
         <button class="btn sm" id="cloudBtn" hidden>Entrar na nuvem</button>
         <a class="btn sm applink" id="appLinkHome" target="_blank" rel="noopener" hidden>Abrir app do ateliê ↗</a>
       </span>
@@ -63,7 +65,8 @@
     <button class="ib hidem" id="bRuler" title="Régua e guias" aria-label="Régua"><svg class="ico" viewBox="0 0 24 24"><rect x="2.5" y="8" width="19" height="8" rx="1.5"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/></svg></button>
     <button class="ib hidem" id="bGrid" title="Grade" aria-label="Grade"><svg class="ico" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 9.3h16M4 14.7h16M9.3 4v16M14.7 4v16"/></svg></button>
     <span class="grow"></span>
-    <span class="save" id="saveSt">Salvo</span>
+    <span class="save" id="saveSt">Salvo</span><span class="save hidem" id="cloudSt"></span>
+    <button class="btn sm ghost" id="bVers" title="Versões do projeto">Versões</button>
     <a class="btn sm ghost hidem applink" id="appLinkTop" target="_blank" rel="noopener" hidden>App do ateliê ↗</a>
     <button class="ib mob" id="bMobProps" title="Propriedades" aria-label="Propriedades"><svg class="ico" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button>
     <button class="btn pri" id="bExport"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span class="hidem">Exportar</span></button>
@@ -85,6 +88,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
+<script src="protecao.js"></script>
 <script src="recursos.js"></script>
 </body>
 </html>
