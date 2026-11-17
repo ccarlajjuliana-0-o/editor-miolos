@@ -690,3 +690,6 @@ input[type=color]::-moz-color-swatch{border:1.5px solid rgba(62,53,80,.25);borde
 #mgPanel.nosep{border-top:0;padding-top:0;margin-top:0}
 
 .pgrp[data-sec]{border-top:0;padding-top:0;margin-top:0}
+
+.ug.sp.v{background:linear-gradient(#C398C8,#C398C8) center/1px 100% no-repeat}.ug.sp.h{background:linear-gradient(#C398C8,#C398C8) center/100% 1px no-repeat}
+#gSpan{display:flex}#gSpan button{flex:1;padding:6px 8px;border:1px solid var(--line);background:var(--surface);font:600 12px var(--f-title);color:var(--ink);cursor:pointer}#gSpan button:first-child{border-radius:10px 0 0 10px}#gSpan button:last-child{border-radius:0 10px 10px 0}#gSpan button.on{background:var(--surface2);color:var(--accent);border-color:var(--accent)}

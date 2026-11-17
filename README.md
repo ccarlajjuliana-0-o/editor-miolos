@@ -111,3 +111,8 @@ Em qualquer campo de cor abre um seletor com quadro de cor, matiz, código HEX, 
 
 ## Regra do painel da direita
 - Toda configuração nova que entrar na barra lateral, quando ligada/ativada, ganha o título correspondente (linha + nome) e os botões Ocultar/Expandir. Se houver mais de uma seção, a "Configuração da página" também mostra o título. Use `secBar(id, título, aberto)` em margens.js.
+
+## Régua e guias na página dupla
+- A régua mostra a numeração (em cm) em cada página da dupla e em qualquer zoom.
+- Guias podem ser arrastadas da régua direto para qualquer página da dupla, sem trocar de visualização. Separadas (azuis): ficam numa página só e mudam de página se você arrastar até a outra. Contínuas (lavanda): uma guia só que atravessa as duas páginas.
+- Em "Régua, grade e guias" escolha o tipo das guias novas; Shift ao arrastar usa o outro tipo; dois cliques numa guia troca entre contínua e separada.

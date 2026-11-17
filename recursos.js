@@ -117,49 +117,76 @@ WIDGETS.push(
 /* ---------- régua, grade e guias ---------- */
 function extraOverlay(p,k){let h='';
   if(Pref.grid){const s=Math.max(2,Pref.step*k);h+=`<div class="gridov" style="background-image:linear-gradient(to right,rgba(110,138,181,.28) 1px,transparent 1px),linear-gradient(to bottom,rgba(110,138,181,.28) 1px,transparent 1px);background-size:${s}px ${s}px"></div>`}
-  (p.guides||[]).forEach((g,i)=>{h+=g.v!==undefined?`<div class="ug v" data-gi="${i}" style="left:${g.v*k}px" title="Arraste para mover; solte fora da página para apagar"></div>`:`<div class="ug h" data-gi="${i}" style="top:${g.h*k}px" title="Arraste para mover; solte fora da página para apagar"></div>`});
+  const A=stagePgs(),L=A.length>1?S.pages[A[0].dataset.id]:null,R=A.length>1?S.pages[A[1].dataset.id]:null,TT='Arraste para mover; dois cliques troca entre contínua e separada; solte fora da página para apagar';
+  const dr=(g,i,own,sp,pos)=>{h+=g.v!==undefined?`<div class="ug v${sp?' sp':''}" data-gi="${i}" data-go="${own}" style="left:${pos*k}px" title="${TT}"></div>`:`<div class="ug h${sp?' sp':''}" data-gi="${i}" data-go="${own}" style="top:${pos*k}px" title="${TT}"></div>`};
+  (p.guides||[]).forEach((g,i)=>{const sp=!!(g.sp&&L&&p===L);if(sp&&g.v!==undefined&&g.v>p.w)return;dr(g,i,p.id,sp,g.v!==undefined?g.v:g.h)});
+  if(R&&p===R)(L.guides||[]).forEach((g,i)=>{if(!g.sp)return;if(g.v===undefined)dr(g,i,L.id,true,g.h);else if(g.v>L.w)dr(g,i,L.id,true,g.v-L.w)});
   return h}
 const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim()||'#888';
-function paintRuler(cv,dir,origin,k,len,pageLen){const d=devicePixelRatio||1,w=dir==='h'?len:20,h=dir==='h'?20:len;cv.width=Math.max(1,Math.round(w*d));cv.height=Math.max(1,Math.round(h*d));
+function stagePgs(){return [...document.querySelectorAll('#stage .pg')]}
+function paintRuler(cv,dir,segs,k,len,free){const d=devicePixelRatio||1,w=dir==='h'?len:20,h=dir==='h'?20:len;cv.width=Math.max(1,Math.round(w*d));cv.height=Math.max(1,Math.round(h*d));
   const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);c.fillStyle=cssv('--surface');c.fillRect(0,0,w,h);
-  const a=origin,b=origin+pageLen*k;c.fillStyle=cssv('--surface2');if(dir==='h')c.fillRect(Math.max(0,a),0,Math.min(len,b)-Math.max(0,a),20);else c.fillRect(0,Math.max(0,a),20,Math.min(len,b)-Math.max(0,a));
+  c.fillStyle=cssv('--surface2');segs.forEach(g=>{const a=g.o,b=g.o+g.L*k;if(dir==='h')c.fillRect(Math.max(0,a),0,Math.min(len,b)-Math.max(0,a),20);else c.fillRect(0,Math.max(0,a),20,Math.min(len,b)-Math.max(0,a))});
   c.strokeStyle=cssv('--muted');c.fillStyle=cssv('--muted');c.lineWidth=1;c.font='10px Nunito, sans-serif';c.textBaseline='top';c.textAlign='left';
-  const stepMm=k>=4?1:k>=1.6?5:10,i0=Math.floor(-origin/k/stepMm)*stepMm,i1=Math.ceil((len-origin)/k);c.beginPath();
-  for(let mm=i0;mm<=i1;mm+=stepMm){const pos=Math.round(origin+mm*k)+.5,big=mm%10===0,mid=mm%5===0,t=big?12:mid?8:5;
-    if(dir==='h'){c.moveTo(pos,20);c.lineTo(pos,20-t)}else{c.moveTo(20,pos);c.lineTo(20-t,pos)}
-    if(big&&k*10>=22){const lb=String(mm/10);if(dir==='h')c.fillText(lb,pos+2,2);else{c.save();c.translate(2,pos+2);c.rotate(-Math.PI/2);c.textAlign='right';c.fillText(lb,0,0);c.restore()}}}
+  const stepMm=k>=4?1:k>=1.6?5:10,ls=[1,2,5,10,20,50].find(n=>10*k*n>=26)||100;c.beginPath();
+  segs.forEach(g=>{const i0=free?Math.floor(-g.o/k/stepMm)*stepMm:0,i1=free?Math.ceil((len-g.o)/k):Math.floor(g.L);
+    for(let mm=i0;mm<=i1;mm+=stepMm){const pos=Math.round(g.o+mm*k)+.5;if(pos<0||pos>len)continue;const big=mm%10===0,mid=mm%5===0,t=big?12:mid?8:5;
+      if(dir==='h'){c.moveTo(pos,20);c.lineTo(pos,20-t)}else{c.moveTo(20,pos);c.lineTo(20-t,pos)}
+      if(big&&(mm/10)%ls===0){const lb=String(mm/10);if(dir==='h')c.fillText(lb,pos+2,2);else{c.save();c.translate(2,pos+2);c.rotate(-Math.PI/2);c.textAlign='right';c.fillText(lb,0,0);c.restore()}}}});
   c.stroke()}
-function drawRulers(){const wrap=$('#wsw');if(!wrap||!wrap.classList.contains('rl'))return;const pgEl=$('#stage .pg.on')||$('#stage .pg');if(!pgEl)return;const p=S.pages[pgEl.dataset.id];if(!p)return;
-  const H=$('#rulerH'),V=$('#rulerV'),hr=H.getBoundingClientRect(),vr=V.getBoundingClientRect(),pr=pgEl.getBoundingClientRect();
-  paintRuler(H,'h',pr.left-hr.left,S.k,hr.width,p.w);paintRuler(V,'v',pr.top-vr.top,S.k,vr.height,p.h)}
+function drawRulers(){const wrap=$('#wsw');if(!wrap||!wrap.classList.contains('rl'))return;const pgs=stagePgs();if(!pgs.length)return;
+  const H=$('#rulerH'),V=$('#rulerV'),hr=H.getBoundingClientRect(),vr=V.getBoundingClientRect(),one=pgs.length===1;
+  const sh=pgs.map(el=>({o:el.getBoundingClientRect().left-hr.left,L:(S.pages[el.dataset.id]||{w:0}).w})),r0=pgs[0].getBoundingClientRect(),p0=S.pages[pgs[0].dataset.id];if(!p0)return;
+  paintRuler(H,'h',one?[sh[0]]:sh,S.k,hr.width,one);paintRuler(V,'v',[{o:r0.top-vr.top,L:p0.h}],S.k,vr.height,true)}
 function applyRulerMode(){$('#wsw').classList.toggle('rl',!!Pref.rulers);$('#bRuler').classList.toggle('on',!!Pref.rulers);$('#bGrid').classList.toggle('on',!!Pref.grid);if(S.view==='editor')renderStage()}
 $('#ws').addEventListener('scroll',()=>drawRulers(),{passive:true});
 $('#bRuler').onclick=()=>{Pref.rulers=!Pref.rulers;savePref();applyRulerMode();if(S.view==='editor')renderProps()};
 $('#bGrid').onclick=()=>{Pref.grid=!Pref.grid;savePref();$('#bGrid').classList.toggle('on',Pref.grid);redraw();renderProps()};
 /* guias: arraste a partir da régua; arraste a guia para mover; solte fora da página para apagar */
 let G=null;
-function guidePos(ev,p,pgEl,kind){const r=pgEl.getBoundingClientRect();return kind==='v'?(ev.clientX-r.left)/S.k:(ev.clientY-r.top)/S.k}
-function startGuide(ev,kind,idx){const pgEl=$('#stage .pg.on')||$('#stage .pg');if(!pgEl)return;const p=S.pages[pgEl.dataset.id];if(!p)return;ev.preventDefault();
-  const b=snapOf([p.id]);p.guides=p.guides||[];if(idx===null){p.guides.push(kind==='v'?{v:r1(guidePos(ev,p,pgEl,kind))}:{h:r1(guidePos(ev,p,pgEl,kind))});idx=p.guides.length-1}
-  G={p,pgEl,kind,idx,b};window.addEventListener('pointermove',moveGuide);window.addEventListener('pointerup',endGuide,{once:true})}
-function moveGuide(ev){if(!G)return;const v=guidePos(ev,G.p,G.pgEl,G.kind),g=G.p.guides[G.idx];if(!g)return;const t=Pref.snap&&!ev.altKey?Math.round(v/Pref.step)*Pref.step:v;if(G.kind==='v')g.v=r1(t);else g.h=r1(t);drawOverlaysOnly()}
-function endGuide(ev){window.removeEventListener('pointermove',moveGuide);if(!G)return;const {p,pgEl,kind,idx,b}=G;G=null;const v=guidePos(ev,p,pgEl,kind),lim=kind==='v'?p.w:p.h;
-  if(v<0||v>lim)p.guides.splice(idx,1);if(!p.guides.length)delete p.guides;pushHist(b,snapOf([p.id]));drawOverlaysOnly();renderProps()}
+const gEnv=()=>stagePgs().map(el=>({el,id:el.dataset.id,p:S.pages[el.dataset.id],r:el.getBoundingClientRect()})).filter(e=>e.p);
+const pageAt=(env,x)=>env.find(e=>x>=e.r.left&&x<e.r.right)||(x<env[0].r.left?env[0]:env[env.length-1]);
+function startGuide(ev,kind,ref){const env=gEnv();if(!env.length)return;ev.preventDefault();const ids=env.map(e=>e.id),b=snapOf(ids);let g,ownerId,span=false;
+  if(ref){const o=S.pages[ref.ownerId];g=o&&o.guides&&o.guides[ref.idx];if(!g)return;ownerId=ref.ownerId;span=!!(g.sp&&env.length>1&&ownerId===env[0].id)}
+  else{span=env.length>1&&(!!Pref.spanG!==!!ev.shiftKey);const o=span?env[0]:pageAt(env,ev.clientX);ownerId=o.id;g=kind==='v'?{v:0}:{h:0};if(span)g.sp=1;(o.p.guides=o.p.guides||[]).push(g)}
+  G={kind,g,ownerId,span,env,ids,b};moveGuide(ev);window.addEventListener('pointermove',moveGuide);window.addEventListener('pointerup',endGuide,{once:true})}
+function gRaw(ev){const e=G.env,t=G.span?e[0]:pageAt(e,ev.clientX);return {t,v:G.kind==='v'?(ev.clientX-(G.span?e[0].r.left:t.r.left))/S.k:(ev.clientY-e[0].r.top)/S.k}}
+function moveGuide(ev){if(!G)return;const {t,v}=gRaw(ev),g=G.g;
+  if(!G.span&&t.id!==G.ownerId){const o=S.pages[G.ownerId];o.guides=(o.guides||[]).filter(x=>x!==g);if(!o.guides.length)delete o.guides;(t.p.guides=t.p.guides||[]).push(g);G.ownerId=t.id}
+  const q=Pref.snap&&!ev.altKey?Math.round(v/Pref.step)*Pref.step:v;if(G.kind==='v')g.v=r1(q);else g.h=r1(q);drawOverlaysOnly()}
+function endGuide(ev){window.removeEventListener('pointermove',moveGuide);if(!G)return;const {kind,g,ids,b,env}=G,{v}=gRaw(ev);let out;
+  if(kind==='v')out=ev.clientX<env[0].r.left||ev.clientX>env[env.length-1].r.right;else out=v<0||v>env[0].p.h;
+  const o=S.pages[G.ownerId];G=null;if(out&&o){o.guides=(o.guides||[]).filter(x=>x!==g)}
+  ids.forEach(id=>{const q=S.pages[id];if(q&&q.guides&&!q.guides.length)delete q.guides});pushHist(b,snapOf(ids));drawOverlaysOnly();renderProps()}
 $('#rulerH').addEventListener('pointerdown',ev=>startGuide(ev,'h',null));$('#rulerV').addEventListener('pointerdown',ev=>startGuide(ev,'v',null));
 $('#stage').addEventListener('pointerdown',ev=>{const g=ev.target.closest&&ev.target.closest('.ug');if(!g)return;ev.stopPropagation();const w=g.closest('.pg');if(!w)return;
-  const idx=+g.dataset.gi;if(+w.dataset.idx!==S.cur){S.cur=+w.dataset.idx;S.sel=[];$$('#stage .pg').forEach(x=>x.classList.toggle('on',x===w));updNav();markStrip()}
-  startGuide(ev,g.classList.contains('v')?'v':'h',idx)},true);
+  if(+w.dataset.idx!==S.cur){S.cur=+w.dataset.idx;S.sel=[];$$('#stage .pg').forEach(x=>x.classList.toggle('on',x===w));updNav();markStrip()}
+  const own=g.dataset.go||w.dataset.id,ix=+g.dataset.gi,now=Date.now(),l=window._lg;
+  if(l&&now-l.t<400&&l.o===own&&l.i===ix&&Math.abs(ev.clientX-l.x)+Math.abs(ev.clientY-l.y)<8){window._lg=null;ev.preventDefault();toggleGuide(own,ix);return}
+  window._lg={t:now,o:own,i:ix,x:ev.clientX,y:ev.clientY};
+  startGuide(ev,g.classList.contains('v')?'v':'h',{ownerId:own,idx:ix})},true);
+/* dois cliques numa guia: troca entre "contínua" (atravessa as duas páginas) e "separada" (só de uma página) */
+function toggleGuide(ownerId,i){const env=gEnv();
+  if(env.length<2){toast('Guias contínuas existem na visualização de página dupla.');return}
+  const o=S.pages[ownerId],g=o&&o.guides&&o.guides[i];if(!g)return;
+  const L=env[0].p,R=env[1].p,ids=env.map(e=>e.id),b=snapOf(ids),was=!!(g.sp&&ownerId===L.id);
+  o.guides.splice(i,1);
+  if(!was){if(g.v!==undefined&&ownerId===R.id)g.v=r1(g.v+L.w);g.sp=1;(L.guides=L.guides||[]).push(g)}
+  else{delete g.sp;if(g.v!==undefined&&g.v>L.w){g.v=r1(g.v-L.w);(R.guides=R.guides||[]).push(g)}else(L.guides=L.guides||[]).push(g)}
+  ids.forEach(id=>{const q=S.pages[id];if(q&&q.guides&&!q.guides.length)delete q.guides});pushHist(b,snapOf(ids));drawOverlaysOnly();renderProps();toast(was?'Guia separada: agora só de uma página.':'Guia contínua: atravessa as duas páginas.')}
 function gridControlsHTML(){if(!Pref.rulers&&!Pref.grid)return '';return `<div class="pgrp"><h3 style="font-size:12px;color:var(--muted)">RÉGUA, GRADE E GUIAS</h3>
   <label class="chk"><input type="checkbox" id="gRul"${Pref.rulers?' checked':''}> Mostrar régua (arraste dela para criar guias)</label>
   <label class="chk"><input type="checkbox" id="gGrid"${Pref.grid?' checked':''}> Mostrar grade</label>
   <label class="chk"><input type="checkbox" id="gSnap"${Pref.snap?' checked':''}> Encaixar na grade ao mover (Alt solta)</label>
   <label class="pfield"><span>Tamanho dos quadrinhos</span><select id="gStep">${[2.5,5,10,20].map(v=>`<option value="${v}"${Pref.step===v?' selected':''}>${String(v).replace('.',',')} mm</option>`).join('')}</select></label>
-  ${(curPage().guides||[]).length?`<div class="row"><button class="btn sm" id="gAllG">Copiar guias para todas as páginas</button><button class="btn sm ghost danger" id="gClr">Limpar guias</button></div>`:''}</div>`}
-function mountGridControls(P){if(!$('#gRul',P))return;$('#gRul',P).onchange=e=>{Pref.rulers=e.target.checked;savePref();applyRulerMode();if(!Pref.rulers&&!Pref.grid)renderProps()};
+  <div class="pfield"><span>Guias novas na página dupla</span><div class="segf" id="gSpan"><button type="button" data-s="0" class="${Pref.spanG?'':'on'}">Separadas</button><button type="button" data-s="1" class="${Pref.spanG?'on':''}">Contínuas</button></div></div>
+  <p class="hint">Contínua = uma guia só que atravessa as duas páginas. Segure Shift ao arrastar para usar o outro tipo; dois cliques numa guia troca o tipo.</p>
+  ${(curPage().guides||[]).length||stagePgs().some(e=>(S.pages[e.dataset.id]||{}).guides)?`<div class="row"><button class="btn sm" id="gAllG">Copiar guias para todas as páginas</button><button class="btn sm ghost danger" id="gClr">Limpar guias</button></div>`:''}</div>`}
+function mountGridControls(P){if(!$('#gRul',P))return;$('#gSpan',P).onclick=e=>{const b=e.target.closest('button');if(!b)return;Pref.spanG=b.dataset.s==='1';savePref();renderProps()};$('#gRul',P).onchange=e=>{Pref.rulers=e.target.checked;savePref();applyRulerMode();if(!Pref.rulers&&!Pref.grid)renderProps()};
   $('#gGrid',P).onchange=e=>{Pref.grid=e.target.checked;savePref();$('#bGrid').classList.toggle('on',Pref.grid);redraw();if(!Pref.rulers&&!Pref.grid)renderProps()};
   $('#gSnap',P).onchange=e=>{Pref.snap=e.target.checked;savePref()};
   $('#gStep',P).onchange=e=>{Pref.step=+e.target.value;savePref();redraw()};
-  const p=curPage();if($('#gClr',P))$('#gClr',P).onclick=()=>{change([p.id],()=>{delete p.guides});redraw();renderProps()};
+  const p=curPage();if($('#gClr',P))$('#gClr',P).onclick=()=>{const ids=stagePgs().map(e=>e.dataset.id);change(ids.length?ids:[p.id],()=>{(ids.length?ids:[p.id]).forEach(id=>{if(S.pages[id])delete S.pages[id].guides})});redraw();renderProps()};
   if($('#gAllG',P))$('#gAllG',P).onclick=()=>{const gs=clone(p.guides||[]);change(S.order.slice(),()=>S.order.forEach(id=>{S.pages[id].guides=clone(gs)}));redraw();toast('Guias copiadas para todas as páginas.')}}
 
 /* ---------- aba Bordas ---------- */
