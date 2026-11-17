@@ -553,3 +553,7 @@ body{font-size:calc(15px*var(--escala,1))}
 #editor.compact.pinR.showprops #props{position:relative;box-shadow:none;border-left:1px solid var(--line)}
 #editor.compact.pinR.showprops .edge.r{right:auto;position:relative;top:auto;transform:none;align-self:center}
 .ppin{align-self:flex-end;flex:none}
+
+.pgbarc{grid-template-columns:1fr 1fr auto;align-items:center}
+.pgbarc .ppin{position:static;float:none;align-self:center;width:28px;height:28px;margin:0}
+.pgbarc button:not(.ppin){padding:7px 6px;white-space:nowrap}

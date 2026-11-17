@@ -127,6 +127,7 @@
     rp0.apply(this, arguments);
     const PP = document.getElementById('props');
     if (PP && !PP.querySelector('#pinBtn')) { PP.insertAdjacentHTML('afterbegin', `<button type="button" class="ppin${ui.pinR ? ' on' : ''}" id="pinBtn" aria-pressed="${!!ui.pinR}" title="${ui.pinR ? 'Barra fixa: não fecha sozinha (clique para soltar)' : 'Fixar a barra para ela não fechar sozinha'}">${PIN}</button>`); }
+    { const bar = PP && PP.querySelector('#pgBarC'), pb = PP && PP.querySelector('#pinBtn'); if (bar && pb && pb.parentNode !== bar) bar.appendChild(pb); }
     if (!compact() || S.view !== 'editor') return;
     const tem = !!(S.sel && S.sel.length);
     if (tem && !tinha && !ui.noAutoProps) { ed.classList.add('showprops'); auto = true; }

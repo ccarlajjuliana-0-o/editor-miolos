@@ -316,7 +316,7 @@
     if (!otherCfgActive()) return;
     const p = curPage(), title = `Página ${S.cur + 1}`;
     core.hidden = !pgOpen;
-    core.insertAdjacentHTML('beforebegin', `<div class="pgbarc" id="pgBarC" role="group" aria-label="Configuração da página"><button type="button" id="pgcHide" class="${pgOpen ? '' : 'on'}" aria-pressed="${!pgOpen}">⌄ Ocultar</button><button type="button" id="pgcShow" class="${pgOpen ? 'on' : ''}" aria-pressed="${pgOpen}">⌃ Expandir</button></div>`);
+    core.insertAdjacentHTML('beforebegin', `<div class="pgbarc" id="pgBarC" role="group" aria-label="Configuração da página"><button type="button" id="pgcHide" class="${pgOpen ? 'on' : ''}" title="Ocultar a configuração da página">⌄ Ocultar</button><button type="button" id="pgcShow" class="${pgOpen ? '' : 'on'}" title="Mostrar a configuração da página">⌃ Expandir</button></div>`);
     void p;
     P.querySelector('#pgcHide').onclick = () => { pgOpen = false; renderProps(); };
     P.querySelector('#pgcShow').onclick = () => { pgOpen = true; renderProps(); };
