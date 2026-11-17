@@ -149,14 +149,14 @@ $('#rulerH').addEventListener('pointerdown',ev=>startGuide(ev,'h',null));$('#rul
 $('#stage').addEventListener('pointerdown',ev=>{const g=ev.target.closest&&ev.target.closest('.ug');if(!g)return;ev.stopPropagation();const w=g.closest('.pg');if(!w)return;
   const idx=+g.dataset.gi;if(+w.dataset.idx!==S.cur){S.cur=+w.dataset.idx;S.sel=[];$$('#stage .pg').forEach(x=>x.classList.toggle('on',x===w));updNav();markStrip()}
   startGuide(ev,g.classList.contains('v')?'v':'h',idx)},true);
-function gridControlsHTML(){return `<div class="pgrp"><h3 style="font-size:12px;color:var(--muted)">RÉGUA, GRADE E GUIAS</h3>
+function gridControlsHTML(){if(!Pref.rulers&&!Pref.grid)return '';return `<div class="pgrp"><h3 style="font-size:12px;color:var(--muted)">RÉGUA, GRADE E GUIAS</h3>
   <label class="chk"><input type="checkbox" id="gRul"${Pref.rulers?' checked':''}> Mostrar régua (arraste dela para criar guias)</label>
   <label class="chk"><input type="checkbox" id="gGrid"${Pref.grid?' checked':''}> Mostrar grade</label>
   <label class="chk"><input type="checkbox" id="gSnap"${Pref.snap?' checked':''}> Encaixar na grade ao mover (Alt solta)</label>
   <label class="pfield"><span>Tamanho dos quadrinhos</span><select id="gStep">${[2.5,5,10,20].map(v=>`<option value="${v}"${Pref.step===v?' selected':''}>${String(v).replace('.',',')} mm</option>`).join('')}</select></label>
   ${(curPage().guides||[]).length?`<div class="row"><button class="btn sm" id="gAllG">Copiar guias para todas as páginas</button><button class="btn sm ghost danger" id="gClr">Limpar guias</button></div>`:''}</div>`}
-function mountGridControls(P){$('#gRul',P).onchange=e=>{Pref.rulers=e.target.checked;savePref();applyRulerMode()};
-  $('#gGrid',P).onchange=e=>{Pref.grid=e.target.checked;savePref();$('#bGrid').classList.toggle('on',Pref.grid);redraw()};
+function mountGridControls(P){if(!$('#gRul',P))return;$('#gRul',P).onchange=e=>{Pref.rulers=e.target.checked;savePref();applyRulerMode();if(!Pref.rulers&&!Pref.grid)renderProps()};
+  $('#gGrid',P).onchange=e=>{Pref.grid=e.target.checked;savePref();$('#bGrid').classList.toggle('on',Pref.grid);redraw();if(!Pref.rulers&&!Pref.grid)renderProps()};
   $('#gSnap',P).onchange=e=>{Pref.snap=e.target.checked;savePref()};
   $('#gStep',P).onchange=e=>{Pref.step=+e.target.value;savePref();redraw()};
   const p=curPage();if($('#gClr',P))$('#gClr',P).onclick=()=>{change([p.id],()=>{delete p.guides});redraw();renderProps()};

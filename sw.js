@@ -1,5 +1,5 @@
 // Guarda o app para abrir sem internet. Arquivos próprios: rede primeiro (para as atualizações chegarem); bibliotecas e fontes: guardadas na primeira vez.
-const V = 'estudio-miolos-v5';
+const V = 'estudio-miolos-v6';
 const BASE = ['./', 'index.html', 'estilo.css', 'app.js', 'aparencia.js', 'layout.js', 'protecao.js', 'recursos.js', 'config.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(V).then((c) => c.addAll(BASE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== V).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
@@ -10,7 +10,7 @@ self.addEventListener('fetch', (e) => {
   if (url.hostname.endsWith('supabase.co')) return; // dados da nuvem nunca ficam em cache
   const proprio = url.origin === location.origin;
   if (proprio) {
-    e.respondWith(fetch(req).then((r) => { const c = r.clone(); caches.open(V).then((ca) => ca.put(req, c)); return r; }).catch(() => caches.match(req).then((m) => m || caches.match('index.html'))));
+    e.respondWith(fetch(req, { cache: 'no-cache' }).then((r) => { const c = r.clone(); caches.open(V).then((ca) => ca.put(req, c)); return r; }).catch(() => caches.match(req, { ignoreSearch: true }).then((m) => m || caches.match('index.html', { ignoreSearch: true }))));
   } else {
     e.respondWith(caches.match(req).then((m) => m || fetch(req).then((r) => { if (r.ok || r.type === 'opaque') { const c = r.clone(); caches.open(V).then((ca) => ca.put(req, c)); } return r; })));
   }

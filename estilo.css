@@ -336,5 +336,11 @@ body{font-size:calc(15px*var(--escala,1))}
 @media (min-width:981px){#editor.nopanel #panel{display:none}#editor.noprops #props{display:none}}
 @media (max-width:1500px){#cloudSt{font-size:0;gap:0}#cloudSt::before{width:10px;height:10px}#appLinkTop{display:none}}
 @media (max-width:1300px){.seg button span{display:none}}
-@media (max-width:1150px){#bRuler,#bGrid{display:none}#etop .pname{max-width:170px}}
-@media (max-width:980px){.edge{display:none}}
+@media (max-width:1150px){#bZo,#bZi{display:none}#etop .pname{max-width:170px}}
+@media (max-width:980px){.edge.l,.edge.r{display:none}}
+
+.edge.b{width:72px;height:16px;border-top:1px solid var(--line);border-bottom:0;border-radius:8px 8px 0 0;margin-bottom:-1px;align-self:center}
+#editor.nostrip #strip{display:none}
+.menu .nome-app{font-family:var(--f-title);font-weight:700;font-size:calc(19px*var(--escala,1));line-height:1.2;padding:2px 6px 14px;color:var(--sobre-menu);border-bottom:1px solid rgba(255,255,255,.14);margin-bottom:10px}
+.menu .nome-app small{display:block;font-weight:500;font-size:calc(12px*var(--escala,1));opacity:.75;letter-spacing:.04em;margin-top:2px}
+.conteudo .tag{font-size:calc(14px*var(--escala,1));font-weight:600}

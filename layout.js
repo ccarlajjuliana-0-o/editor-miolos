@@ -37,6 +37,14 @@
   $('#edgeL').onclick = () => side('L', !ed.classList.contains('nopanel'));
   $('#edgeR').onclick = () => side('R', !ed.classList.contains('noprops'));
   side('L', !!ui.hideL, true); side('R', !!ui.hideR, true);
+  function strip(hide, silent) {
+    ed.classList.toggle('nostrip', hide);
+    const b = $('#edgeB'), t = hide ? 'Mostrar as páginas' : 'Recolher as páginas';
+    b.querySelector('path').setAttribute('d', hide ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'); b.title = t; b.setAttribute('aria-label', t);
+    if (!silent) { ui.hideB = hide; save(); setTimeout(() => window.dispatchEvent(new Event('resize')), 30); }
+  }
+  $('#edgeB').onclick = () => strip(!ed.classList.contains('nostrip'));
+  strip(!!ui.hideB, true);
   // escolher uma ferramenta no trilho reabre o painel
   $('#rail').addEventListener('click', (e) => { if (e.target.closest('button') && ed.classList.contains('nopanel')) side('L', false); });
   window.Layout = { view, side };
