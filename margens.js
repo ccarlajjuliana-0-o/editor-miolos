@@ -244,6 +244,7 @@
       ${BIND[bindOf(m)] ? `<p class="hint">${BIND[bindOf(m)].obs}</p>` : ''}
       <div class="mgpair"><div class="mgrows">${row('holes', 'Furos', m.holes, 40, dis)}${row('gutter', 'Lombada', m.gutter, 30, dis)}</div>${chain('mgLkSp', spreadOn(), dis)}</div>
       <p class="hint">Furos: espaço no lado de dentro de cada página, no meio da dupla. Lombada: total ao meio. O ⛓ de baixo mantém o lado de dentro das duas páginas da dupla iguais.</p>
+      <label class="chk"><input type="checkbox" id="mgSafe"${S.guides ? ' checked' : ''}> Mostrar margem de segurança</label>
       <div class="mrow mgsw-row"><span class="mi">🔒</span><span class="ml" style="flex:1">Bloquear margens no editor</span>${sw('mgLock', dis, false)}</div>
       <div class="mghead"><b>Espaçamento</b></div>
       ${row('hdr', 'Cabeçalho', m.hdr, 40, dis, { ic: 'hdr' })}${row('ftr', 'Rodapé', m.ftr, 40, dis, { ic: 'ftr' })}
@@ -270,6 +271,7 @@
     on('#mgLkTB', () => { S.meta.mgLinkTB = !linkOn('top'); Saver.m(); renderProps(); });
     on('#mgLkLR', () => { S.meta.mgLinkLR = !linkOn('inner'); Saver.m(); renderProps(); });
     on('#mgLkSp', () => { S.meta.mgLinkSpread = !spreadOn(); Saver.m(); if (spreadOn()) edit(p, { inner: p.mg.inner, holes: p.mg.holes, gutter: p.mg.gutter }, null, { ids: [p.id] }); else { renderProps(); redraw(); } });
+    const sf = $q('#mgSafe'); if (sf) sf.onchange = () => { S.guides = sf.checked; redraw(); };
     const lk = $q('#mgLock'); if (lk) lk.onchange = () => setLock(p, lk.checked);
     const sd = $q('#mgSide'); if (sd) sd.onchange = () => { edit(p, { side: sd.value }, null, { ids: [p.id] }); };
     const fl = $q('#mgFlip'); if (fl) fl.onchange = () => {
@@ -294,6 +296,31 @@
       change([p.id], () => p.els.push(el)); S.sel = [el.id]; redraw(); renderProps(); thumbRefresh(p.id); toast2('Abas inseridas. Clique nelas para trocar os nomes.');
     };
   }
+  /* ---------- organização da coluna da direita ---------- */
+  let pgOpen = false; // configuração da página expandida enquanto há outra janela de configuração ativa
+  const otherCfgActive = () => isOn() || (typeof Pref !== 'undefined' && (Pref.rulers || Pref.grid));
+  function decorate(P) {
+    if (!P || !S.meta) return;
+    const isPage = !!P.querySelector('#psz');
+    if (!isPage) { // elemento selecionado: botão para voltar à janela anterior
+      if (P.children.length && !P.querySelector('#pBack') && !P.querySelector('#mgPanel')) {
+        P.insertAdjacentHTML('afterbegin', '<button type="button" class="pback" id="pBack" title="Voltar para as configurações da página">← Voltar</button>');
+        P.querySelector('#pBack').onclick = () => { S.sel = []; redraw(); renderProps(); };
+      }
+      return;
+    }
+    if (P.querySelector('#pgCore')) return;
+    const kids = [...P.children].filter((n) => n.id !== 'mgPanel' && !n.querySelector('#gRul'));
+    if (!kids.length) return;
+    const core = document.createElement('div'); core.id = 'pgCore'; P.insertBefore(core, kids[0]); kids.forEach((k) => core.appendChild(k));
+    if (!otherCfgActive()) return;
+    const p = curPage(), title = `Página ${S.cur + 1}`;
+    core.hidden = !pgOpen;
+    core.insertAdjacentHTML('beforebegin', `<div class="pgbarc" id="pgBarC" role="group" aria-label="Configuração da página"><button type="button" id="pgcHide" class="${pgOpen ? '' : 'on'}" aria-pressed="${!pgOpen}">⌄ Ocultar</button><span class="pgbarc-m" title="${title}: nome, tamanho e fundo">${title} · tamanho e fundo<i>···</i></span><button type="button" id="pgcShow" class="${pgOpen ? 'on' : ''}" aria-pressed="${pgOpen}">⌃ Expandir</button></div>`);
+    void p;
+    P.querySelector('#pgcHide').onclick = () => { pgOpen = false; renderProps(); };
+    P.querySelector('#pgcShow').onclick = () => { pgOpen = true; renderProps(); };
+  }
   const rp = window.renderProps;
   window.renderProps = function () {
     const r = rp.apply(this, arguments);
@@ -305,6 +332,7 @@
         const anchor = P.querySelector('#pGuides'), grp = anchor && anchor.closest('.pgrp');
         if (grp) { grp.insertAdjacentHTML('beforebegin', panelHTML(p)); mount(p, P); }
       }
+      decorate(P);
     } catch (e) { console.error(e); }
     return r;
   };
