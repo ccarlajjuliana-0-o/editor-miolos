@@ -24,9 +24,12 @@
   // Padrão proporcional ao lado curto da página (A5: 5,8 mm nas bordas e 12,2 mm por dentro). Furos só se houver encadernação.
   const defaults = (p, bk) => {
     const s = Math.min(p.w, p.h), r = (v) => Math.round(v * 10) / 10, k = bk !== undefined ? bk : S.meta && S.meta.mgBind, B = BIND[k];
-    return { top: r(s * 0.0392), bottom: r(s * 0.0392), inner: r(s * 0.0824), outer: r(s * 0.0392), gutter: 0, holes: B ? B.mm : 0, bind: B ? k : 'custom', bindOn: !!B, hdr: 0, ftr: 0, tabs: { on: false, pos: 'side', n: 4, w: 12, r: 3, bg: 'none' }, lock: false, side: 'auto' };
+    return { top: r(s * 0.0392), bottom: r(s * 0.0392), inner: r(s * 0.0824), outer: r(s * 0.0392), gutter: 0, holes: B ? B.mm : 0, bind: B ? k : 'custom', bindOn: !!B, hdr: 0, ftr: 0, tabs: curTabs(), lock: false, side: 'auto' };
   };
-  const tabsOf = (m) => Object.assign({ on: false, pos: 'side', n: 4, w: 12, r: 3, bg: 'none' }, m && m.tabs);
+  const TDEF = { on: false, pos: 'side', n: 4, w: 12, r: 3, gap: 1, len: 0, al: 'center', bg: 'none', labels: [], cmode: 'alt', c1: '#C398C8', c2: '#92A8D1', cols: [], tc: '#3E3550', font: 'Quicksand', act: 0, actc: '#4A4E79' };
+  const tabsOf = (m) => Object.assign({}, TDEF, m && m.tabs);
+  // as divisórias são iguais em todas as páginas: quem nasce depois herda a configuração das outras
+  function curTabs() { const id = S.order && S.order.find((i) => S.pages[i] && S.pages[i].mg); return Object.assign({}, TDEF, id ? S.pages[id].mg.tabs : null); }
   function extras(m) { const t = tabsOf(m), w = t.on ? Math.max(0, num(t.w, 12)) : 0; return { side: t.pos === 'side' ? w : 0, top: t.pos === 'top' ? w : 0, bot: t.pos === 'bottom' ? w : 0, t }; }
   function geom(p, m) {
     if (!m) return { full: true, x0: 0, x1: p.w, top: 0, bot: p.h, y0: 0, y1: p.h, hasH: false, hasF: false, e: false, g: 0, holes: 0, X: { side: 0, top: 0, bot: 0, t: tabsOf(null) } };
@@ -148,6 +151,50 @@
   const patchMg = (p, patch, o) => { edit(p, patch, null, o); };
   function setLock(p, on) { const ids = scopeIds(p).filter((id) => S.pages[id].mg); if (!ids.length) return; change(ids, () => ids.forEach((id) => { S.pages[id].mg.lock = on; })); redraw(); renderProps(); }
 
+  /* ---------- divisórias: um desenho só, fixo na lateral externa, igual em todas as páginas ---------- */
+  function rr(c, x, y, w, h, r) { // r = [tl, tr, br, bl]
+    c.beginPath(); c.moveTo(x + r[0], y); c.lineTo(x + w - r[1], y); if (r[1]) c.arcTo(x + w, y, x + w, y + r[1], r[1]); c.lineTo(x + w, y + h - r[2]); if (r[2]) c.arcTo(x + w, y + h, x + w - r[2], y + h, r[2]);
+    c.lineTo(x + r[3], y + h); if (r[3]) c.arcTo(x, y + h, x, y + h - r[3], r[3]); c.lineTo(x, y + r[0]); if (r[0]) c.arcTo(x, y, x + r[0], y, r[0]); c.closePath();
+  }
+  R.mgtabs = function (c, e) {
+    const n = e.n, V = e.side === 'l' || e.side === 'r', L = V ? e.h : e.w, D = V ? e.w : e.h, gap = Math.max(0, e.gap);
+    if (e.bgw) { c.fillStyle = '#FFFFFF'; c.fillRect(0, 0, e.w, e.h); }
+    const auto = Math.max(1, (L - (n - 1) * gap) / n), th = e.len > 0 ? Math.min(e.len, auto) : auto, total = n * th + (n - 1) * gap;
+    const st = e.len > 0 ? (e.al === 'start' ? 0 : e.al === 'end' ? L - total : (L - total) / 2) : 0;
+    const rad = Math.max(0, Math.min(e.rad, th / 2, D));
+    const R4 = { l: [rad, 0, 0, rad], r: [0, rad, rad, 0], t: [rad, rad, 0, 0], b: [0, 0, rad, rad] }[e.side];
+    for (let i = 0; i < n; i++) {
+      const a = st + i * (th + gap), act = i === e.act - 1;
+      if (V) rr(c, 0, a, D, th, R4); else rr(c, a, 0, th, D, R4);
+      c.fillStyle = act ? e.actc : e.cols[i]; c.fill();
+      const lab = String(e.labels[i] == null ? '' : e.labels[i]); if (!lab) continue;
+      c.save(); c.translate(V ? D / 2 : a + th / 2, V ? a + th / 2 : D / 2);
+      if (V) c.rotate(e.side === 'r' ? Math.PI / 2 : -Math.PI / 2);
+      font(c, Math.min(D * 0.42, th * 0.26, 5), e.font, 600); c.fillStyle = act ? '#FFFFFF' : e.tc; T(c, fitText(c, lab, th - 1.6), 0, 0, 'center', 'middle'); c.restore();
+    }
+  };
+  function tabEl(pg) {
+    const m = pg && pg.mg; if (!m || !S.meta || S.meta.mgOn === false) return null;
+    const t = tabsOf(m); if (!t.on) return null;
+    const g = geom(pg, m), w = Math.max(3, num(t.w, 12)), n = cl(Math.round(num(t.n, 4)), 1, 30);
+    let x, y, ww, hh, side;
+    if (t.pos === 'side') { side = g.e ? 'l' : 'r'; x = g.e ? 0 : pg.w - w; y = g.top; ww = w; hh = g.bot - g.top; }
+    else { side = t.pos === 'top' ? 't' : 'b'; x = g.x0; y = t.pos === 'top' ? 0 : pg.h - w; ww = g.x1 - g.x0; hh = w; }
+    const cols = Array.from({ length: n }, (_, i) => (t.cmode === 'same' ? t.c1 : t.cmode === 'each' ? (t.cols[i] || (i % 2 ? t.c2 : t.c1)) : (i % 2 ? t.c2 : t.c1)));
+    return { id: 'mgtabs', type: 'mgtabs', x, y, w: ww, h: hh, side, n, len: num(t.len, 0), gap: num(t.gap, 1), al: t.al, rad: num(t.r, 3), labels: Array.from({ length: n }, (_, i) => (t.labels[i] != null ? t.labels[i] : String(i + 1))), cols, tc: t.tc, font: t.font, act: num(t.act, 0), actc: t.actc, bgw: t.bg === 'white' };
+  }
+  // aplica a mudança em TODAS as páginas com layout (as divisórias são vinculadas)
+  function tabsEdit(p, patch) {
+    const base = tabsOf(p.mg), pt = Object.assign({}, patch);
+    const lab = (arr, n) => Array.from({ length: n }, (_, i) => (arr[i] != null ? arr[i] : String(i + 1)));
+    if ('n' in pt) { pt.n = cl(Math.round(+pt.n || 1), 1, 30); pt.labels = lab(base.labels, pt.n); }
+    else if ('labels' in pt) { pt.labels = pt.labels.slice(0, 30); pt.n = Math.max(1, pt.labels.length); }
+    else if (pt.on && !base.labels.length) pt.labels = lab([], base.n);
+    const ids = S.order.filter((id) => S.pages[id] && S.pages[id].mg);
+    if (!ids.includes(p.id)) ids.push(p.id);
+    return edit(p, { tabs: pt }, null, { ids });
+  }
+
   /* ---------- desenho no palco ---------- */
   function overlay(p, k) {
     const m = p.mg; if (!m || !show()) return '';
@@ -158,12 +205,6 @@
       const hx = g.e ? p.w - g.g - g.holes : g.g, n = Math.max(2, Math.round(p.h / 30)), dia = BIND[bindOf(m)] ? BIND[bindOf(m)].d : 6;
       h += `<div class="mghole" style="left:${hx * k}px;width:${g.holes * k}px"></div>`;
       for (let i = 0; i < n; i++) h += `<i class="mgdot" style="left:${(hx + g.holes / 2) * k}px;top:${((i + 0.5) * p.h / n) * k}px;width:${Math.max(4, dia * k)}px;height:${Math.max(4, dia * k)}px"></i>`;
-    }
-    if (g.X.t.on) {
-      const t = g.X.t, n = cl(Math.round(num(t.n, 4)), 1, 30), w = num(t.w, 12), r = Math.max(0, num(t.r, 3)) * k, gap = 1;
-      const sl = (x, y, ww, hh, i) => `<div class="mgtab${t.bg === 'white' ? ' w' : ''}" style="left:${x * k}px;top:${y * k}px;width:${ww * k}px;height:${hh * k}px;border-radius:${r}px"><b>${i + 1}</b></div>`;
-      if (t.pos === 'side') { const x = g.e ? 0 : p.w - w, hh = (g.bot - g.top) / n; for (let i = 0; i < n; i++) h += sl(x, g.top + i * hh + gap / 2, w, hh - gap, i); }
-      else { const y = t.pos === 'top' ? 0 : p.h - w, ww = (g.x1 - g.x0) / n; for (let i = 0; i < n; i++) h += sl(g.x0 + i * ww + gap / 2, y, ww - gap, w, i); }
     }
     h += `<div class="mgl h" style="top:${g.top * k}px"></div><div class="mgl h" style="top:${g.bot * k}px"></div><div class="mgl v" style="left:${g.x0 * k}px"></div><div class="mgl v" style="left:${g.x1 * k}px"></div>`;
     if (g.hasH) h += `<div class="mgl h sub" style="top:${g.y0 * k}px"></div><span class="mgtag" style="top:${g.top * k + 2}px;left:${g.x0 * k + 4}px">cabeçalho</span>`;
@@ -267,7 +308,7 @@
   window.Margens = {
     edit,
     snapLines(p) { const xs = [], ys = []; if (!p || !p.mg || !isOn()) return { xs, ys }; const g = geom(p, p.mg); xs.push(g.x0, g.x1); ys.push(g.top, g.bot); if (g.hasH) ys.push(g.y0); if (g.hasF) ys.push(g.y1); return { xs, ys }; },
-    geom, applyMap, defaults, isLeft,
+    geom, applyMap, defaults, isLeft, tabEl,
   };
 
   /* ---------- painel (propriedades da página) ---------- */
@@ -282,15 +323,51 @@
   const chain = (id, on, dis) => `<button type="button" class="mchain${on ? ' on' : ''}" id="${id}" aria-pressed="${on}" title="${on ? 'Vinculadas: mudam juntas (clique para soltar)' : 'Soltas (clique para vincular)'}"${dis ? ' disabled' : ''}><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/></svg></button>`;
   const sw = (id, on, dis) => `<label class="mgsw"><input type="checkbox" id="${id}"${on ? ' checked' : ''}${dis ? ' disabled' : ''}><span></span></label>`;
   function tabsHTML(m, dis, p) {
-    const t = tabsOf(m), d = dis ? ' disabled' : '', pb = (v, l) => `<button type="button" data-tpos="${v}" class="${t.pos === v ? 'on' : ''}"${d}>${l}</button>`;
+    const t = tabsOf(m), d = dis ? ' disabled' : '', pb = (v, l) => `<button type="button" data-tpos="${v}" class="${t.pos === v ? 'on' : ''}"${d}>${l}</button>`, ab = (v, l) => `<button type="button" data-tal="${v}" class="${t.al === v ? 'on' : ''}"${d}>${l}</button>`;
     const body = t.on ? `<div class="mgsub">POSIÇÃO</div><div class="segf" id="mgTbPos">${pb('top', '⬒ Topo')}${pb('bottom', '⬓ Base')}${pb('side', '◧ Lateral')}</div>
       <div class="mrow"><span class="mi">#</span><span class="ml">Quantidade</span><span class="mstep"><button type="button" data-tn="-1"${d}>−</button><input type="number" min="1" max="30" step="1" data-mgt="n" value="${t.n}"${d}><button type="button" data-tn="1"${d}>+</button></span></div>
-      <div class="mgsub">TAMANHO E FORMA</div>
+      <div class="mgsub tsh"><span>TAMANHO E FORMA</span><button type="button" class="mini" id="mgTbReset" title="Voltar ao padrão inicial" aria-label="Redefinir tamanho e forma"${d}>↺</button></div>
       <div class="mrow"><span class="mi">↔</span><span class="ml">${t.pos === 'side' ? 'Largura' : 'Altura'}</span><input type="range" min="3" max="40" step="0.5" value="${Math.min(num(t.w, 12), 40)}" data-mgtr="w"${d}><input type="number" class="mn" step="${stepU()}" min="0" value="${toU(t.w)}" data-mgtn="w"${d}></div>
       <div class="mrow"><span class="mi">◜</span><span class="ml">Raio</span><input type="range" min="0" max="15" step="0.5" value="${Math.min(num(t.r, 3), 15)}" data-mgtr="r"${d}><input type="number" class="mn" step="${stepU()}" min="0" value="${toU(t.r)}" data-mgtn="r"${d}></div>
-      <div class="mgsub">PLANO DE FUNDO</div><div class="segf" id="mgTbBgSel"><button type="button" data-tbg="none" class="${t.bg === 'white' ? '' : 'on'}"${d}>Transparente</button><button type="button" data-tbg="white" class="${t.bg === 'white' ? 'on' : ''}"${d}>Branco</button></div>
-      ${t.pos === 'side' ? `<button type="button" class="btn sm" id="mgTbMake"${d}>Inserir abas na lateral</button>` : ''}` : '';
+      <div class="mrow"><span class="mi">⇕</span><span class="ml">Espaço entre</span><input type="range" min="0" max="15" step="0.5" value="${Math.min(num(t.gap, 1), 15)}" data-mgtr="gap"${d}><input type="number" class="mn" step="${stepU()}" min="0" value="${toU(t.gap)}" data-mgtn="gap"${d}></div>
+      <div class="mrow"><span class="mi">▭</span><span class="ml">Tamanho</span><input type="range" min="0" max="120" step="1" value="${Math.min(num(t.len, 0), 120)}" data-mgtr="len"${d}><input type="number" class="mn" step="${stepU()}" min="0" value="${toU(t.len)}" data-mgtn="len"${d}></div>
+      <p class="hint">Tamanho 0 = as divisórias ocupam a lateral toda.</p>
+      <div class="mgsub">ALINHAMENTO NA LATERAL</div><div class="segf" id="mgTbAl">${ab('start', 'Início')}${ab('center', 'Centro')}${ab('end', 'Fim')}</div>
+      <button type="button" class="btn sm" id="mgTbMore"${d}>Mais configurações…</button>` : '';
     return `<div class="mgcard${t.on ? ' on' : ''}"><div class="mgcard-h"><span class="mi">▤</span><b>Divisórias</b>${sw('mgTbOn', t.on, dis)}</div>${body ? `<div class="mgcard-b">${body}</div>` : ''}</div>`;
+  }
+  let tabsMore = false; // segunda janela: nomes, cores e fundo das divisórias
+  function moreHTML(p) {
+    const t = tabsOf(p.mg), n = cl(Math.round(num(t.n, 4)), 1, 30);
+    const cf = (key, val, label) => `<div class="tcf"><span class="tcl">${label}</span><div class="cfield">${BRAND.map((c) => `<button type="button" class="sw${String(val).toLowerCase() === c.toLowerCase() ? ' on' : ''}" data-tcv="${key}" data-v="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}<input type="color" data-tcc="${key}" value="${/^#[0-9a-f]{6}$/i.test(val) ? val : '#C398C8'}" aria-label="Escolher cor"></div></div>`;
+    const cm = (v, l) => `<button type="button" data-tcm="${v}" class="${t.cmode === v ? 'on' : ''}">${l}</button>`;
+    const rows = Array.from({ length: n }, (_, i) => { const lab = t.labels[i] != null ? t.labels[i] : String(i + 1), col = t.cols[i] || (i % 2 ? t.c2 : t.c1); return `<div class="tbrow"><span class="tbn">${i + 1}</span><input type="text" data-tbl="${i}" value="${String(lab).replace(/"/g, '&quot;')}" aria-label="Texto da divisória ${i + 1}">${t.cmode === 'each' ? `<input type="color" class="tbcol" data-tbc="${i}" value="${/^#[0-9a-f]{6}$/i.test(col) ? col : '#C398C8'}" title="Cor da divisória ${i + 1}" aria-label="Cor da divisória ${i + 1}">` : ''}</div>`; }).join('');
+    return `<div class="pbrow" id="pbRow"><button type="button" class="pback" id="tbBack" title="Voltar para o Layout">← Voltar</button></div>
+      <div class="pgrp" id="mgPanel"><h3 class="mgh3">▤ DIVISÓRIAS · MAIS CONFIGURAÇÕES</h3>
+      <div class="mgsub">TEXTO DE CADA DIVISÓRIA${t.cmode === 'each' ? ' E SUA COR' : ''}</div>${rows}
+      <div class="row"><button type="button" class="btn sm" id="tbAdd"${n >= 30 ? ' disabled' : ''}>＋ Divisória</button><button type="button" class="btn sm" id="tbDel"${n <= 1 ? ' disabled' : ''}>− Última</button></div>
+      <div class="mgsub">CORES DAS DIVISÓRIAS</div><div class="segf" id="tbCm">${cm('same', 'Iguais')}${cm('alt', 'Alternadas')}${cm('each', 'Cada uma')}</div>
+      ${t.cmode === 'each' ? '<p class="hint">Use o quadrinho de cor ao lado do texto de cada divisória.</p>' : t.cmode === 'same' ? cf('c1', t.c1, 'Cor de todas') : cf('c1', t.c1, 'Cor 1 (1ª, 3ª…)') + cf('c2', t.c2, 'Cor 2 (2ª, 4ª…)')}
+      ${cf('tc', t.tc, 'Cor do texto')}
+      <label class="pfield"><span>Fonte</span><select id="tbFont">${(typeof FONTS !== 'undefined' ? FONTS : [[t.font]]).map(([f]) => `<option${f === t.font ? ' selected' : ''}>${f}</option>`).join('')}</select></label>
+      <div class="mrow"><span class="mi">★</span><span class="ml">Destaque nº</span><input type="number" class="mn" min="0" max="${n}" step="1" id="tbAct" value="${num(t.act, 0)}"></div>
+      ${num(t.act, 0) > 0 ? cf('actc', t.actc, 'Cor do destaque') : ''}
+      <div class="mgsub">PLANO DE FUNDO</div><div class="segf" id="mgTbBgSel"><button type="button" data-tbg="none" class="${t.bg === 'white' ? '' : 'on'}">Transparente</button><button type="button" data-tbg="white" class="${t.bg === 'white' ? 'on' : ''}">Branco</button></div>
+      <p class="hint">As divisórias são iguais em todas as páginas: mudar aqui muda em todas.</p></div>`;
+  }
+  function mountMore(p, P) {
+    const $q = (s) => P.querySelector(s), E_ = (patch) => tabsEdit(p, patch);
+    $q('#tbBack').onclick = () => { tabsMore = false; renderProps(); };
+    const t = tabsOf(p.mg);
+    P.querySelectorAll('[data-tbl]').forEach((i) => { i.onchange = () => { const L = t.labels.slice(); for (let k = 0; k < t.n; k++) if (L[k] == null) L[k] = String(k + 1); L[+i.dataset.tbl] = i.value; E_({ labels: L.slice(0, t.n) }); }; });
+    P.querySelectorAll('[data-tbc]').forEach((i) => { i.onchange = () => { const C = []; for (let k = 0; k < t.n; k++) C[k] = t.cols[k] || (k % 2 ? t.c2 : t.c1); C[+i.dataset.tbc] = i.value; E_({ cols: C }); }; });
+    $q('#tbAdd').onclick = () => E_({ n: t.n + 1 }); $q('#tbDel').onclick = () => E_({ n: t.n - 1 });
+    $q('#tbCm').onclick = (e) => { const b = e.target.closest('[data-tcm]'); if (b) { const patch = { cmode: b.dataset.tcm }; if (b.dataset.tcm === 'each' && !t.cols.length) patch.cols = Array.from({ length: t.n }, (_, k) => (t.cmode === 'same' ? t.c1 : k % 2 ? t.c2 : t.c1)); E_(patch); } };
+    P.querySelectorAll('[data-tcv]').forEach((b) => { b.onclick = () => E_({ [b.dataset.tcv]: b.dataset.v }); });
+    P.querySelectorAll('[data-tcc]').forEach((i) => { i.onchange = () => E_({ [i.dataset.tcc]: i.value }); });
+    $q('#tbFont').onchange = (e) => E_({ font: e.target.value });
+    $q('#tbAct').onchange = (e) => E_({ act: cl(Math.round(+e.target.value || 0), 0, t.n) });
+    $q('#mgTbBgSel').onclick = (e) => { const b = e.target.closest('[data-tbg]'); if (b) E_({ bg: b.dataset.tbg }); };
   }
   function panelHTML(p) {
     const m = p.mg, n = S.order.length, sc = scopeOf(), nsel = selected().length;
@@ -343,19 +420,16 @@
     P.querySelectorAll('[data-mgr]').forEach((r) => { const k = r.dataset.mgr, nb = $q(`[data-mgn=${k}]`); r.oninput = () => { nb.value = toU(+r.value); }; r.onchange = () => commit(k, +r.value); });
     P.querySelectorAll('[data-mgn]').forEach((nb) => { nb.onchange = () => commit(nb.dataset.mgn, Math.max(0, fromU(nb.value))); });
     // divisórias
-    const tbOn = $q('#mgTbOn'); if (tbOn) tbOn.onchange = () => { blur(); edit(p, { tabs: { on: tbOn.checked } }); };
-    const tp = $q('#mgTbPos'); if (tp) tp.onclick = (e) => { const b = e.target.closest('[data-tpos]'); if (b && !b.disabled) edit(p, { tabs: { pos: b.dataset.tpos } }); };
-    const tcommit = (k, v) => { blur(); if (k === 'n') v = cl(Math.round(+v || 1), 1, 30); else if (k === 'w') v = Math.max(3, v || 12); else if (k === 'r') v = Math.max(0, v || 0); edit(p, { tabs: { [k]: v } }); };
+    const tbOn = $q('#mgTbOn'); if (tbOn) tbOn.onchange = () => { blur(); tabsEdit(p, { on: tbOn.checked }); };
+    const tp = $q('#mgTbPos'); if (tp) tp.onclick = (e) => { const b = e.target.closest('[data-tpos]'); if (b && !b.disabled) tabsEdit(p, { pos: b.dataset.tpos }); };
+    const ta = $q('#mgTbAl'); if (ta) ta.onclick = (e) => { const b = e.target.closest('[data-tal]'); if (b && !b.disabled) tabsEdit(p, { al: b.dataset.tal }); };
+    const tcommit = (k, v) => { blur(); if (k === 'n') v = cl(Math.round(+v || 1), 1, 30); else if (k === 'w') v = Math.max(3, v || 12); else v = Math.max(0, v || 0); tabsEdit(p, { [k]: v }); };
     P.querySelectorAll('[data-mgtr]').forEach((r) => { const k = r.dataset.mgtr, nb = $q(`[data-mgtn=${k}]`); r.oninput = () => { nb.value = toU(+r.value); }; r.onchange = () => tcommit(k, +r.value); });
     P.querySelectorAll('[data-mgtn]').forEach((nb) => { nb.onchange = () => tcommit(nb.dataset.mgtn, fromU(nb.value)); });
     const nIn = $q('[data-mgt=n]'); if (nIn) nIn.onchange = () => tcommit('n', nIn.value);
     P.querySelectorAll('[data-tn]').forEach((b) => { b.onclick = () => tcommit('n', num(tabsOf(p.mg).n, 4) + +b.dataset.tn); });
-    const bs = $q('#mgTbBgSel'); if (bs) bs.onclick = (e) => { const b = e.target.closest('[data-tbg]'); if (b && !b.disabled) edit(p, { tabs: { bg: b.dataset.tbg } }); };
-    const mk = $q('#mgTbMake'); if (mk) mk.onclick = () => {
-      const g = geom(p, p.mg), t = tabsOf(p.mg), w = num(t.w, 12), n = cl(Math.round(num(t.n, 4)), 1, 30);
-      const el = E('tabs', g.e ? 0 : p.w - w, g.top, w, g.bot - g.top, { labels: Array.from({ length: n }, (_, i) => String(i + 1)), links: [], active: -1, font: 'Quicksand', color: '#3E3550', fill1: '#C398C8', fill2: '#92A8D1', activeFill: '#4A4E79' });
-      change([p.id], () => p.els.push(el)); S.sel = [el.id]; redraw(); renderProps(); thumbRefresh(p.id); toast2('Abas inseridas. Clique nelas para trocar os nomes.');
-    };
+    on('#mgTbReset', () => { blur(); tabsEdit(p, { w: TDEF.w, r: TDEF.r, gap: TDEF.gap, len: TDEF.len, al: TDEF.al }); toast2('Tamanho e forma voltaram ao padrão. Ctrl+Z desfaz.'); });
+    on('#mgTbMore', () => { tabsMore = true; renderProps(); });
   }
   /* ---------- organização da coluna da direita ---------- */
   let pgOpen = false; // configuração da página expandida enquanto há outra janela de configuração ativa
@@ -393,7 +467,9 @@
         const anchor = P.querySelector('#pGuides'), grp = anchor && anchor.closest('.pgrp');
         if (grp) { grp.insertAdjacentHTML('beforebegin', panelHTML(p)); mount(p, P); }
       }
-      decorate(P);
+      if (tabsMore && (selEls().length || !isOn() || !p || !tabsOf(p.mg).on)) tabsMore = false;
+      if (tabsMore && P && p && P.querySelector('#psz')) { P.innerHTML = moreHTML(p); mountMore(p, P); }
+      else decorate(P);
     } catch (e) { console.error(e); }
     return r;
   };

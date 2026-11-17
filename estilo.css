@@ -608,3 +608,18 @@ body{font-size:calc(15px*var(--escala,1))}
 
 #qbar input.qn,#qbar input.qn:focus{padding:0 !important;border:0 !important;border-radius:8px;box-shadow:none;width:52px;height:32px;min-height:0;background:transparent;font-size:14px;text-align:center}
 #qbar input.qn:focus{background:var(--surface2);outline:0}
+
+/* divisórias: configuração única e segunda janela */
+#mgPanel .tsh{display:flex;align-items:center;justify-content:space-between}
+#mgPanel .mini{width:26px;height:26px;padding:0;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--muted);font:700 14px var(--f-title);cursor:pointer;display:grid;place-items:center}
+#mgPanel .mini:hover{background:var(--surface2)}
+#mgPanel .tbrow{display:flex;align-items:center;gap:6px;margin:4px 0}
+#mgPanel .tbn{flex:none;width:22px;height:22px;border-radius:50%;background:var(--surface2);color:var(--muted);font:700 11px var(--f-title);display:grid;place-items:center}
+#mgPanel .tbrow input[type=text]{flex:1;min-width:0;height:34px;padding:0 10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font:600 13px var(--f-body);color:var(--ink)}
+#mgPanel .tbrow .tbcol{flex:none;width:34px;height:34px;padding:2px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer}
+#mgPanel .tcf{margin:8px 0}
+#mgPanel .tcl{display:block;font:600 12px var(--f-title);color:var(--muted);margin-bottom:4px}
+#mgPanel .tcf .cfield{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#mgPanel .tcf .sw{width:24px;height:24px;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1px var(--line);padding:0;cursor:pointer}
+#mgPanel .tcf .sw.on{border-color:var(--ink)}
+#mgPanel .tcf input[type=color]{width:28px;height:28px;padding:0;border:0;background:none;cursor:pointer}

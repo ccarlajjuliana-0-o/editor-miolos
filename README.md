@@ -90,3 +90,6 @@ adicionar antes/depois, duplicar, renomear, mover (cima, baixo, para…, primeir
 
 ## Barra rápida
 Ao selecionar um objeto aparece uma barra sobre ele: para texto, fonte, tamanho, cor, negrito, itálico e alinhamento do texto; para os demais, duplicar, travar, ordem, excluir e alinhar. Com vários selecionados: agrupar/desagrupar, duplicar, excluir e alinhar entre si.
+
+## Divisórias (abas)
+Ligue em Layout → Divisórias. Elas ficam fixas na lateral externa (arredondadas para fora, espelhadas na página da direita), são iguais em todas as páginas e empurram o conteúdo para dentro. "Mais configurações" abre os textos, as cores (iguais, alternadas ou individuais), a fonte, o destaque e o plano de fundo.

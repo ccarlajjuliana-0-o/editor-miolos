@@ -180,7 +180,8 @@ function drawPage(c,pg,k,ox=0,oy=0,o={}){const b=o.bleed||0;c.save();c.setTransf
   c.beginPath();c.rect(-b,-b,pg.w+2*b,pg.h+2*b);c.clip();c.fillStyle=pg.bg||'#FFFFFF';c.fillRect(-b,-b,pg.w+2*b,pg.h+2*b);
   if(pg.bgImg&&pg.bgImg.src){const im=getImg(pg.bgImg.src);if(im){c.globalAlpha=pg.bgImg.opacity??1;drawImgFit(c,im,-b,-b,pg.w+2*b,pg.h+2*b,pg.bgImg.fit||'cover');c.globalAlpha=1}}
   drawBorder(c,pg);
-  for(const e of pg.els)drawEl(c,e,o);c.restore()}
+  for(const e of pg.els)drawEl(c,e,o);
+  if(window.Margens&&Margens.tabEl){const t=Margens.tabEl(pg);if(t)drawEl(c,t,o)}c.restore()}
 function bbox(e){if(!e.rot)return{x:e.x,y:e.y,w:e.w,h:e.h};const a=e.rot*Math.PI/180,cs=Math.abs(Math.cos(a)),sn=Math.abs(Math.sin(a)),w=e.w*cs+e.h*sn,h=e.w*sn+e.h*cs;return{x:e.x+e.w/2-w/2,y:e.y+e.h/2-h/2,w,h}}
 function pageLinks(pg){const out=[];for(const e of pg.els){if(e.link)out.push({...bbox(e),to:e.link});
   if(e.type==='calendar'&&e.dayLinks){const L=calLayout(e);for(const [d,to] of Object.entries(e.dayLinks)){if(!to)continue;const idx=L.off+(+d)-1;out.push({x:e.x+(idx%7)*L.cw,y:e.y+L.top+Math.floor(idx/7)*L.ch,w:L.cw,h:L.ch,to})}}
@@ -1097,7 +1098,7 @@ function exportModal(){const p=curPage();const sizes={};S.order.forEach(id=>{con
        (f,msg)=>{$('#xProg',b).hidden=false;$('#xProg i',b).style.width=Math.round(f*100)+'%';$('#xMsg',b).textContent=msg})}
      catch(e){console.error(e);$('#xMsg',b).textContent=e&&e.message?e.message:'Algo deu errado ao gerar o arquivo.'}
      finally{btn.disabled=false;delete $('#modal').dataset.lock}}})}
-async function prep(pages){const srcs=new Set(),fonts=new Set();pages.forEach(p=>{if(!p)return;if(p.bgImg&&p.bgImg.src)srcs.add(p.bgImg.src);p.els.forEach(e=>{if(e.type==='image'&&e.src)srcs.add(e.src);[e.font,e.titleFont].forEach(f=>f&&fonts.add(`${e.italic?'italic ':''}${e.weight||400} 16px "${f}"`));if(e.font)[400,500,600,700].forEach(w=>fonts.add(`${w} 16px "${e.font}"`))})});
+async function prep(pages){const srcs=new Set(),fonts=new Set();pages.forEach(p=>{if(!p)return;if(window.Margens&&Margens.tabEl){const t=Margens.tabEl(p);if(t&&t.font)[400,600].forEach(w=>fonts.add(`${w} 16px "${t.font}"`))}if(p.bgImg&&p.bgImg.src)srcs.add(p.bgImg.src);p.els.forEach(e=>{if(e.type==='image'&&e.src)srcs.add(e.src);[e.font,e.titleFont].forEach(f=>f&&fonts.add(`${e.italic?'italic ':''}${e.weight||400} 16px "${f}"`));if(e.font)[400,500,600,700].forEach(w=>fonts.add(`${w} 16px "${e.font}"`))})});
   await Promise.all([...srcs].map(loadImg));await Promise.all([...fonts].map(f=>document.fonts.load(f).catch(()=>{})));await document.fonts.ready}
 function drawMarks(c,pw,ph,k,pad,b){c.save();c.setTransform(k,0,0,k,0,0);c.strokeStyle='#000000';c.lineWidth=.25;const L=pad-b-1,x0=pad,y0=pad,x1=pad+pw,y1=pad+ph;c.beginPath();
   for(const [x,y,sx,sy] of [[x0,y0,-1,-1],[x1,y0,1,-1],[x0,y1,-1,1],[x1,y1,1,1]]){c.moveTo(x+sx*(b+1),y);c.lineTo(x+sx*(b+1+L),y);c.moveTo(x,y+sy*(b+1));c.lineTo(x,y+sy*(b+1+L))}c.stroke();c.restore()}
