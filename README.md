@@ -58,3 +58,10 @@ Aplica em todas as páginas ou só na atual. Na exportação, **Impressão** ofe
 No painel **Páginas**, cada página tem um lápis (dar um título; duplo clique no nome também renomeia) e um menu **⋯** (ou botão direito na miniatura):
 adicionar antes/depois, duplicar, renomear, mover (cima, baixo, para…, primeira, última), copiar design para outras páginas, usar o design de outra e excluir.
 **Inserir página** (também o “+” da tira) abre a janela com *Página vazia* ou *Cópia de uma página*, onde inserir (frente, trás, antes, depois) e, em **Mais opções**, título, quantidade, tamanho e design a copiar.
+
+
+### Páginas: seleção, arrastar e miniaturas
+- Marque páginas (checkbox, Shift = intervalo, Ctrl = alternar) ou "Selecionar todas"; ações em lote: copiar design, duplicar, mover, excluir.
+- Arraste o ⠿ para reorganizar (grupo marcado vai junto); setas ↑ ↓ no ⠿ também movem.
+- "Copiar design" escolhe o que colar: fundo, textos, imagens, formas, tabelas/calendários; opcionalmente tamanho e título.
+- Modo Lista ou Miniaturas no topo do painel.

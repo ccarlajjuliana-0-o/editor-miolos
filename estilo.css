@@ -454,3 +454,24 @@ body{font-size:calc(15px*var(--escala,1))}
 .pgmenu button:disabled{opacity:.4;cursor:default}
 .pgmenu button.danger{color:var(--danger)}
 .pgmenu hr{border:0;border-top:1px solid var(--line);margin:4px 2px}
+
+/* ===== Páginas: seleção, arrastar, miniaturas ===== */
+.insroot.cdroot{max-height:calc(100vh - 60px);overflow:auto}
+.cdfoot{justify-content:flex-end;position:sticky;bottom:0;background:var(--surface);padding-top:6px}
+.cdparts{border:1px solid var(--line);border-radius:12px;padding:6px 10px;display:flex;flex-direction:column}
+.cdp{display:flex;align-items:center;gap:8px;padding:4px 0}.cdp .chk{flex:1;min-width:0}.cdp.sub{padding-left:22px}.cdp .ib{width:26px;height:26px}
+.pgtools{display:flex;align-items:center;gap:8px;justify-content:space-between;margin:8px 0 4px}
+.pgbar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px;padding:6px;border:1px solid var(--accent);border-radius:12px;background:var(--surface2)}
+.prow .pck{flex:none;width:16px;height:16px;margin:0;accent-color:var(--accent)}
+.prow .pgrip{flex:none;width:18px;height:26px;border:0;background:transparent;color:var(--muted);cursor:grab;touch-action:none;padding:0;font-size:15px;line-height:1}
+.pwrap{position:relative}.pwrap.sel .prow{background:var(--surface2);border-color:var(--accent)}
+.pwrap.drag{opacity:.4}
+.pwrap.drop-b::before,.pwrap.drop-a::after{content:'';position:absolute;left:0;right:0;height:3px;border-radius:2px;background:var(--accent);z-index:2}
+.pwrap.drop-b::before{top:-3px}.pwrap.drop-a::after{bottom:-3px}
+.plist.dragging{user-select:none;cursor:grabbing}.plist.dragging *{cursor:grabbing!important}
+.pgview{float:right;display:inline-flex;gap:2px}.pgview .ib{width:28px;height:28px;border-radius:8px;font-size:15px}.pgview .ib.on{background:var(--surface2);color:var(--accent)}
+.plist.mini .prow{flex-wrap:wrap;padding:6px}
+.plist.mini .pthumb{flex:0 0 100%;display:flex;justify-content:center;background:var(--ws);border-radius:8px;padding:6px;cursor:pointer}
+.plist.mini .pthumb canvas{background:#fff;box-shadow:0 1px 4px var(--shadow);max-width:100%}
+.plist.mini .pgcd{flex:0 0 100%}
+.plist.mini .prow.on{background:var(--surface2)}
