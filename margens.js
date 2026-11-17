@@ -60,7 +60,7 @@
 
   /* ---------- desenho no palco ---------- */
   function overlay(p, k) {
-    const m = p.mg; if (!m) return '';
+    const m = p.mg; if (!m || !show()) return '';
     const g = geom(p, m), lock = !!m.lock, W = p.w * k, H = p.h * k, pid = p.id;
     let h = '';
     if (g.g > 0) h += `<div class="mgband" style="${g.e ? 'right' : 'left'}:0;width:${g.g * k}px"></div>`;
@@ -73,10 +73,17 @@
       if (g.hasH) h += hd('hdr', `left:30%;top:${g.y0 * k}px`);
       if (g.hasF) h += hd('ftr', `left:30%;top:${g.y1 * k}px`);
     }
-    h += `<div class="mgchip" style="top:-26px;right:0" data-pid="${pid}"><button type="button" data-mgact="lock" title="${lock ? 'Desbloquear' : 'Bloquear'} as margens" aria-pressed="${lock}">${lock ? '🔒' : '🔓'}</button><span class="mgside" title="${g.e ? 'Esta página fica na ESQUERDA do caderno impresso' : 'Esta página fica na DIREITA do caderno impresso'}">${g.e ? 'esq.' : 'dir.'}</span>${g.hasH ? '' : '<button type="button" data-mgact="hdr">+ Cabeçalho</button>'}</div>`;
-    if (!g.hasF) h += `<div class="mgchip" style="top:${H + 8}px;left:50%;transform:translateX(-50%)" data-pid="${pid}"><button type="button" data-mgact="ftr">+ Mostrar rodapé</button></div>`;
+    h += `<div class="mgchip" style="top:-26px;right:0" data-pid="${pid}"><button type="button" data-mgact="lock" title="${lock ? 'Desbloquear' : 'Bloquear'} as margens" aria-pressed="${lock}">${lock ? '🔒' : '🔓'}</button><span class="mgside" title="${g.e ? 'Esta página fica na ESQUERDA do caderno impresso' : 'Esta página fica na DIREITA do caderno impresso'}">${g.e ? 'esq.' : 'dir.'}</span>${lock ? '' : g.hasH ? '<button type="button" data-mgact="hdr-off" title="Remover o cabeçalho">✕ Cabeçalho</button>' : '<button type="button" data-mgact="hdr">+ Cabeçalho</button>'}</div>`;
+    if (!lock) h += `<div class="mgchip" style="top:${H + 8}px;left:50%;transform:translateX(-50%)" data-pid="${pid}">${g.hasF ? '<button type="button" data-mgact="ftr-off" title="Remover o rodapé">✕ Rodapé</button>' : '<button type="button" data-mgact="ftr">+ Mostrar rodapé</button>'}</div>`;
     return h;
   }
+  const KEY = 'cnu.estudio.mgshow'; let shown = true;
+  try { shown = localStorage.getItem(KEY) !== '0'; } catch (_) { /* ok */ }
+  const show = () => shown;
+  const paintBtn = () => { const b = document.getElementById('bMg'); if (b) { b.classList.toggle('on', shown); b.setAttribute('aria-pressed', String(shown)); b.title = shown ? 'Ocultar margens' : 'Mostrar margens'; } };
+  const bm = document.getElementById('bMg');
+  if (bm) bm.onclick = () => { shown = !shown; try { localStorage.setItem(KEY, shown ? '1' : '0'); } catch (_) { /* ok */ } paintBtn(); redraw(); if (typeof toast === 'function') { const p = curPage(); toast(shown ? (p && p.mg ? 'Margens visíveis.' : 'Margens visíveis (esta página ainda não tem margens).') : 'Margens ocultas.'); } };
+  paintBtn();
   const eo = window.extraOverlay;
   window.extraOverlay = function (p, k) { return eo(p, k) + overlay(p, k); };
 
@@ -115,11 +122,13 @@
     if (a === 'lock') setLock(p, !p.mg.lock);
     else if (a === 'hdr') patchMg(p, { hdr: DEF_HF });
     else if (a === 'ftr') patchMg(p, { ftr: DEF_HF });
+    else if (a === 'hdr-off') patchMg(p, { hdr: 0 });
+    else if (a === 'ftr-off') patchMg(p, { ftr: 0 });
   }, true);
 
   /* ---------- ímãs: elementos encostam nas margens ---------- */
   window.Margens = {
-    snapLines(p) { const xs = [], ys = []; if (!p || !p.mg) return { xs, ys }; const g = geom(p, p.mg); xs.push(g.x0, g.x1); ys.push(g.top, g.bot); if (g.hasH) ys.push(g.y0); if (g.hasF) ys.push(g.y1); return { xs, ys }; },
+    snapLines(p) { const xs = [], ys = []; if (!p || !p.mg || !shown) return { xs, ys }; const g = geom(p, p.mg); xs.push(g.x0, g.x1); ys.push(g.top, g.bot); if (g.hasH) ys.push(g.y0); if (g.hasF) ys.push(g.y1); return { xs, ys }; },
     geom, applyMg, defaults, isLeft,
   };
 
