@@ -49,7 +49,7 @@ const Prot = (() => {
 
   /* ---------- nuvem ---------- */
   const online = () => !!(Cloud.sb && Cloud.user);
-  const setCloud = (t) => { const e = $('#cloudSt'); if (e) e.textContent = t; S.cloudMsg = t; };
+  const setCloud = (t) => { const e = $('#cloudSt'); if (e) { e.textContent = t; e.title = t; e.dataset.s = /✓/.test(t) ? 'ok' : /não consegui/.test(t) ? 'err' : 'busy'; } S.cloudMsg = t; };
   const bucket = () => Cloud.sb.storage.from(BUCKET);
   const Sync = {
     busy: false, timer: null, have: null, pending: null,
@@ -290,7 +290,7 @@ const Prot = (() => {
   const origLoadHome = loadHome;
   loadHome = async function () {
     await origLoadHome();
-    const ft = $('.foot > span'); if (ft && online()) ft.textContent = 'Seus projetos ficam neste aparelho e uma cópia vai para a sua nuvem.';
+    const ft = $('#footMsg'); if (ft) ft.textContent = online() ? 'Você está na nuvem: seus projetos ficam neste aparelho e uma cópia vai para a sua conta, em qualquer aparelho em que você entrar.' : 'Entre na nuvem para guardar uma cópia dos seus projetos e abri-los em qualquer aparelho.';
     await refreshHome();
     Sync.run();
   };
