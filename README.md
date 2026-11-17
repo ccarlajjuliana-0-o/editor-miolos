@@ -96,3 +96,10 @@ Ligue em Layout → Divisórias. Elas ficam fixas na lateral externa (arredondad
 
 ## Seletor de cores
 Em qualquer campo de cor abre um seletor com quadro de cor, matiz, código HEX, conta-gotas (copia uma cor da tela; onde o aparelho não tem conta-gotas, toque em um ponto da página), cores usadas na página e cores da marca.
+
+## Avisos, seções da barra e divisórias
+- Sino na barra de cima: guarda os avisos com a hora.
+- Layout ligado abre a barra da direita sozinha; ao desligar ela volta a ocultar (se não estiver fixa).
+- Com divisórias ligadas a barra da direita ganha seções (Configuração da página, Layout, Divisórias), cada uma com Ocultar/Expandir.
+- Com divisórias, a linha da margem externa fica rente a elas e a margem de segurança 0,35 mm adiante.
+- Na dupla dá para escolher a página que está sendo editada; cabeçalho e rodapé pelos botões da página valem só para ela.

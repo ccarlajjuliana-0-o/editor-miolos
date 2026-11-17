@@ -135,5 +135,15 @@
     if (!tem && tinha && auto && !ui.pinR) { ed.classList.remove('showprops'); auto = false; }
     tinha = tem;
   };
-  window.Layout = { view };
+  // o botão Layout abre a barra da direita sozinho e, ao desligar, fecha (se não estiver fixa)
+  let autoAberta = false;
+  function autoOpen() {
+    if (compact()) { if (!ed.classList.contains('showprops')) { ed.classList.add('showprops'); autoAberta = true; } else autoAberta = false; return; }
+    if (hidden('R')) { setHidden('R', false); autoAberta = true; } else autoAberta = false;
+  }
+  function autoClose() {
+    if (autoAberta && !ui.pinR) { if (compact()) ed.classList.remove('showprops'); else if (!hidden('R')) setHidden('R', true); }
+    autoAberta = false;
+  }
+  window.Layout = { view, autoOpen, autoClose };
 })();

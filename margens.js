@@ -32,11 +32,13 @@
   function curTabs() { const id = S.order && S.order.find((i) => S.pages[i] && S.pages[i].mg); return Object.assign({}, TDEF, id ? S.pages[id].mg.tabs : null); }
   function extras(m) { const t = tabsOf(m), w = t.on ? Math.max(0, num(t.w, 12)) : 0; return { side: t.pos === 'side' ? w : 0, top: t.pos === 'top' ? w : 0, bot: t.pos === 'bottom' ? w : 0, t }; }
   function geom(p, m) {
-    if (!m) return { full: true, x0: 0, x1: p.w, top: 0, bot: p.h, y0: 0, y1: p.h, hasH: false, hasF: false, e: false, g: 0, holes: 0, X: { side: 0, top: 0, bot: 0, t: tabsOf(null) } };
+    if (!m) return { full: true, lx0: 0, lx1: p.w, lt: 0, lb: p.h, tw: {}, x0: 0, x1: p.w, top: 0, bot: p.h, y0: 0, y1: p.h, hasH: false, hasF: false, e: false, g: 0, holes: 0, X: { side: 0, top: 0, bot: 0, t: tabsOf(null) } };
     const e = isLeft(p, m), bo = bindOn(m), g = bo ? num(m.gutter, 0) / 2 : 0, hdr = num(m.hdr, 0), ftr = num(m.ftr, 0), holes = bo ? Math.max(0, num(m.holes, 0)) : 0, X = extras(m);
-    const L = e ? num(m.outer, 0) + X.side : num(m.inner, 0) + g + holes, R = e ? num(m.inner, 0) + g + holes : num(m.outer, 0) + X.side;
-    const top = num(m.top, 0) + X.top, bot = p.h - num(m.bottom, 0) - X.bot;
-    return { x0: L, x1: p.w - R, top, bot, y0: top + hdr, y1: bot - ftr, hasH: hdr > 0, hasF: ftr > 0, e, g, holes, X };
+    const SF = 0.35, ts = X.side > 0, tt = X.top > 0, tb = X.bot > 0; // com divisórias: a margem fica rente a elas e a área segura 0,35 mm adiante
+    const oL = ts ? X.side + SF : num(m.outer, 0);
+    const L = e ? oL : num(m.inner, 0) + g + holes, R = e ? num(m.inner, 0) + g + holes : oL;
+    const top = tt ? X.top + SF : num(m.top, 0), bot = tb ? p.h - X.bot - SF : p.h - num(m.bottom, 0);
+    return { lx0: e && ts ? L - SF : L, lx1: !e && ts ? p.w - R + SF : p.w - R, lt: tt ? top - SF : top, lb: tb ? bot + SF : bot, tw: { s: ts, t: tt, b: tb }, x0: L, x1: p.w - R, top, bot, y0: top + hdr, y1: bot - ftr, hasH: hdr > 0, hasF: ftr > 0, e, g, holes, X };
   }
   const r1v = (v) => Math.round(v * 10) / 10;
 
@@ -95,8 +97,8 @@
     const L = FIX; FIX = []; if (!L.length) return;
     const seen = new Set(), U = L.filter((f) => { if (seen.has(f.e.id)) return false; seen.add(f.e.id); return true; });
     const pages = new Set(U.map((f) => f.p.id)).size, ex = nameOf(U[0].e);
-    const msg = 'Incompatibilidade: ' + U.length + ' elemento' + (U.length > 1 ? 's' : '') + (pages > 1 ? ' em ' + pages + ' páginas' : '') + ' não ' + (U.length > 1 ? 'cabem' : 'cabe') + ' na nova área sem mudar de tamanho ou ' + (U.length > 1 ? 'passam' : 'passa') + ' a se sobrepor (ex.: ' + ex + '). Mantive tamanhos e fontes. Reduza o recuo ou desfaça com Ctrl+Z.';
-    toast2(msg); try { clearTimeout(toastT); toastT = setTimeout(() => document.querySelector('#toast').classList.remove('on'), 9000); } catch (e) { /* sem toastT */ }
+    const full = 'Incompatibilidade: ' + U.length + ' elemento' + (U.length > 1 ? 's' : '') + (pages > 1 ? ' em ' + pages + ' páginas' : '') + ' não ' + (U.length > 1 ? 'cabem' : 'cabe') + ' na nova área sem mudar de tamanho ou ' + (U.length > 1 ? 'passam' : 'passa') + ' a se sobrepor (ex.: ' + ex + '). Mantive tamanhos e fontes. Reduza o recuo ou desfaça com Ctrl+Z.';
+    if (window.Avisos) Avisos.add(full); toast2('Incompatibilidade: ' + U.length + ' elemento' + (U.length > 1 ? 's' : '') + ' não ' + (U.length > 1 ? 'cabem' : 'cabe') + ' na nova área. Detalhes no sino 🔔', { nolog: 1 }); try { clearTimeout(toastT); toastT = setTimeout(() => document.querySelector('#toast').classList.remove('on'), 3500); } catch (e) { /* sem toastT */ }
   }
 
   /* ---------- aplicar (com histórico) ---------- */
@@ -105,7 +107,7 @@
   const linkOn = (k) => (k === 'top' || k === 'bottom' ? S.meta.mgLinkTB === true : S.meta.mgLinkLR === true);
   const spreadOn = () => S.meta.mgLinkSpread !== false;
   const NUMK = ['top', 'bottom', 'inner', 'outer', 'gutter', 'holes', 'hdr', 'ftr'], SPK = ['inner', 'holes', 'gutter', 'bindOn', 'bind'];
-  const toast2 = (t) => { if (typeof toast === 'function') toast(t); };
+  const toast2 = (t, o) => { if (typeof toast === 'function') toast(t, o); };
   function partnerOf(p) { // a outra página da mesma dupla (a capa fica sozinha)
     const i = S.order.indexOf(p.id), off = S.meta.coverAlone !== false ? 1 : 0; if (i < off) return null;
     const q = S.order[(i - off) % 2 === 0 ? i + 1 : i - 1]; return q ? S.pages[q] : null;
@@ -208,12 +210,12 @@
       h += `<div class="mghole" style="left:${hx * k}px;width:${g.holes * k}px"></div>`;
       for (let i = 0; i < n; i++) h += `<i class="mgdot" style="left:${(hx + g.holes / 2) * k}px;top:${((i + 0.5) * p.h / n) * k}px;width:${Math.max(4, dia * k)}px;height:${Math.max(4, dia * k)}px"></i>`;
     }
-    h += `<div class="mgl h" style="top:${g.top * k}px"></div><div class="mgl h" style="top:${g.bot * k}px"></div><div class="mgl v" style="left:${g.x0 * k}px"></div><div class="mgl v" style="left:${g.x1 * k}px"></div>`;
+    h += `<div class="mgl h" style="top:${g.lt * k}px"></div><div class="mgl h" style="top:${g.lb * k}px"></div><div class="mgl v" style="left:${g.lx0 * k}px"></div><div class="mgl v" style="left:${g.lx1 * k}px"></div>`;
     if (g.hasH) h += `<div class="mgl h sub" style="top:${g.y0 * k}px"></div><span class="mgtag" style="top:${g.top * k + 2}px;left:${g.x0 * k + 4}px">cabeçalho</span>`;
     if (g.hasF) h += `<div class="mgl h sub" style="top:${g.y1 * k}px"></div><span class="mgtag" style="top:${g.bot * k - 15}px;left:${g.x0 * k + 4}px">rodapé</span>`;
     if (!lock) {
       const hd = (line, st) => `<i class="mgh ${line === 'top' || line === 'bottom' || line === 'hdr' || line === 'ftr' ? 'h' : 'v'}" data-line="${line}" style="${st}" title="Arraste para ajustar"></i>`;
-      h += hd('top', `left:50%;top:${g.top * k}px`) + hd('bottom', `left:50%;top:${g.bot * k}px`) + hd('left', `left:${g.x0 * k}px;top:50%`) + hd('right', `left:${g.x1 * k}px;top:50%`);
+      h += hd('top', `left:50%;top:${g.lt * k}px`) + hd('bottom', `left:50%;top:${g.lb * k}px`) + hd('left', `left:${g.lx0 * k}px;top:50%`) + hd('right', `left:${g.lx1 * k}px;top:50%`);
       if (g.hasH) h += hd('hdr', `left:30%;top:${g.y0 * k}px`);
       if (g.hasF) h += hd('ftr', `left:30%;top:${g.y1 * k}px`);
     }
@@ -232,12 +234,12 @@
   const paintBtn = () => { const b = document.getElementById('bMg'); if (b) { const on = isOn(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); b.title = on ? 'Desligar layout (margens e margem de segurança)' : 'Ligar layout (margens e margem de segurança)'; } };
   function toggle() {
     const msg = (t) => { if (typeof toast === 'function') toast(t); };
-    if (isOn()) { const wm = S.order.filter((id) => S.pages[id] && S.pages[id].mg); if (wm.length && fitOn()) { change(wm, () => wm.forEach((id) => { const q = S.pages[id]; fit(q, geom(q, q.mg), geom(q, null)); })); wm.forEach((id) => thumbRefresh(id)); FIX = []; } S.meta.mgOn = false; S.guides = false; Saver.m(); paintBtn(); redraw(); renderProps(); msg('Margens desligadas. Os valores ficam guardados.'); return; }
+    if (isOn()) { const wm = S.order.filter((id) => S.pages[id] && S.pages[id].mg); if (wm.length && fitOn()) { change(wm, () => wm.forEach((id) => { const q = S.pages[id]; fit(q, geom(q, q.mg), geom(q, null)); })); wm.forEach((id) => thumbRefresh(id)); FIX = []; } S.meta.mgOn = false; S.guides = false; Saver.m(); if (window.Layout && Layout.autoClose) Layout.autoClose(); paintBtn(); redraw(); renderProps(); msg('Margens desligadas. Os valores ficam guardados.'); return; }
     const need0 = S.order.filter((id) => S.pages[id] && !S.pages[id].mg);
     if (need0.length && S.meta.mgBind === undefined) { askBind(enable); return; }
     enable();
     function enable() {
-      S.meta.mgOn = true; S.guides = true; Saver.m();
+      S.meta.mgOn = true; S.guides = true; Saver.m(); if (window.Layout && Layout.autoOpen) Layout.autoOpen();
       const had = S.order.filter((id) => S.pages[id] && S.pages[id].mg);
       if (had.length && fitOn()) { change(had, () => had.forEach((id) => { const q = S.pages[id]; fit(q, geom(q, null), geom(q, q.mg)); })); had.forEach((id) => thumbRefresh(id)); }
       const need = S.order.filter((id) => S.pages[id] && !S.pages[id].mg);
@@ -269,10 +271,10 @@
     const g0 = geom(p, m), e = g0.e, hdr = num(m.hdr, 0), ftr = num(m.ftr, 0), X = g0.X, gh = g0.g + g0.holes;
     const vMax = (a, ex) => p.h - a - ex - hdr - ftr - MIN, hMax = (a, b) => p.w - a - b - MIN;
     let key = null;
-    if (line === 'top') { key = 'top'; m.top = r1v(cl(y - X.top, 0, vMax(m.bottom, X.top + X.bot))); }
-    else if (line === 'bottom') { key = 'bottom'; m.bottom = r1v(cl(p.h - y - X.bot, 0, vMax(m.top, X.top + X.bot))); }
-    else if (line === 'left') { if (e) { if (X.side > 0) { key = 'tabw'; m.tabs = Object.assign({}, tabsOf(m), { w: r1v(cl(x - m.outer, 3, hMax(m.outer + m.inner + gh, 0))) }); } else { key = 'outer'; m.outer = r1v(cl(x - X.side, 0, hMax(X.side + m.inner + gh, 0))); } } else { key = 'inner'; m.inner = r1v(cl(x - gh, 0, hMax(gh + m.outer + X.side, 0))); } }
-    else if (line === 'right') { const d = p.w - x; if (e) { key = 'inner'; m.inner = r1v(cl(d - gh, 0, hMax(gh + m.outer + X.side, 0))); } else if (X.side > 0) { key = 'tabw'; m.tabs = Object.assign({}, tabsOf(m), { w: r1v(cl(d - m.outer, 3, hMax(m.outer + m.inner + gh, 0))) }); } else { key = 'outer'; m.outer = r1v(cl(d - X.side, 0, hMax(X.side + m.inner + gh, 0))); } }
+    if (line === 'top') { if (X.top > 0) { key = 'tabw'; m.tabs = Object.assign({}, tabsOf(m), { w: r1v(cl(y, 3, p.h - X.bot - m.bottom * 0 - hdr - ftr - MIN)) }); } else { key = 'top'; m.top = r1v(cl(y - X.top, 0, vMax(m.bottom, X.top + X.bot))); } }
+    else if (line === 'bottom') { if (X.bot > 0) { key = 'tabw'; m.tabs = Object.assign({}, tabsOf(m), { w: r1v(cl(p.h - y, 3, p.h - X.top - hdr - ftr - MIN)) }); } else { key = 'bottom'; m.bottom = r1v(cl(p.h - y - X.bot, 0, vMax(m.top, X.top + X.bot))); } }
+    else if (line === 'left') { if (e) { if (X.side > 0) { key = 'tabw'; m.tabs = Object.assign({}, tabsOf(m), { w: r1v(cl(x, 3, hMax(m.inner + gh, 0))) }); } else { key = 'outer'; m.outer = r1v(cl(x - X.side, 0, hMax(X.side + m.inner + gh, 0))); } } else { key = 'inner'; m.inner = r1v(cl(x - gh, 0, hMax(gh + m.outer + X.side, 0))); } }
+    else if (line === 'right') { const d = p.w - x; if (e) { key = 'inner'; m.inner = r1v(cl(d - gh, 0, hMax(gh + m.outer + X.side, 0))); } else if (X.side > 0) { key = 'tabw'; m.tabs = Object.assign({}, tabsOf(m), { w: r1v(cl(d, 3, hMax(m.inner + gh, 0))) }); } else { key = 'outer'; m.outer = r1v(cl(d - X.side, 0, hMax(X.side + m.inner + gh, 0))); } }
     else if (line === 'hdr') m.hdr = r1v(cl(y - g0.top, 3, g0.bot - g0.top - ftr - MIN));
     else if (line === 'ftr') m.ftr = r1v(cl(g0.bot - y, 3, g0.bot - g0.top - hdr - MIN));
     return key;
@@ -301,10 +303,10 @@
     ev.stopPropagation();
     const a = b.dataset.mgact;
     if (a === 'lock') setLock(p, !p.mg.lock);
-    else if (a === 'hdr') patchMg(p, { hdr: DEF_HF });
-    else if (a === 'ftr') patchMg(p, { ftr: DEF_HF });
-    else if (a === 'hdr-off') patchMg(p, { hdr: 0 });
-    else if (a === 'ftr-off') patchMg(p, { ftr: 0 });
+    else if (a === 'hdr') patchMg(p, { hdr: DEF_HF }, { ids: [p.id] });
+    else if (a === 'ftr') patchMg(p, { ftr: DEF_HF }, { ids: [p.id] });
+    else if (a === 'hdr-off') patchMg(p, { hdr: 0 }, { ids: [p.id] });
+    else if (a === 'ftr-off') patchMg(p, { ftr: 0 }, { ids: [p.id] });
     else if (a === 'spread') { S.meta.mgLinkSpread = !spreadOn(); Saver.m(); if (spreadOn()) edit(p, { inner: p.mg.inner, holes: p.mg.holes, gutter: p.mg.gutter }, null, { ids: [p.id] }); else { redraw(); renderProps(); } }
   }, true);
 
@@ -388,11 +390,12 @@
     const m = p.mg, n = S.order.length, sc = scopeOf(), nsel = selected().length;
     const scope = `<label class="mgscope"><small>AS ALTERAÇÕES VALEM PARA</small><select id="mgScope"><option value="all"${sc === 'all' ? ' selected' : ''}>Todas as páginas · ${n} página${n > 1 ? 's' : ''}</option><option value="page"${sc === 'page' ? ' selected' : ''}>Só esta página</option>${nsel ? `<option value="sel"${sc === 'sel' ? ' selected' : ''}>Páginas selecionadas · ${nsel}</option>` : ''}</select></label>`;
     if (!m) return `<div class="pgrp" id="mgPanel"><h3 class="mgh3">${LAYOUT_ICON} LAYOUT</h3>${scope}<p class="hint">Esta página está sem margens. Adicione para ver as guias, reservar furos e lombada e ter cabeçalho, rodapé e divisórias.</p><button class="btn sm pri" id="mgAdd">Adicionar margens</button><label class="chk"><input type="checkbox" id="mgFit"${fitOn() ? ' checked' : ''}> Ajustar o conteúdo à área</label></div>`;
+    const sp2 = S.meta.view === 'spread' ? (() => { const q = partnerOf(p); if (!q) return ''; const pair = S.order.indexOf(p.id) < S.order.indexOf(q.id) ? [p, q] : [q, p]; return `<div class="mgpg"><small>EDITANDO A PÁGINA</small><div class="segf" id="mgPgSel">${pair.map((x) => `<button type="button" data-pgi="${S.order.indexOf(x.id)}" class="${x.id === p.id ? 'on' : ''}">Pág. ${S.order.indexOf(x.id) + 1}</button>`).join('')}</div></div>`; })() : '';
     const g = geom(p, m), dis = !!m.lock, un = getUnit(), allLinked = linkOn('inner') && linkOn('top') && spreadOn();
-    return `<div class="pgrp" id="mgPanel"><h3 class="mgh3">${LAYOUT_ICON} LAYOUT</h3>${scope}
+    return `<div class="pgrp" id="mgPanel"><h3 class="mgh3">${LAYOUT_ICON} LAYOUT</h3>${scope}${sp2}
       <div class="mghead"><b>Preenchimentos e Margens</b><span class="mgtools"><button type="button" class="btn sm ghost" id="mgLinkAll" aria-pressed="${allLinked}">⛓ Vincular tudo</button><button type="button" class="btn sm ghost" id="mgReset"${dis ? ' disabled' : ''}>↺ Redefinir</button><select id="mgUnit" aria-label="Unidade">${Object.keys(UNITS).map((u) => `<option${u === un ? ' selected' : ''}>${u}</option>`).join('')}</select></span></div>
-      <div class="mgpair"><div class="mgrows">${row('top', 'Topo', m.top, 60, dis)}${row('bottom', 'Base', m.bottom, 60, dis)}</div>${chain('mgLkTB', linkOn('top'), dis)}</div>
-      <div class="mgpair"><div class="mgrows">${row('outer', 'Externa', m.outer, 60, dis)}${row('inner', 'Interna', m.inner, 60, dis)}</div>${chain('mgLkLR', linkOn('inner'), dis)}</div>
+      <div class="mgpair"><div class="mgrows">${row('top', 'Topo', m.top, 60, dis || g.tw.t)}${row('bottom', 'Base', m.bottom, 60, dis || g.tw.b)}</div>${chain('mgLkTB', linkOn('top'), dis)}</div>
+      <div class="mgpair"><div class="mgrows">${row('outer', 'Externa', m.outer, 60, dis || g.tw.s)}${row('inner', 'Interna', m.inner, 60, dis)}</div>${chain('mgLkLR', linkOn('inner'), dis)}</div>
       <div class="mrow mgsw-row"><span class="mi">◎</span><span class="ml" style="flex:1">Encadernação</span>${sw('mgBindOn', bindOn(m), dis)}</div>
       ${bindOn(m) ? `<label class="pfield mgbind"><span>Tipo de encadernação</span><select id="mgBind"${dis ? ' disabled' : ''}>${Object.keys(BIND).map((k) => `<option value="${k}"${bindOf(m) === k ? ' selected' : ''}>${BIND[k].name} · ${BIND[k].mm} mm</option>`).join('')}<option value="custom"${bindOf(m) === 'custom' ? ' selected' : ''}>Personalizado</option></select></label>
       <div class="mgpair"><div class="mgrows">${row('holes', 'Furos', m.holes, 40, dis)}${row('gutter', 'Lombada', m.gutter, 30, dis)}</div>${chain('mgLkSp', spreadOn(), dis)}</div>` : ''}
@@ -414,6 +417,7 @@
     const bo = $q('#mgBindOn'); if (bo) bo.onchange = () => { blur(); if (bo.checked) { const k = BIND[bindOf(p.mg)] ? bindOf(p.mg) : BIND[S.meta.mgBind] ? S.meta.mgBind : 'spiral'; const h = num(p.mg.holes, 0) > 0 ? p.mg.holes : BIND[k].mm; edit(p, { bindOn: true, bind: num(p.mg.holes, 0) > 0 ? bindOf(p.mg) : k, holes: h }, null); } else edit(p, { bindOn: false }, null); };
     const bd = $q('#mgBind'); if (bd) bd.onchange = () => { blur(); const v = bd.value; edit(p, v === 'custom' ? { bind: 'custom' } : { bind: v, holes: BIND[v].mm }, null); };
     const commit = (k, v) => { blur(); if (k === 'holes') { edit(p, { holes: v, bind: BIND[bindOf(p.mg)] && BIND[bindOf(p.mg)].mm === v ? bindOf(p.mg) : 'custom' }); return; } if (k === 'hdr' || k === 'ftr') v = v > 0 ? Math.max(3, v) : 0; edit(p, { [k]: v }, PAIR[k] ? k : null); };
+    const pgs = $q('#mgPgSel'); if (pgs) pgs.onclick = (e) => { const b = e.target.closest('[data-pgi]'); if (b) { setCur(+b.dataset.pgi); } };
     const sc = $q('#mgScope'); if (sc) sc.onchange = () => { S.meta.mgScope = sc.value; Saver.m(); };
     on('#mgAdd', () => { const n = edit(p, {}, null); if (n) toast2('Margens adicionadas. Ctrl+Z desfaz.'); });
     const fitEl = $q('#mgFit'); if (fitEl) fitEl.onchange = () => { S.meta.mgFit = fitEl.checked; Saver.m(); };
@@ -464,10 +468,26 @@
     if (!otherCfgActive()) return;
     const p = curPage(), title = `Página ${S.cur + 1}`;
     core.hidden = !pgOpen;
-    core.insertAdjacentHTML('beforebegin', `<div class="pgbarc" id="pgBarC" role="group" aria-label="Configuração da página"><button type="button" id="pgcHide" class="${pgOpen ? 'on' : ''}" title="Ocultar a configuração da página">⌄ Ocultar</button><button type="button" id="pgcShow" class="${pgOpen ? '' : 'on'}" title="Mostrar a configuração da página">⌃ Expandir</button></div>`);
+    const multi = isOn() && p && p.mg && tabsOf(p.mg).on;
+    core.insertAdjacentHTML('beforebegin', `${multi ? '<div class="secttl"><i></i><b>Configuração da página</b><i></i></div>' : ''}<div class="pgbarc" id="pgBarC" role="group" aria-label="Configuração da página"><button type="button" id="pgcHide" class="${pgOpen ? 'on' : ''}" title="Ocultar a configuração da página">⌄ Ocultar</button><button type="button" id="pgcShow" class="${pgOpen ? '' : 'on'}" title="Mostrar a configuração da página">⌃ Expandir</button></div>`);
     void p;
     P.querySelector('#pgcHide').onclick = () => { pgOpen = false; renderProps(); };
     P.querySelector('#pgcShow').onclick = () => { pgOpen = true; renderProps(); };
+  }
+  const secOpen = { lay: true, tabs: true };
+  const secBar = (id, title, open, pin) => `<div class="secttl"><i></i><b>${title}</b><i></i></div><div class="pgbarc sb2" data-sec="${id}" role="group" aria-label="${title}"><button type="button" data-sh="${id}" class="${open ? 'on' : ''}">⌄ Ocultar</button><button type="button" data-ss="${id}" class="${open ? '' : 'on'}">⌃ Expandir</button></div>`;
+  function arrange(P, p) { // Layout e Divisórias viram seções com ocultar/expandir
+    const mp = P.querySelector('#mgPanel'); if (!mp || mp.querySelector('#secLay')) return;
+    const card = mp.querySelector('.mgcard'); if (!card) return;
+    const tabsOn = !!tabsOf(p.mg).on, lay = document.createElement('div'); lay.id = 'secLay';
+    [...mp.children].forEach((c) => { if (c !== card) lay.appendChild(c); });
+    const tb = document.createElement('div'); tb.id = 'secTabs'; tb.appendChild(card); mp.appendChild(lay); mp.appendChild(tb);
+    if (tabsOn) {
+      lay.hidden = !secOpen.lay; tb.hidden = !secOpen.tabs;
+      lay.insertAdjacentHTML('beforebegin', secBar('lay', 'Layout', secOpen.lay)); tb.insertAdjacentHTML('beforebegin', secBar('tabs', 'Divisórias', secOpen.tabs));
+      mp.querySelectorAll('[data-sh]').forEach((b) => { b.onclick = () => { secOpen[b.dataset.sh] = false; renderProps(); }; });
+      mp.querySelectorAll('[data-ss]').forEach((b) => { b.onclick = () => { secOpen[b.dataset.ss] = true; renderProps(); }; });
+    }
   }
   const rp = window.renderProps;
   window.renderProps = function () {
@@ -482,7 +502,7 @@
       }
       if (tabsMore && (selEls().length || !isOn() || !p || !tabsOf(p.mg).on)) tabsMore = false;
       if (tabsMore && P && p && P.querySelector('#psz')) { P.innerHTML = moreHTML(p); mountMore(p, P); }
-      else decorate(P);
+      else { if (P && p && P.querySelector('#mgPanel')) arrange(P, p); decorate(P); }
     } catch (e) { console.error(e); }
     return r;
   };

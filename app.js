@@ -435,7 +435,7 @@ function redo(){const h=S.fut.pop();if(!h)return;applySnap(h.a);S.hist.push(h);u
 function updUndo(){$('#bUndo').disabled=!S.hist.length;$('#bRedo').disabled=!S.fut.length}
 
 /* ================= interface: utilidades ================= */
-let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),3200)}
+let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2600)}
 function setSave(t){const e=$('#saveSt');if(e)e.textContent=t}
 function modal(html,onMount,wide){const m=$('#modal'),b=$('.mbox',m);b.classList.toggle('wide',!!wide);b.innerHTML=html;m.hidden=false;const close=()=>{m.hidden=true;b.innerHTML=''};m.onclick=e=>{if(e.target===m&&!m.dataset.lock)close()};$$('[data-close]',b).forEach(x=>x.onclick=close);if(onMount)onMount(b,close);const f=b.querySelector('input,select,button');if(f)f.focus();return close}
 const ICON={
