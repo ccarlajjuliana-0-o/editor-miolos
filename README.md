@@ -77,3 +77,4 @@ adicionar antes/depois, duplicar, renomear, mover (cima, baixo, para…, primeir
 - Espaço para divisórias (topo, base ou lateral): quantidade, largura, raio e fundo; "Inserir abas na lateral" cria as abas.
 - Painel de margens no estilo Planify: "As alterações valem para" (todas / só esta / selecionadas), sliders com valor, ⛓ para vincular topo/base, externa/interna e o lado de dentro das duas páginas da dupla (⛓ no meio da dupla no editor), Vincular tudo, Redefinir e unidade (mm/cm/in).
 - Coluna da direita: com o Layout (ou régua/grade) ativo, a configuração da página fica recolhida numa barra com Ocultar/Expandir; ao selecionar um elemento há o botão "← Voltar" para a janela anterior.
+- Barra da direita: dois cliques na seta (ou o alfinete no topo) fixam a barra, que então não fecha sozinha (nem ao selecionar/soltar objetos nem com Esc); dois cliques de novo soltam. No modo compacto, fixa ela divide espaço com a página em vez de cobri-la.

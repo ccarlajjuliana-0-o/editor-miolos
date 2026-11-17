@@ -36,6 +36,8 @@
     for (const w of ['L', 'R']) {
       const b = $('#edge' + w), h = hidden(w) ? 1 : 0;
       b.querySelector('path').setAttribute('d', ICON[w][h]); b.title = TXT[w][h]; b.setAttribute('aria-label', TXT[w][h]);
+      if (w === 'R' && ui.pinR) { b.title = 'Barra fixa. Dois cliques para soltar'; b.setAttribute('aria-label', b.title); }
+      if (w === 'R') b.classList.toggle('pinned', !!ui.pinR);
     }
     const bb = $('#edgeB'), hb = ed.classList.contains('nostrip');
     bb.querySelector('path').setAttribute('d', hb ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6');
@@ -49,7 +51,24 @@
     syncEdges(); refit();
   }
   $('#edgeL').onclick = () => setHidden('L', !hidden('L'));
-  $('#edgeR').onclick = () => setHidden('R', !hidden('R'));
+  // barra da direita: dois cliques na seta (ou o botão de alfinete) fixam; fixa, ela não fecha sozinha
+  const pinned = () => !!ui.pinR;
+  const PIN = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3z"/><path d="M12 15v6"/></svg>';
+  function setPin(v, quiet) {
+    ui.pinR = !!v; save(); ed.classList.toggle('pinR', !!v);
+    if (v && hidden('R')) setHidden('R', false);
+    if (v) { ui.noAutoProps = false; save(); if (compact()) { ed.classList.add('showprops'); } }
+    const b = document.getElementById('pinBtn'); if (b) { b.classList.toggle('on', !!v); b.setAttribute('aria-pressed', String(!!v)); b.title = v ? 'Barra fixa: não fecha sozinha (clique para soltar)' : 'Fixar a barra para ela não fechar sozinha'; }
+    syncEdges(); refit();
+    if (!quiet && typeof toast === 'function') toast(v ? 'Barra fixa: ela não fecha sozinha. Dois cliques na seta, ou no alfinete, soltam.' : 'Barra solta.');
+  }
+  // um clique recolhe/mostra (após um instante, para dar tempo do segundo); dois cliques fixam ou soltam
+  let ck = null;
+  $('#edgeR').onclick = () => {
+    if (ck) { clearTimeout(ck); ck = null; setPin(!pinned()); return; }
+    ck = setTimeout(() => { ck = null; if (!pinned()) setHidden('R', !hidden('R')); }, 280);
+  };
+  document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('#pinBtn'); if (b) setPin(!pinned()); });
   function strip(hide, silent) {
     ed.classList.toggle('nostrip', hide);
     if (!silent) { ui.hideB = hide; save(); refit(); }
@@ -63,6 +82,8 @@
     if (mq.matches) { ed.classList.remove('nopanel', 'noprops'); }
     else { ed.classList.toggle('nopanel', !!ui.hideL); ed.classList.toggle('noprops', !!ui.hideR); }
     strip(ui.hideB === undefined ? mq.matches : !!ui.hideB, true);
+    ed.classList.toggle('pinR', !!ui.pinR);
+    if (ui.pinR) { ed.classList.remove('noprops'); if (mq.matches) ed.classList.add('showprops'); }
     refit();
   }
   if (mq.addEventListener) mq.addEventListener('change', aplicarModo); else if (mq.addListener) mq.addListener(aplicarModo);
@@ -90,7 +111,7 @@
 
   // Esc fecha as janelinhas; tocar na página fecha a de ferramentas
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape' || !compact()) return;
+    if (e.key !== 'Escape' || !compact() || ui.pinR) return;
     const t = e.target && e.target.tagName; if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
     if (!more.hidden) { fechaMais(); return; }
     if ($('#modal') && !$('#modal').hidden) return;
@@ -104,10 +125,12 @@
   const rp0 = renderProps; let tinha = false, auto = false;
   renderProps = function () {
     rp0.apply(this, arguments);
+    const PP = document.getElementById('props');
+    if (PP && !PP.querySelector('#pinBtn')) { PP.insertAdjacentHTML('afterbegin', `<button type="button" class="ppin${ui.pinR ? ' on' : ''}" id="pinBtn" aria-pressed="${!!ui.pinR}" title="${ui.pinR ? 'Barra fixa: não fecha sozinha (clique para soltar)' : 'Fixar a barra para ela não fechar sozinha'}">${PIN}</button>`); }
     if (!compact() || S.view !== 'editor') return;
     const tem = !!(S.sel && S.sel.length);
     if (tem && !tinha && !ui.noAutoProps) { ed.classList.add('showprops'); auto = true; }
-    if (!tem && tinha && auto) { ed.classList.remove('showprops'); auto = false; }
+    if (!tem && tinha && auto && !ui.pinR) { ed.classList.remove('showprops'); auto = false; }
     tinha = tem;
   };
   window.Layout = { view };

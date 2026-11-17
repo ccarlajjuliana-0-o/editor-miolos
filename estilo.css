@@ -545,3 +545,11 @@ body{font-size:calc(15px*var(--escala,1))}
 .pgbarc button.on{background:#C9D2E6;color:var(--ink);opacity:1}
 .pgbarc-m{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;background:var(--surface2);font:600 11px var(--f-title);color:var(--muted);padding:4px 8px;text-align:center;line-height:1.1}
 .pgbarc-m i{font-style:normal;letter-spacing:.3em;font-size:14px;color:#9aa6bf}
+
+/* ===== barra da direita fixa ===== */
+.ppin{position:sticky;top:0;float:right;z-index:6;width:30px;height:30px;margin:0 0 4px 6px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.ppin.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.edge.r.pinned{background:var(--accent);color:#fff;border-color:var(--accent)}
+#editor.compact.pinR.showprops #props{position:relative;box-shadow:none;border-left:1px solid var(--line)}
+#editor.compact.pinR.showprops .edge.r{right:auto;position:relative;top:auto;transform:none;align-self:center}
+.ppin{align-self:flex-end;flex:none}
