@@ -344,3 +344,35 @@ body{font-size:calc(15px*var(--escala,1))}
 .menu .nome-app{font-family:var(--f-title);font-weight:700;font-size:calc(19px*var(--escala,1));line-height:1.2;padding:2px 6px 14px;color:var(--sobre-menu);border-bottom:1px solid rgba(255,255,255,.14);margin-bottom:10px}
 .menu .nome-app small{display:block;font-weight:500;font-size:calc(12px*var(--escala,1));opacity:.75;letter-spacing:.04em;margin-top:2px}
 .conteudo .tag{font-size:calc(14px*var(--escala,1));font-weight:600}
+
+/* ===== modo compacto: notebook de 13" e tablet de 11" =====
+   Painéis viram janelinhas por cima da página (fechadas ao abrir) e a barra de cima guarda o que é secundário no menu "⋯". */
+#bMore{display:none}
+#editor.compact #bMore{display:grid}
+#editor.compact #bRuler,#editor.compact #bGrid,#editor.compact #bVers,#editor.compact #appLinkTop,#editor.compact #bMobProps,#editor.compact #etop .sep{display:none}
+#editor.compact #rail{width:62px;padding:8px 4px}
+#editor.compact #rail button{font-size:10px}
+#editor.compact #panel{position:absolute;left:62px;top:0;bottom:0;z-index:10;width:min(320px,calc(100vw - 72px));box-shadow:8px 0 30px var(--shadow)}
+#editor.compact #props{position:absolute;right:0;top:0;bottom:0;z-index:10;width:min(300px,calc(100vw - 20px));box-shadow:-8px 0 30px var(--shadow)}
+#editor.compact:not(.showpanel) #panel,#editor.compact:not(.showprops) #props{display:none}
+#editor.compact .edge.l,#editor.compact .edge.r{display:grid;position:absolute;top:50%;transform:translateY(-50%);z-index:11}
+#editor.compact .edge.l{left:62px}
+#editor.compact .edge.r{right:0}
+#editor.compact.showpanel .edge.l{left:calc(62px + min(320px,calc(100vw - 72px)))}
+#editor.compact.showprops .edge.r{right:min(300px,calc(100vw - 20px))}
+#editor.compact #strip{height:84px}
+#editor.compact #strip .tb canvas{height:52px}
+#editor.compact #strip .addp{height:52px}
+#moreMenu{position:fixed;z-index:60;min-width:230px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 12px 36px var(--shadow);display:flex;flex-direction:column;gap:2px}
+#moreMenu button,#moreMenu a{display:flex;align-items:center;justify-content:space-between;gap:12px;border:0;background:transparent;border-radius:10px;padding:10px 12px;text-align:left;color:var(--text);font-size:14px;text-decoration:none;font-weight:500}
+#moreMenu button:hover,#moreMenu a:hover{background:var(--surface2)}
+#moreMenu .on{color:var(--accent);font-weight:700}
+#moreMenu .info{padding:8px 12px;font-size:12.5px;color:var(--muted)}
+#moreMenu hr{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
+@media (pointer:coarse){
+  .ib{width:42px;height:42px}
+  .btn.sm{padding:8px 12px}
+  #rail button{padding:10px 2px}
+  .edge.l,.edge.r{width:24px;height:72px}
+  .edge.b{height:22px}
+}

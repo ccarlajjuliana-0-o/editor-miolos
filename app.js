@@ -649,8 +649,8 @@ function alignSel(a){const p=curPage(),els=selEls();if(!els.length)return;const 
 /* ================= trilho e painéis ================= */
 const TABS=[['modelos','Modelos'],['datado','Datado'],['widgets','Widgets'],['adesivos','Adesivos'],['bordas','Bordas'],['texto','Texto'],['biblioteca','Uploads'],['paginas','Páginas'],['app','App']];
 function renderRail(){$('#rail').innerHTML=TABS.map(([k,n])=>`<button data-tab="${k}" class="${S.tab===k?'on':''}" aria-label="${n}">${ico(k)}${n}</button>`).join('');
-  $$('#rail button').forEach(b=>b.onclick=()=>{const ed=$('#editor');if(S.tab===b.dataset.tab&&innerWidth<=980){ed.classList.toggle('showpanel')}else{S.tab=b.dataset.tab;ed.classList.add('showpanel');renderRail();renderPanel()}})}
-function closeMob(){if(innerWidth<=980){$('#editor').classList.remove('showpanel')}}
+  $$('#rail button').forEach(b=>b.onclick=()=>{const ed=$('#editor');if(S.tab===b.dataset.tab&&(innerWidth<=980||ed.classList.contains('compact'))){ed.classList.toggle('showpanel')}else{S.tab=b.dataset.tab;ed.classList.add('showpanel');renderRail();renderPanel()}})}
+function closeMob(){if(innerWidth<=980||$('#editor').classList.contains('compact')){$('#editor').classList.remove('showpanel')}}
 function renderPanel(){const P=$('#panel');const fn=PANELS[S.tab];S.panelRepaint=null;P.innerHTML=fn?fn.html():'';if(fn&&fn.mount)fn.mount(P)}
 const fontList=()=>[...FONTS.map(f=>f[0]),...S.lib.filter(x=>x.kind==='font').map(x=>x.family)];
 function tplRef(){if(!S.tplRef){const n=new Date();S.tplRef={y:n.getFullYear(),m:n.getMonth()}}return S.tplRef}
