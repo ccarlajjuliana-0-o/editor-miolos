@@ -616,7 +616,7 @@ body{font-size:calc(15px*var(--escala,1))}
 #mgPanel .tbrow{display:flex;align-items:center;gap:6px;margin:4px 0}
 #mgPanel .tbn{flex:none;width:22px;height:22px;border-radius:50%;background:var(--surface2);color:var(--muted);font:700 11px var(--f-title);display:grid;place-items:center}
 #mgPanel .tbrow input[type=text]{flex:1;min-width:0;height:34px;padding:0 10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font:600 13px var(--f-body);color:var(--ink)}
-#mgPanel .tbrow .tbcol{flex:none;width:34px;height:34px;padding:2px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer}
+
 #mgPanel .tcf{margin:8px 0}
 #mgPanel .tcl{display:block;font:600 12px var(--f-title);color:var(--muted);margin-bottom:4px}
 #mgPanel .tcf .cfield{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
@@ -641,3 +641,22 @@ body{font-size:calc(15px*var(--escala,1))}
 #cpop .cp-sws{display:flex;flex-wrap:wrap;gap:6px}
 #cpop .cps{width:22px;height:22px;border-radius:50%;border:0;box-shadow:0 0 0 1px rgba(62,53,80,.18);padding:0;cursor:pointer}
 #cpop small{color:var(--muted);font-size:12px}
+
+/* mostradores de cor arredondados */
+input[type=color]{-webkit-appearance:none;appearance:none;border:0;padding:0;background:none;border-radius:10px;cursor:pointer}
+input[type=color]::-webkit-color-swatch-wrapper{padding:0;border-radius:10px}
+input[type=color]::-webkit-color-swatch{border:1.5px solid rgba(62,53,80,.25);border-radius:10px}
+input[type=color]::-moz-color-swatch{border:1.5px solid rgba(62,53,80,.25);border-radius:10px}
+/* divisórias: janela de mais configurações */
+#mgPanel .tbtop{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 8px}
+#mgPanel .segf.icons button{padding:6px 12px;display:grid;place-items:center}
+#mgPanel .tbq{display:flex;align-items:center;gap:6px}
+#mgPanel .tbq b{min-width:20px;text-align:center;font:700 13px var(--f-title);color:var(--ink)}
+#mgPanel .tbq button,#mgPanel .mstep button{width:30px;height:30px;padding:0;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);font:700 16px var(--f-title);cursor:pointer;display:grid;place-items:center}
+#mgPanel .tbq button:disabled{opacity:.35;cursor:default}
+#mgPanel .tbcw{position:relative;flex:none;display:block;width:34px;height:34px}
+#mgPanel .tbcw .tbcol{width:34px;height:34px}
+#mgPanel .tbcw .lkb{position:absolute;right:-5px;bottom:-5px;width:17px;height:17px;border-radius:50%;background:var(--surface);color:var(--ameixa,#9168A0);box-shadow:0 0 0 1px var(--line);display:grid;place-items:center;pointer-events:none}
+#mgPanel .mrow .tbcol{width:34px;height:34px;flex:none}
+#mgPanel .mstep{display:flex;align-items:center;gap:4px}
+#mgPanel .mstep input{width:54px;height:30px;text-align:center;border:1px solid var(--line);border-radius:10px;background:var(--surface);font:700 13px var(--f-title);color:var(--ink);padding:0}
