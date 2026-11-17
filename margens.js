@@ -476,7 +476,7 @@
     const p = curPage(), title = `Página ${S.cur + 1}`;
     core.hidden = !pgOpen;
     const multi = isOn() && p && p.mg && tabsOf(p.mg).on;
-    core.insertAdjacentHTML('beforebegin', `${multi ? '<div class="secttl"><i></i><b>Configuração da página</b><i></i></div>' : ''}<div class="pgbarc" id="pgBarC" role="group" aria-label="Configuração da página"><button type="button" id="pgcHide" class="${pgOpen ? 'on' : ''}" title="Ocultar a configuração da página">⌄ Ocultar</button><button type="button" id="pgcShow" class="${pgOpen ? '' : 'on'}" title="Mostrar a configuração da página">⌃ Expandir</button></div>`);
+    core.insertAdjacentHTML('beforebegin', `${isOn() && p && p.mg ? '<div class="secttl"><i></i><b>Configuração da página</b><i></i></div>' : ''}<div class="pgbarc" id="pgBarC" role="group" aria-label="Configuração da página"><button type="button" id="pgcHide" class="${pgOpen ? 'on' : ''}" title="Ocultar a configuração da página">⌄ Ocultar</button><button type="button" id="pgcShow" class="${pgOpen ? '' : 'on'}" title="Mostrar a configuração da página">⌃ Expandir</button></div>`);
     void p;
     P.querySelector('#pgcHide').onclick = () => { pgOpen = false; renderProps(); };
     P.querySelector('#pgcShow').onclick = () => { pgOpen = true; renderProps(); };
@@ -489,6 +489,7 @@
     const tabsOn = !!tabsOf(p.mg).on, lay = document.createElement('div'); lay.id = 'secLay';
     [...mp.children].forEach((c) => { if (c !== card) lay.appendChild(c); });
     const tb = document.createElement('div'); tb.id = 'secTabs'; tb.appendChild(card); mp.appendChild(lay); mp.appendChild(tb);
+    mp.classList.toggle('nosep', tabsOn);
     if (tabsOn) {
       lay.hidden = !secOpen.lay; tb.hidden = !secOpen.tabs;
       lay.insertAdjacentHTML('beforebegin', secBar('lay', 'Layout', secOpen.lay)); tb.insertAdjacentHTML('beforebegin', secBar('tabs', 'Divisórias', secOpen.tabs));
