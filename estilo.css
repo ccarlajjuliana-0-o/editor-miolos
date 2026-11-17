@@ -494,3 +494,12 @@ body{font-size:calc(15px*var(--escala,1))}
 .mgchip button:hover{background:var(--surface2)}
 .mgchip button[data-mgact=lock]{border-style:solid;padding:1px 6px}
 #mgPanel .mgrow{align-items:center;gap:6px;flex-wrap:nowrap}#mgPanel .mgrow .chk{flex:1}#mgPanel .mgrow input[type=number]{width:62px}
+
+.mghole{position:absolute;top:0;bottom:0;pointer-events:none;background:rgba(231,166,190,.10);border-left:1px dotted rgba(231,166,190,.7);border-right:1px dotted rgba(231,166,190,.7)}
+.mgdot{position:absolute;transform:translate(-50%,-50%);border:1px solid rgba(231,166,190,.9);border-radius:50%;pointer-events:none;background:#fff}
+.mgtab{position:absolute;box-sizing:border-box;border:1px dashed rgba(231,60,140,.55);background:rgba(231,166,190,.12);pointer-events:none;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.mgtab.w{background:#fff}.mgtab b{font:700 10px var(--f-title);color:rgba(231,60,140,.8)}
+#mgPanel .mglinks{flex-direction:column;align-items:flex-start;gap:2px}
+#mgPanel .mgtabs{display:flex;flex-direction:column;gap:8px;margin-top:6px;padding-top:8px;border-top:1px solid var(--line)}
+#mgPanel .segf{display:flex}#mgPanel .segf button{flex:1;padding:6px 8px;border:1px solid var(--line);background:var(--surface);font:600 12px var(--f-title);color:var(--ink);cursor:pointer}
+#mgPanel .segf button.on{background:var(--surface2);color:var(--accent);border-color:var(--accent)}

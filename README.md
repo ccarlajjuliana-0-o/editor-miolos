@@ -72,3 +72,6 @@ adicionar antes/depois, duplicar, renomear, mover (cima, baixo, para…, primeir
 - Guias tracejadas no editor com alças para arrastar; elementos encostam nas guias; o conteúdo se ajusta à nova área (desligável).
 - Padrão: a página da direita do editor é a da esquerda no impresso; dá para inverter no projeto ou escolher o lado por página.
 - "Copiar design" tem a opção de copiar margens, lombada, cabeçalho e rodapé.
+- Margens externa/interna (e topo/base) podem ser vinculadas: mudam juntas, mantendo a proporção (externa e interna vêm vinculadas por padrão).
+- Espaço para furos: 20 mm (2 cm) no lado de dentro de cada página por padrão, ajustável.
+- Espaço para divisórias (topo, base ou lateral): quantidade, largura, raio e fundo; "Inserir abas na lateral" cria as abas.
