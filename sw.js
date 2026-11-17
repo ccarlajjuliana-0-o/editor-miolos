@@ -1,6 +1,6 @@
 // Guarda o app para abrir sem internet. Arquivos próprios: rede primeiro (para as atualizações chegarem); bibliotecas e fontes: guardadas na primeira vez.
-const V = 'estudio-miolos-v9';
-const BASE = ['./', 'index.html', 'estilo.css', 'app.js', 'vetor.js', 'aparencia.js', 'layout.js', 'protecao.js', 'recursos.js', 'config.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
+const V = 'estudio-miolos-v10';
+const BASE = ['./', 'index.html', 'estilo.css', 'app.js', 'vetor.js', 'aparencia.js', 'layout.js', 'protecao.js', 'recursos.js', 'exportar.js', 'config.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(V).then((c) => c.addAll(BASE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== V).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', (e) => {

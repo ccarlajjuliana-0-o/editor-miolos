@@ -40,3 +40,8 @@ links entre páginas). Imagens e adesivos entram como imagem, com transparência
 - Fontes enviadas por você (TTF/OTF) são embutidas direto.
 - Se alguma fonte não puder ser embutida, só aquele texto vira imagem (o aviso aparece no fim da exportação).
 - Antes de exportar, o Estúdio avisa de links sem destino e de links para páginas fora do intervalo escolhido.
+
+## Tela de exportação
+
+Prévia da folha à esquerda (com "Ver todas") e, à direita, formato (Impressão, Tablet, KDP, Caderno, Imagem), tamanho do papel
+(tamanho atual, A4, Carta), linhas de corte (cor e ocultar) e "Mais opções" (links, sangria, tipo de PDF). Código em `exportar.js`.
