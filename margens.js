@@ -77,12 +77,22 @@
     if (!lock) h += `<div class="mgchip" style="top:${H + 8}px;left:50%;transform:translateX(-50%)" data-pid="${pid}">${g.hasF ? '<button type="button" data-mgact="ftr-off" title="Remover o rodapé">✕ Rodapé</button>' : '<button type="button" data-mgact="ftr">+ Mostrar rodapé</button>'}</div>`;
     return h;
   }
-  const KEY = 'cnu.estudio.mgshow'; let shown = true;
-  try { shown = localStorage.getItem(KEY) !== '0'; } catch (_) { /* ok */ }
-  const show = () => shown;
-  const paintBtn = () => { const b = document.getElementById('bMg'); if (b) { b.classList.toggle('on', shown); b.setAttribute('aria-pressed', String(shown)); b.title = shown ? 'Ocultar margens' : 'Mostrar margens'; } };
-  const bm = document.getElementById('bMg');
-  if (bm) bm.onclick = () => { shown = !shown; try { localStorage.setItem(KEY, shown ? '1' : '0'); } catch (_) { /* ok */ } paintBtn(); redraw(); if (typeof toast === 'function') { const p = curPage(); toast(shown ? (p && p.mg ? 'Margens visíveis.' : 'Margens visíveis (esta página ainda não tem margens).') : 'Margens ocultas.'); } };
+  /* botão da barra superior: liga/desliga as margens do projeto (os valores ficam guardados) */
+  const isOn = () => { if (!S.meta) return false; if (S.meta.mgOn !== undefined) return !!S.meta.mgOn; return S.order.some((id) => S.pages[id] && S.pages[id].mg); };
+  const show = isOn;
+  const paintBtn = () => { const b = document.getElementById('bMg'); if (b) { const on = isOn(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); b.title = on ? 'Desligar margens' : 'Ligar margens'; } };
+  function toggle() {
+    const msg = (t) => { if (typeof toast === 'function') toast(t); };
+    if (isOn()) { S.meta.mgOn = false; Saver.m(); paintBtn(); redraw(); renderProps(); msg('Margens desligadas. Os valores ficam guardados.'); return; }
+    S.meta.mgOn = true; Saver.m();
+    const need = S.order.filter((id) => S.pages[id] && !S.pages[id].mg);
+    if (need.length) {
+      change(need, () => need.forEach((id) => { const p = S.pages[id], m = defaults(p); if (fitOn()) fit(p, geom(p, null), geom(p, m)); p.mg = m; }));
+      need.forEach((id) => thumbRefresh(id));
+    }
+    paintBtn(); redraw(); renderProps(); msg('Margens ligadas.' + (need.length ? ' Ctrl+Z desfaz o ajuste do conteúdo.' : ''));
+  }
+  const bm = document.getElementById('bMg'); if (bm) bm.onclick = toggle;
   paintBtn();
   const eo = window.extraOverlay;
   window.extraOverlay = function (p, k) { return eo(p, k) + overlay(p, k); };
@@ -128,7 +138,7 @@
 
   /* ---------- ímãs: elementos encostam nas margens ---------- */
   window.Margens = {
-    snapLines(p) { const xs = [], ys = []; if (!p || !p.mg || !shown) return { xs, ys }; const g = geom(p, p.mg); xs.push(g.x0, g.x1); ys.push(g.top, g.bot); if (g.hasH) ys.push(g.y0); if (g.hasF) ys.push(g.y1); return { xs, ys }; },
+    snapLines(p) { const xs = [], ys = []; if (!p || !p.mg || !isOn()) return { xs, ys }; const g = geom(p, p.mg); xs.push(g.x0, g.x1); ys.push(g.top, g.bot); if (g.hasH) ys.push(g.y0); if (g.hasF) ys.push(g.y1); return { xs, ys }; },
     geom, applyMg, defaults, isLeft,
   };
 
@@ -186,7 +196,9 @@
     const r = rp.apply(this, arguments);
     try {
       const P = document.getElementById('props'), p = curPage();
-      if (P && p && P.querySelector('#psz') && !P.querySelector('#mgPanel')) {
+      paintBtn();
+      const old = P && P.querySelector('#mgPanel'); if (old && !isOn()) old.remove();
+      if (P && p && isOn() && P.querySelector('#psz') && !P.querySelector('#mgPanel')) {
         const anchor = P.querySelector('#pGuides'), grp = anchor && anchor.closest('.pgrp');
         if (grp) { grp.insertAdjacentHTML('beforebegin', panelHTML(p)); mount(p, P); }
       }
