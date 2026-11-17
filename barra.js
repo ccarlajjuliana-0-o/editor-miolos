@@ -35,7 +35,7 @@
     const w = document.querySelector('#stage .pg.on'), ws = document.getElementById('ws'); if (!w || !ws) return false;
     const r = w.getBoundingClientRect(), wr = ws.getBoundingClientRect(), k = S.k;
     const B = bb(els), x = r.left + B.x * k, y = r.top + B.y * k, bw = B.w * k, bh = B.h * k;
-    bar.hidden = false;
+    bar.hidden = false; bar.style.maxWidth = Math.max(120, wr.width - 12) + 'px';
     const W = bar.offsetWidth, H = bar.offsetHeight;
     let top = y - H - 16; if (top < wr.top + 4) top = y + bh + 14;
     if (top + H > wr.bottom - 4) top = Math.max(wr.top + 4, Math.min(y + 8, wr.bottom - H - 4));

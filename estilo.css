@@ -605,3 +605,6 @@ body{font-size:calc(15px*var(--escala,1))}
 #mgPanel .mgtools{flex-wrap:nowrap;width:100%;gap:4px}
 #mgPanel .mgtools .btn{padding:3px 7px;white-space:nowrap}
 #mgPanel .mgtools select#mgUnit{margin-left:auto}
+
+#qbar input.qn,#qbar input.qn:focus{padding:0 !important;border:0 !important;border-radius:8px;box-shadow:none;width:52px;height:32px;min-height:0;background:transparent;font-size:14px;text-align:center}
+#qbar input.qn:focus{background:var(--surface2);outline:0}

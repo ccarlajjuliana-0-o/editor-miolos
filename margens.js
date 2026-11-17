@@ -46,19 +46,22 @@
   // Âncoras por elemento (e.mu): posição relativa à área em vez de valores absolutos. Assim o ajuste é reversível:
   // ao devolver a margem ao valor anterior, cada elemento volta exatamente ao lugar de origem.
   const same = (a, b) => Math.abs(a - b) < 0.06;
-  function anchorAxis(pos, len, a0, a1, lo, hi, pageLen, kind) { // kind: 'x' (L/M/R) ou 'y' (T/M/B)
+  function anchorAxis(pos, len, a0, a1, lo, hi, pageLen, kind) { // kind: 'x' ou 'y'
     const c = pos + len / 2, area = a1 - a0;
     if (len > area + 1 || (lo === 0 && hi === pageLen && len >= pageLen - 1)) return { m: 'X', v: 0 };
-    if (c < a0) return { m: kind === 'x' ? 'L' : 'T', v: pos - lo };
+    if (c < a0) return { m: kind === 'x' ? 'L' : 'T', v: pos - lo };       // fora da área, na margem: acompanha a borda
     if (c > a1) return { m: kind === 'x' ? 'R' : 'B', v: pos - hi };
-    const slack = area - len; return { m: 'M', v: slack > 0.01 ? (pos - a0) / slack : 0 };
+    if (Math.abs(pos - a0) <= 1.5) return { m: 'S', v: pos - a0 };           // colado no começo da área: acompanha
+    if (Math.abs(a1 - (pos + len)) <= 1.5) return { m: 'E', v: pos + len - a1 }; // colado no fim: acompanha
+    return { m: 'F', v: pos };                                                // livre: fica onde está e só recua se a margem invadir
   }
   function placeAxis(an, pos, len, b0, b1, lo, hi, pageLen) { // devolve {v, ok}
     if (an.m === 'X') return { v: pos, ok: true };
     if (an.m === 'L' || an.m === 'T') return { v: lo + an.v, ok: true };
     if (an.m === 'R' || an.m === 'B') return { v: hi + an.v, ok: true };
     const room = b1 - b0; if (len > room + 0.05) return { v: b0, ok: false };
-    return { v: b0 + Math.max(0, Math.min(1, an.v)) * (room - len), ok: true };
+    const v = an.m === 'S' ? b0 + an.v : an.m === 'E' ? b1 + an.v - len : an.v;
+    return { v: Math.max(b0, Math.min(v, b1 - len)), ok: true };
   }
   function fit(p, a, b) {
     if (a.full && b.full) return;
@@ -186,12 +189,14 @@
   const paintBtn = () => { const b = document.getElementById('bMg'); if (b) { const on = isOn(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); b.title = on ? 'Desligar layout (margens e margem de segurança)' : 'Ligar layout (margens e margem de segurança)'; } };
   function toggle() {
     const msg = (t) => { if (typeof toast === 'function') toast(t); };
-    if (isOn()) { S.meta.mgOn = false; S.guides = false; Saver.m(); paintBtn(); redraw(); renderProps(); msg('Margens desligadas. Os valores ficam guardados.'); return; }
+    if (isOn()) { const wm = S.order.filter((id) => S.pages[id] && S.pages[id].mg); if (wm.length && fitOn()) { change(wm, () => wm.forEach((id) => { const q = S.pages[id]; fit(q, geom(q, q.mg), geom(q, null)); })); wm.forEach((id) => thumbRefresh(id)); FIX = []; } S.meta.mgOn = false; S.guides = false; Saver.m(); paintBtn(); redraw(); renderProps(); msg('Margens desligadas. Os valores ficam guardados.'); return; }
     const need0 = S.order.filter((id) => S.pages[id] && !S.pages[id].mg);
     if (need0.length && S.meta.mgBind === undefined) { askBind(enable); return; }
     enable();
     function enable() {
       S.meta.mgOn = true; S.guides = true; Saver.m();
+      const had = S.order.filter((id) => S.pages[id] && S.pages[id].mg);
+      if (had.length && fitOn()) { change(had, () => had.forEach((id) => { const q = S.pages[id]; fit(q, geom(q, null), geom(q, q.mg)); })); had.forEach((id) => thumbRefresh(id)); }
       const need = S.order.filter((id) => S.pages[id] && !S.pages[id].mg);
       if (need.length) {
         change(need, () => need.forEach((id) => { const p = S.pages[id], m = defaults(p); if (fitOn()) fit(p, geom(p, null), geom(p, m)); p.mg = m; }));
