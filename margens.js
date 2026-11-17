@@ -337,7 +337,7 @@
     const isPage = !!P.querySelector('#psz');
     if (!isPage) { // elemento selecionado: botão para voltar à janela anterior
       if (P.children.length && !P.querySelector('#pBack') && !P.querySelector('#mgPanel')) {
-        P.insertAdjacentHTML('afterbegin', '<button type="button" class="pback" id="pBack" title="Voltar para as configurações da página">← Voltar</button>');
+        P.insertAdjacentHTML('afterbegin', '<div class="pbrow" id="pbRow"><button type="button" class="pback" id="pBack" title="Voltar para as configurações da página">← Voltar</button></div>');
         P.querySelector('#pBack').onclick = () => { S.sel = []; redraw(); renderProps(); };
       }
       return;

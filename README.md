@@ -87,3 +87,6 @@ adicionar antes/depois, duplicar, renomear, mover (cima, baixo, para…, primeir
 ## Proteção do conteúdo nas margens
 - Ao mudar margens, furos, cabeçalho/rodapé ou divisórias, o conteúdo só se move: tamanhos e fontes não mudam, e nada sai da área segura nem da página.
 - Se algo não couber sem mudar de tamanho, ou passar a se sobrepor, aparece um aviso de incompatibilidade (Ctrl+Z desfaz).
+
+## Barra rápida
+Ao selecionar um objeto aparece uma barra sobre ele: para texto, fonte, tamanho, cor, negrito, itálico e alinhamento do texto; para os demais, duplicar, travar, ordem, excluir e alinhar. Com vários selecionados: agrupar/desagrupar, duplicar, excluir e alinhar entre si.
