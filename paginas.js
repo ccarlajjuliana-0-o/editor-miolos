@@ -48,7 +48,7 @@
       <h3>TAMBÉM COPIAR</h3>
       <label class="chk"><input type="checkbox" id="cdSize"> O tamanho da página</label>
       <label class="chk"><input type="checkbox" id="cdName"> O título da página</label>
-      <label class="chk"><input type="checkbox" id="cdMg"> Margens, lombada, cabeçalho e rodapé</label>
+      <label class="chk"><input type="checkbox" id="cdMg"> Layout: margens, furos, cabeçalho e rodapé</label>
       <h3>COMO</h3>
       <label class="chk"><input type="radio" name="cdMode" value="r" checked> Substituir (troca o que já existe)</label>
       <label class="chk"><input type="radio" name="cdMode" value="a"> Acrescentar sobre o que já existe</label>

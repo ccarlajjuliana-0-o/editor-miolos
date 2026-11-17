@@ -68,7 +68,7 @@ adicionar antes/depois, duplicar, renomear, mover (cima, baixo, para…, primeir
 
 
 ### Margens e áreas
-- Propriedades da página → *Margens e áreas*: topo, base, interna, externa, lombada (total ao meio), cabeçalho e rodapé (liga/desliga), bloquear/desbloquear, remover.
+- Propriedades da página → *Layout*: topo, base, interna, externa, lombada (total ao meio), cabeçalho e rodapé (liga/desliga), bloquear/desbloquear, remover.
 - Guias tracejadas no editor com alças para arrastar; elementos encostam nas guias; o conteúdo se ajusta à nova área (desligável).
 - Padrão: a página da direita do editor é a da esquerda no impresso; dá para inverter no projeto ou escolher o lado por página.
 - "Copiar design" tem a opção de copiar margens, lombada, cabeçalho e rodapé.

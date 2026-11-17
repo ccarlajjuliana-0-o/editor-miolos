@@ -1,16 +1,16 @@
-/* Margens e áreas da página — margens internas/externas, lombada (ao meio), cabeçalho e rodapé.
-   Guias no editor (arrastáveis, com trava), ajuste do conteúdo e lado do impresso.
-   Padrão: a página da DIREITA do editor representa a página da ESQUERDA no impresso. */
+/* Layout da página — margens internas/externas, furos, lombada, cabeçalho, rodapé e divisórias.
+   Guias no editor (arrastáveis, com trava) e ajuste do conteúdo.
+   O lado de DENTRO (margem interna, furos e lombada) fica no encontro das duas páginas, no meio da dupla. */
 (function () {
   'use strict';
   const MIN = 20, DEF_HF = 12;
   const num = (v, d) => (Number.isFinite(+v) ? +v : d);
 
   /* ---------- modelo ---------- */
-  // lado impresso: true = página da esquerda do caderno (lado de dentro = direita da folha)
+  // true = página da ESQUERDA da dupla no editor (o lado de dentro fica na sua borda direita, no meio da dupla)
   const autoLeft = (p) => {
     const i = S.order.indexOf(p.id), off = S.meta.coverAlone !== false ? 1 : 0;
-    const e = i < off ? true : (i - off) % 2 === 1; // direita do editor = esquerda do impresso
+    const e = i < off ? false : (i - off) % 2 === 0; // capa sozinha aparece à direita
     return S.meta.mgFlip ? !e : e;
   };
   const isLeft = (p, m) => (m && m.side === 'e' ? true : m && m.side === 'd' ? false : autoLeft(p));
@@ -124,7 +124,7 @@
       if (g.hasH) h += hd('hdr', `left:30%;top:${g.y0 * k}px`);
       if (g.hasF) h += hd('ftr', `left:30%;top:${g.y1 * k}px`);
     }
-    h += `<div class="mgchip" style="top:-26px;right:0" data-pid="${pid}"><button type="button" data-mgact="lock" title="${lock ? 'Desbloquear' : 'Bloquear'} as margens" aria-pressed="${lock}">${lock ? '🔒' : '🔓'}</button><span class="mgside" title="${g.e ? 'Esta página fica na ESQUERDA do caderno impresso' : 'Esta página fica na DIREITA do caderno impresso'}">${g.e ? 'esq.' : 'dir.'}</span>${lock ? '' : g.hasH ? '<button type="button" data-mgact="hdr-off" title="Remover o cabeçalho">✕ Cabeçalho</button>' : '<button type="button" data-mgact="hdr">+ Cabeçalho</button>'}</div>`;
+    h += `<div class="mgchip" style="top:-26px;right:0" data-pid="${pid}"><button type="button" data-mgact="lock" title="${lock ? 'Desbloquear' : 'Bloquear'} as margens" aria-pressed="${lock}">${lock ? '🔒' : '🔓'}</button><span class="mgside" title="${g.e ? 'Página da ESQUERDA da dupla: furos e margem interna na borda direita (meio da dupla)' : 'Página da DIREITA da dupla: furos e margem interna na borda esquerda (meio da dupla)'}">${g.e ? 'esq.' : 'dir.'}</span>${lock ? '' : g.hasH ? '<button type="button" data-mgact="hdr-off" title="Remover o cabeçalho">✕ Cabeçalho</button>' : '<button type="button" data-mgact="hdr">+ Cabeçalho</button>'}</div>`;
     if (!lock) h += `<div class="mgchip" style="top:${H + 8}px;left:50%;transform:translateX(-50%)" data-pid="${pid}">${g.hasF ? '<button type="button" data-mgact="ftr-off" title="Remover o rodapé">✕ Rodapé</button>' : '<button type="button" data-mgact="ftr">+ Mostrar rodapé</button>'}</div>`;
     const r = partnerOf(p);
     if (r && r.mg && S.order.indexOf(r.id) > S.order.indexOf(p.id) && S.meta.view === 'spread') {
@@ -136,11 +136,11 @@
   /* botão da barra superior: liga/desliga as margens do projeto (os valores ficam guardados) */
   const isOn = () => { if (!S.meta) return false; if (S.meta.mgOn !== undefined) return !!S.meta.mgOn; return S.order.some((id) => S.pages[id] && S.pages[id].mg); };
   const show = isOn;
-  const paintBtn = () => { const b = document.getElementById('bMg'); if (b) { const on = isOn(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); b.title = on ? 'Desligar margens' : 'Ligar margens'; } };
+  const paintBtn = () => { const b = document.getElementById('bMg'); if (b) { const on = isOn(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); b.title = on ? 'Desligar layout (margens e margem de segurança)' : 'Ligar layout (margens e margem de segurança)'; } };
   function toggle() {
     const msg = (t) => { if (typeof toast === 'function') toast(t); };
-    if (isOn()) { S.meta.mgOn = false; Saver.m(); paintBtn(); redraw(); renderProps(); msg('Margens desligadas. Os valores ficam guardados.'); return; }
-    S.meta.mgOn = true; Saver.m();
+    if (isOn()) { S.meta.mgOn = false; S.guides = false; Saver.m(); paintBtn(); redraw(); renderProps(); msg('Margens desligadas. Os valores ficam guardados.'); return; }
+    S.meta.mgOn = true; S.guides = true; Saver.m();
     const need = S.order.filter((id) => S.pages[id] && !S.pages[id].mg);
     if (need.length) {
       change(need, () => need.forEach((id) => { const p = S.pages[id], m = defaults(p); if (fitOn()) fit(p, geom(p, null), geom(p, m)); p.mg = m; }));
@@ -204,6 +204,7 @@
   };
 
   /* ---------- painel (propriedades da página) ---------- */
+  const LAYOUT_ICON = '<svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M11 3v18M11 12h10"/></svg>';
   const UNITS = { mm: [1, 1], cm: [0.1, 2], in: [1 / 25.4, 3] };
   const getUnit = () => { try { const u = localStorage.getItem('cnu.estudio.mgunit'); return UNITS[u] ? u : 'mm'; } catch (_) { return 'mm'; } };
   const toU = (v) => +(num(v, 0) * UNITS[getUnit()][0]).toFixed(UNITS[getUnit()][1]);
@@ -227,9 +228,9 @@
   function panelHTML(p) {
     const m = p.mg, n = S.order.length, sc = scopeOf(), nsel = selected().length;
     const scope = `<label class="mgscope"><small>AS ALTERAÇÕES VALEM PARA</small><select id="mgScope"><option value="all"${sc === 'all' ? ' selected' : ''}>Todas as páginas · ${n} página${n > 1 ? 's' : ''}</option><option value="page"${sc === 'page' ? ' selected' : ''}>Só esta página</option>${nsel ? `<option value="sel"${sc === 'sel' ? ' selected' : ''}>Páginas selecionadas · ${nsel}</option>` : ''}</select></label>`;
-    if (!m) return `<div class="pgrp" id="mgPanel"><h3 class="mgh3">MARGENS E ÁREAS</h3>${scope}<p class="hint">Esta página está sem margens. Adicione para ver as guias, reservar furos e lombada e ter cabeçalho, rodapé e divisórias.</p><button class="btn sm pri" id="mgAdd">Adicionar margens</button><label class="chk"><input type="checkbox" id="mgFit"${fitOn() ? ' checked' : ''}> Ajustar o conteúdo à área</label></div>`;
+    if (!m) return `<div class="pgrp" id="mgPanel"><h3 class="mgh3">${LAYOUT_ICON} LAYOUT</h3>${scope}<p class="hint">Esta página está sem margens. Adicione para ver as guias, reservar furos e lombada e ter cabeçalho, rodapé e divisórias.</p><button class="btn sm pri" id="mgAdd">Adicionar margens</button><label class="chk"><input type="checkbox" id="mgFit"${fitOn() ? ' checked' : ''}> Ajustar o conteúdo à área</label></div>`;
     const g = geom(p, m), dis = !!m.lock, un = getUnit(), allLinked = linkOn('inner') && linkOn('top') && spreadOn();
-    return `<div class="pgrp" id="mgPanel"><h3 class="mgh3">MARGENS E ÁREAS</h3>${scope}
+    return `<div class="pgrp" id="mgPanel"><h3 class="mgh3">${LAYOUT_ICON} LAYOUT</h3>${scope}
       <div class="mghead"><b>Preenchimentos e Margens</b><span class="mgtools"><button type="button" class="btn sm ghost" id="mgLinkAll" aria-pressed="${allLinked}">⛓ Vincular tudo</button><button type="button" class="btn sm ghost" id="mgReset"${dis ? ' disabled' : ''}>↺ Redefinir</button><select id="mgUnit" aria-label="Unidade">${Object.keys(UNITS).map((u) => `<option${u === un ? ' selected' : ''}>${u}</option>`).join('')}</select></span></div>
       <div class="mgpair"><div class="mgrows">${row('top', 'Topo', m.top, 60, dis)}${row('bottom', 'Base', m.bottom, 60, dis)}</div>${chain('mgLkTB', linkOn('top'), dis)}</div>
       <div class="mgpair"><div class="mgrows">${row('outer', 'Externa', m.outer, 60, dis)}${row('inner', 'Interna', m.inner, 60, dis)}</div>${chain('mgLkLR', linkOn('inner'), dis)}</div>
@@ -240,9 +241,9 @@
       ${row('hdr', 'Cabeçalho', m.hdr, 40, dis, { ic: 'hdr' })}${row('ftr', 'Rodapé', m.ftr, 40, dis, { ic: 'ftr' })}
       <p class="hint">Altura 0 = sem cabeçalho ou rodapé.</p>
       ${tabsHTML(m, dis, p)}
-      <label class="pfield"><span>Lado no impresso</span><select id="mgSide"${dis ? ' disabled' : ''}><option value="auto"${m.side === 'e' || m.side === 'd' ? '' : ' selected'}>Automático (agora: ${g.e ? 'esquerda' : 'direita'})</option><option value="e"${m.side === 'e' ? ' selected' : ''}>Página da esquerda</option><option value="d"${m.side === 'd' ? ' selected' : ''}>Página da direita</option></select></label>
-      <label class="chk"><input type="checkbox" id="mgFlip"${S.meta.mgFlip ? ' checked' : ''}> Inverter o padrão do projeto</label>
-      <p class="hint">Padrão: a página da direita do editor é a da esquerda no impresso.</p>
+      <label class="pfield"><span>Posição na dupla</span><select id="mgSide"${dis ? ' disabled' : ''}><option value="auto"${m.side === 'e' || m.side === 'd' ? '' : ' selected'}>Automático (agora: ${g.e ? 'esquerda' : 'direita'})</option><option value="e"${m.side === 'e' ? ' selected' : ''}>Página da esquerda (dentro à direita)</option><option value="d"${m.side === 'd' ? ' selected' : ''}>Página da direita (dentro à esquerda)</option></select></label>
+      <label class="chk"><input type="checkbox" id="mgFlip"${S.meta.mgFlip ? ' checked' : ''}> Inverter o lado de dentro no projeto</label>
+      <p class="hint">Padrão: o lado de dentro (furos, lombada e margem interna) fica no encontro das duas páginas, no meio da dupla, para o corte e a furação ficarem sempre à mesma distância.</p>
       <label class="chk"><input type="checkbox" id="mgFit"${fitOn() ? ' checked' : ''}> Ajustar o conteúdo à área</label>
       <button class="btn sm ghost danger" id="mgRm">Remover margens</button></div>`;
   }
