@@ -589,5 +589,7 @@ body{font-size:calc(15px*var(--escala,1))}
 #qbar .qn::-webkit-inner-spin-button{display:none}
 #qbar .qc{position:relative;overflow:hidden}
 #qbar .qc input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
-#qbar .qc b{display:block;width:16px;height:4px;border-radius:2px;margin-top:2px}
+#qbar .qc b{position:absolute;left:50%;bottom:3px;width:16px;height:3px;margin-left:-8px;border-radius:2px}
+#qbar button.qg,#qbar .qc span{font:800 16px/1 var(--f-title);font-style:normal}
+#qbar button.qg i{font-style:italic;font-family:var(--f-title);font-weight:800}
 #qbar .ib svg{display:block}

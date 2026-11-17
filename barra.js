@@ -23,8 +23,8 @@
       const has = (typeof FONTS !== 'undefined' ? FONTS : []).some(([n]) => n === e.font);
       return `<select data-q="font" title="Fonte" aria-label="Fonte">${has ? '' : `<option selected>${e.font || ''}</option>`}${fonts}</select>` + sep +
         btn('size-', 'Diminuir a fonte', '−') + `<input class="qn" type="number" step="0.5" min="1" data-q="size" value="${Math.round((e.size || 10) * 10) / 10}" title="Tamanho da fonte (pt)" aria-label="Tamanho da fonte">` + btn('size+', 'Aumentar a fonte', '+') + sep +
-        `<label class="qc" title="Cor do texto"><span style="font-weight:800">A</span><b style="background:${/^#[0-9a-f]{6}$/i.test(e.color || '') ? e.color : '#3E3550'}"></b><input type="color" data-q="color" value="${/^#[0-9a-f]{6}$/i.test(e.color || '') ? e.color : '#3E3550'}" aria-label="Cor do texto"></label>` +
-        btn('bold', 'Negrito', '<b>B</b>', (e.weight || 400) >= 600) + btn('italic', 'Itálico', '<i style="font-family:serif;font-size:16px">I</i>', e.italic) + sep +
+        `<label class="qc" title="Cor do texto"><span>A</span><b style="background:${/^#[0-9a-f]{6}$/i.test(e.color || '') ? e.color : '#3E3550'}"></b><input type="color" data-q="color" value="${/^#[0-9a-f]{6}$/i.test(e.color || '') ? e.color : '#3E3550'}" aria-label="Cor do texto"></label>` +
+        btn('bold', 'Negrito', 'B', (e.weight || 400) >= 600).replace('<button', '<button class="qg"').replace('class="qg" class="on"', 'class="qg on"') + btn('italic', 'Itálico', '<i>I</i>', e.italic).replace('<button', '<button class="qg"').replace('class="qg" class="on"', 'class="qg on"') + sep +
         btn('ta:left', 'Alinhar o texto à esquerda', svg(AL.l), (e.align || 'left') === 'left') + btn('ta:center', 'Centralizar o texto', svg(AL.c), e.align === 'center') + btn('ta:right', 'Alinhar o texto à direita', svg(AL.r), e.align === 'right') + sep +
         common + sep + alignBtns(' (na página)');
     }

@@ -38,36 +38,40 @@
   // O que não cabe sem mudar de tamanho, ou que passaria a se sobrepor, vira um aviso de incompatibilidade.
   let FIX = [];
   const nameOf = (e) => { const t = String(e.text || '').replace(/\s+/g, ' ').trim(); return t ? '“' + t.slice(0, 24) + (t.length > 24 ? '…' : '') + '”' : (typeof TYPE_NAME !== 'undefined' && TYPE_NAME[e.type]) || 'elemento'; };
-  function slide(pos, len, a0, a1, b0, b1, pageLen) { // devolve {v, ok}
-    if (len > a1 - a0 + 1 || (a0 === 0 && a1 === pageLen && len >= pageLen - 1)) return { v: pos, ok: true, bleed: true }; // sangra: não mexe
-    const c = pos + len / 2;
-    if (c < a0) return { v: pos + (b0 - a0), ok: true, edge: true };
-    if (c > a1) return { v: pos + (b1 - a1), ok: true, edge: true };
-    const t = (a1 - a0) > 0 ? (c - a0) / (a1 - a0) : .5;
-    let v = pos + (b0 - a0) * (1 - t) + (b1 - a1) * t;
-    const room = b1 - b0;
-    if (len > room + .05) return { v: Math.max(0, Math.min(b0, pageLen - len)), ok: false };
-    v = Math.max(b0, Math.min(v, b1 - len));
-    return { v, ok: true };
+  // Âncoras por elemento (e.mu): posição relativa à área em vez de valores absolutos. Assim o ajuste é reversível:
+  // ao devolver a margem ao valor anterior, cada elemento volta exatamente ao lugar de origem.
+  const same = (a, b) => Math.abs(a - b) < 0.06;
+  function anchorAxis(pos, len, a0, a1, lo, hi, pageLen, kind) { // kind: 'x' (L/M/R) ou 'y' (T/M/B)
+    const c = pos + len / 2, area = a1 - a0;
+    if (len > area + 1 || (lo === 0 && hi === pageLen && len >= pageLen - 1)) return { m: 'X', v: 0 };
+    if (c < a0) return { m: kind === 'x' ? 'L' : 'T', v: pos - lo };
+    if (c > a1) return { m: kind === 'x' ? 'R' : 'B', v: pos - hi };
+    const slack = area - len; return { m: 'M', v: slack > 0.01 ? (pos - a0) / slack : 0 };
+  }
+  function placeAxis(an, pos, len, b0, b1, lo, hi, pageLen) { // devolve {v, ok}
+    if (an.m === 'X') return { v: pos, ok: true };
+    if (an.m === 'L' || an.m === 'T') return { v: lo + an.v, ok: true };
+    if (an.m === 'R' || an.m === 'B') return { v: hi + an.v, ok: true };
+    const room = b1 - b0; if (len > room + 0.05) return { v: b0, ok: false };
+    return { v: b0 + Math.max(0, Math.min(1, an.v)) * (room - len), ok: true };
   }
   function fit(p, a, b) {
     if (a.full && b.full) return;
     const moved = [];
     p.els.forEach((e) => {
       if (e.locked) return;
-      const before = { x: e.x, y: e.y }, hasX = !(e.w > a.x1 - a.x0 + 1), hasY = !(e.h > a.y1 - a.y0 + 1);
-      const X = slide(e.x, e.w, a.x0, a.x1, b.x0, b.x1, p.w);
-      let Y;
-      if (e.y + e.h / 2 < a.y0) Y = { v: e.y + (b.top - a.top), ok: true };
-      else if (e.y + e.h / 2 <= a.y1) Y = slide(e.y, e.h, a.y0, a.y1, b.y0, b.y1, p.h);
-      else Y = { v: e.y + (b.bot - a.bot), ok: true };
-      if (hasY === false) Y = { v: e.y, ok: true };
-      const nx = r1(Math.max(0, Math.min(X.v, Math.max(0, p.w - e.w)))), ny = r1(Math.max(0, Math.min(Y.v, Math.max(0, p.h - e.h))));
-      e.x = nx; e.y = ny;
+      const before = { x: e.x, y: e.y };
+      let mu = e.mu;
+      if (!mu || !same(mu.x, e.x) || !same(mu.y, e.y)) { // novo ou movido à mão: registra a âncora na área atual
+        const ax = anchorAxis(e.x, e.w, a.x0, a.x1, a.x0, a.x1, p.w, 'x'), ay = anchorAxis(e.y, e.h, a.y0, a.y1, a.top, a.bot, p.h, 'y');
+        mu = { ax, ay };
+      }
+      const X = placeAxis(mu.ax, e.x, e.w, b.x0, b.x1, b.x0, b.x1, p.w), Y = placeAxis(mu.ay, e.y, e.h, b.y0, b.y1, b.top, b.bot, p.h);
+      e.x = r1(Math.max(0, Math.min(X.v, Math.max(0, p.w - e.w)))); e.y = r1(Math.max(0, Math.min(Y.v, Math.max(0, p.h - e.h))));
+      e.mu = { ax: mu.ax, ay: mu.ay, x: e.x, y: e.y };
       if (!X.ok) FIX.push({ p, e, why: 'largura' }); else if (!Y.ok) FIX.push({ p, e, why: 'altura' });
       moved.push({ e, before });
     });
-    // novas sobreposições (estrutura/espaçamento perdidos)
     const ov = (A, B2) => A.x < B2.x + B2.w - .3 && A.x + A.w > B2.x + .3 && A.y < B2.y + B2.h - .3 && A.y + A.h > B2.y + .3;
     if (moved.length < 160) for (let i = 0; i < moved.length; i++) for (let k = i + 1; k < moved.length; k++) {
       const m1 = moved[i], m2 = moved[k], e1 = m1.e, e2 = m2.e;
