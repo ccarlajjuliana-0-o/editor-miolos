@@ -514,7 +514,7 @@ function refreshAll(){renderStrip();renderStage();renderProps();updNav();if(S.ta
 function updNav(){const sp=curSpread();$('#pgInfo').textContent=(sp.length>1?`${sp[0]+1}–${sp[sp.length-1]+1}`:S.cur+1)+'/'+S.order.length;$$('#viewSeg button').forEach(b=>b.classList.toggle('on',b.dataset.v===(S.meta.view||'single')));$('#bZfit').textContent=Math.round(S.k/MM2PX*100)+'%'}
 function spreads(){const n=S.order.length,out=[];if(S.meta.view!=='spread'){for(let i=0;i<n;i++)out.push([i]);return out}let i=0;if(S.meta.coverAlone!==false&&n){out.push([0]);i=1}for(;i<n;i+=2)out.push(i+1<n?[i,i+1]:[i]);return out}
 function curSpread(){const sp=spreads();return sp.find(s=>s.includes(S.cur))||sp[0]||[0]}
-function go(delta){const sp=spreads(),i=sp.indexOf(curSpread()),n=sp[cl(i+delta,0,sp.length-1)];if(!n)return;setCur(n[0])}
+function go(delta){const sp=spreads(),i=Math.max(0,sp.findIndex(s=>s.includes(S.cur))),n=sp[cl(i+delta,0,sp.length-1)];if(!n)return;setCur(n[0])}
 function setCur(i,keepSel){if(i===S.cur&&keepSel)return;S.cur=cl(i,0,S.order.length-1);if(!keepSel)S.sel=[];renderStage();renderProps();updNav();markStrip();if(S.tab==='paginas')renderPanel()}
 
 /* ================= EDITOR: palco ================= */
