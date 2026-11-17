@@ -3,7 +3,15 @@
 (function () {
   'use strict';
   const KEY = 'cnu.estudio.export';
-  const SZ = { A4: [210, 297], Carta: [215.9, 279.4] };
+  const SH = { A4: [210, 297, 'A4'], Oficio: [216, 330, 'Ofício'], Carta: [215.9, 279.4, 'Carta'] };
+  const SHEETS = Object.keys(SH);
+  /** melhor encaixe de páginas pw×ph numa folha (em pé ou deitada); null se nem uma couber */
+  function nupLayout(pw, ph, key) {
+    const [a, b] = SH[key]; let best = null;
+    for (const [W, H] of [[a, b], [b, a]]) { const cols = Math.floor((W + 0.5) / pw), rows = Math.floor((H + 0.5) / ph), n = cols * rows; if (n > 0 && (!best || n > best.n)) best = { W, H, cols, rows, n }; }
+    return best;
+  }
+  const mainSize = (pgs) => { const m = {}; pgs.forEach((p) => { const n = sizeName(p.w, p.h); (m[n] = m[n] || { n: 0, p })['n']++; }); const e = Object.entries(m).sort((x, y) => y[1].n - x[1].n)[0]; return e ? { name: e[0], p: e[1].p, count: e[1].n, all: m } : null; };
   const FMT = [['print', 'Impressão'], ['tablet', 'Tablet'], ['kdp', 'KDP'], ['booklet', 'Caderno'], ['png', 'Imagem']];
   const rd = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
   const wr = (o) => { try { localStorage.setItem(KEY, JSON.stringify({ fmt: o.fmt, sheet: o.sheet, spread: o.spread, kdpBleed: o.kdpBleed, bleed: o.bleed, hideCut: o.hideCut, cut: o.cut, links: o.links, vec: o.vec, dpi: o.dpi, sheets: o.sheets })); } catch (e) { /* sem armazenamento */ } };
@@ -24,13 +32,13 @@
     c.stroke(); c.restore();
   }
   function build(o) {
-    const pgs = pagesSel(o), jobs = [], cut = !o.hideCut, col = o.cut || '#D3D3D3', R = { jobs, pgs, main: '', extra: 0, fits: { A4: true, Carta: true } };
+    const pgs = pagesSel(o), jobs = [], cut = !o.hideCut, col = o.cut || '#D3D3D3', R = { jobs, pgs, main: '', extra: 0, nup: {} };
     if (!pgs.length) return R;
     if (o.fmt === 'booklet') {
-      const sizes = {}; pgs.forEach((p) => { const n = sizeName(p.w, p.h); sizes[n] = (sizes[n] || 0) + 1; });
-      const main = Object.entries(sizes).sort((a, b) => b[1] - a[1])[0][0], list = pgs.filter((p) => sizeName(p.w, p.h) === main), pw = list[0].w, ph = list[0].h, W0 = pw * 2;
-      const big = o.sheet === 'A4', W = big ? 297 : W0, H = big ? 210 : ph, ox = (W - W0) / 2, oy = (H - ph) / 2;
-      R.main = main; R.pgs = list; R.extra = pgs.length - list.length; R.fits = { A4: W0 <= 297.5 && ph <= 210.5, Carta: false }; R.sizes = sizes;
+      const ms = mainSize(pgs), main = ms.name, list = pgs.filter((p) => sizeName(p.w, p.h) === main), pw = list[0].w, ph = list[0].h, W0 = pw * 2;
+      R.nup = {}; for (const k of SHEETS) { const [x, y] = SH[k], L = Math.max(x, y), Sh = Math.min(x, y); R.nup[k] = (W0 <= L + 0.5 && ph <= Sh + 0.5) ? { W: L, H: Sh, n: 1 } : null; }
+      const big = o.sheet !== 'atual' && R.nup[o.sheet], W = big ? big.W : W0, H = big ? big.H : ph, ox = (W - W0) / 2, oy = (H - ph) / 2;
+      R.main = main; R.pgs = list; R.extra = pgs.length - list.length; R.sizes = Object.fromEntries(Object.entries(ms.all).map(([k, v]) => [k, v.n]));
       impose(list, o.sheets).forEach((s) => jobs.push({
         w: W, h: H, side: s.side, pids: [s.l, s.r].filter(Boolean).map((p) => p.id), links: () => [],
         draw: (c, k) => {
@@ -41,8 +49,32 @@
       return R;
     }
     const b = o.fmt === 'kdp' ? (o.kdpBleed ? 3 : 0) : o.fmt === 'print' ? (o.bleed ? 3 : 0) : 0;
-    const sheet = o.fmt === 'print' ? o.sheet : 'atual', marks = o.fmt === 'print' && cut;
-    for (const k of ['A4', 'Carta']) R.fits[k] = pgs.every((p) => { const [a, c] = p.w > p.h ? [SZ[k][1], SZ[k][0]] : SZ[k]; return p.w + 2 * b <= a + 0.5 && p.h + 2 * b <= c + 0.5; });
+    const ms = mainSize(pgs); R.main = ms.name; R.mainPage = ms.p;
+    for (const k of SHEETS) R.nup[k] = nupLayout(ms.p.w + 2 * b, ms.p.h + 2 * b, k);
+    const lay = o.fmt === 'print' && o.sheet !== 'atual' ? R.nup[o.sheet] : null, marks = o.fmt === 'print' && cut;
+    const alone = (p) => { const pad = b + (marks ? 6 : 0), W = p.w + 2 * pad, H = p.h + 2 * pad; jobs.push({ w: W, h: H, pids: [p.id], links: () => pageLinks(p).map((L) => ({ ...L, x: L.x + pad, y: L.y + pad })), draw: (c, k) => { drawPage(c, p, k, pad * k, pad * k, { bleed: b }); if (marks) cuts(c, k, pad, pad, p.w, p.h, b, col); } }); };
+    if (lay) {
+      const pw = ms.p.w, ph = ms.p.h, mx = (lay.W - lay.cols * pw) / 2, my = (lay.H - lay.rows * ph) / 2; let buf = [];
+      const flush = () => {
+        if (!buf.length) return; const items = buf; buf = [];
+        jobs.push({
+          w: lay.W, h: lay.H, pids: items.map((p) => p.id),
+          links: () => items.flatMap((p, i) => { const ox = mx + (i % lay.cols) * pw, oy = my + Math.floor(i / lay.cols) * ph; return pageLinks(p).map((L) => ({ ...L, x: L.x + ox, y: L.y + oy })); }),
+          draw: (c, k) => {
+            items.forEach((p, i) => drawPage(c, p, k, (mx + (i % lay.cols) * pw) * k, (my + Math.floor(i / lay.cols) * ph) * k, { bleed: 0 }));
+            if (marks) {
+              c.save(); c.setTransform(k, 0, 0, k, 0, 0); c.strokeStyle = col; c.lineWidth = 0.25; c.beginPath();
+              if (my >= 6) for (let i = 0; i <= lay.cols; i++) { const x = mx + i * pw; c.moveTo(x, my - 1); c.lineTo(x, my - 5); c.moveTo(x, my + lay.rows * ph + 1); c.lineTo(x, my + lay.rows * ph + 5); }
+              if (mx >= 6) for (let j = 0; j <= lay.rows; j++) { const y = my + j * ph; c.moveTo(mx - 1, y); c.lineTo(mx - 5, y); c.moveTo(mx + lay.cols * pw + 1, y); c.lineTo(mx + lay.cols * pw + 5, y); }
+              c.stroke(); c.restore();
+            }
+          },
+        });
+      };
+      for (const p of pgs) { if (sizeName(p.w, p.h) === ms.name) { buf.push(p); if (buf.length === lay.n) flush(); } else { flush(); alone(p); R.extra++; } }
+      flush(); R.lay = lay; return R;
+    }
+    const sheet = 'atual';
     if (o.fmt === 'tablet' && o.spread) {
       let i = 0;
       const single = (p) => jobs.push({ w: p.w, h: p.h, pids: [p.id], links: () => pageLinks(p), draw: (c, k) => drawPage(c, p, k, 0, 0) });
@@ -54,9 +86,7 @@
       return R;
     }
     for (const p of pgs) {
-      let W, H, ox, oy;
-      if (sheet === 'atual') { const pad = b + (marks ? 6 : 0); W = p.w + 2 * pad; H = p.h + 2 * pad; ox = oy = pad; }
-      else { let [sw, sh] = SZ[sheet]; if (p.w > p.h) [sw, sh] = [sh, sw]; W = sw; H = sh; ox = (W - p.w) / 2; oy = (H - p.h) / 2; }
+      const pad = b + (marks ? 6 : 0), W = p.w + 2 * pad, H = p.h + 2 * pad, ox = pad, oy = pad;
       jobs.push({ w: W, h: H, pids: [p.id], links: () => pageLinks(p).map((L) => ({ ...L, x: L.x + ox, y: L.y + oy })), draw: (c, k) => { drawPage(c, p, k, ox * k, oy * k, { bleed: b }); if (marks) cuts(c, k, ox, oy, p.w, p.h, b, col); } });
     }
     return R;
@@ -111,6 +141,7 @@
   const tick4 = (x, y, w, h) => `<path d="M${x - 3} ${y}h-4M${x} ${y - 3}v-4M${x + w + 3} ${y}h4M${x + w} ${y - 3}v-4M${x - 3} ${y + h}h-4M${x} ${y + h + 3}v4M${x + w + 3} ${y + h}h4M${x + w} ${y + h + 3}v4" stroke="currentColor" stroke-width="1" fill="none"/>`;
   const pg = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.5" fill="currentColor" opacity=".18"/>`;
   const ICON = {
+    Oficio: '<svg viewBox="0 0 80 56"><rect x="10" y="6" width="60" height="44" rx="2" fill="none" stroke="currentColor"/></svg>',
     atual: '<svg viewBox="0 0 80 56">' + pg(26, 9, 28, 38) + tick4(26, 9, 28, 38) + '</svg>',
     A4: '<svg viewBox="0 0 80 56"><rect x="14" y="3" width="52" height="50" rx="2" fill="none" stroke="currentColor"/>' + pg(30, 12, 20, 32) + tick4(30, 12, 20, 32) + '</svg>',
     Carta: '<svg viewBox="0 0 80 56"><rect x="12" y="6" width="56" height="44" rx="2" fill="none" stroke="currentColor"/>' + pg(30, 14, 20, 28) + tick4(30, 14, 20, 28) + '</svg>',
@@ -119,6 +150,15 @@
     com: '<svg viewBox="0 0 80 56"><rect x="20" y="6" width="40" height="44" fill="currentColor" opacity=".12"/>' + pg(25, 11, 30, 34) + '<path d="M25 11v34h30V11z" fill="none" stroke="currentColor" stroke-dasharray="2 2"/></svg>',
     sem: '<svg viewBox="0 0 80 56">' + pg(26, 9, 28, 38) + '</svg>',
   };
+
+  function gridIcon(L, B) {
+    const p = B.mainPage || { w: 148, h: 210 }, W = 70, H = Math.round(70 * L.H / L.W); const sc = Math.min(W / L.W, 46 / L.H), sw = L.W * sc, sh = L.H * sc, x0 = 40 - sw / 2, y0 = 28 - sh / 2;
+    let r = `<rect x="${x0}" y="${y0}" width="${sw}" height="${sh}" rx="1.5" fill="none" stroke="currentColor"/>`;
+    const cw = p.w * sc, ch = p.h * sc, gx = x0 + (sw - L.cols * cw) / 2, gy = y0 + (sh - L.rows * ch) / 2;
+    for (let j = 0; j < L.rows; j++) for (let i = 0; i < L.cols; i++) r += `<rect x="${gx + i * cw + 0.6}" y="${gy + j * ch + 0.6}" width="${cw - 1.2}" height="${ch - 1.2}" rx="1" fill="currentColor" opacity=".25"/>`;
+    return `<svg viewBox="0 0 80 56">${r}</svg>`;
+  }
+  function iconFor(k, L, B) { if (L && L.cols) return gridIcon(L, B); if (L && L.W) return ICON.A4; return ICON[k] || ICON.atual; }
 
   /* ---------- a tela ---------- */
   function exportModal() {
@@ -151,9 +191,10 @@
       const g = (q) => $(q, b);
       const fmtName = () => (FMT.find((f) => f[0] === o.fmt) || [])[1];
       const prep0 = async () => { try { await prep(pagesSel(Object.assign({}, o, { range: 'all' }))); } catch (e) { /* segue sem */ } };
-      const cardsFor = () => {
-        if (o.fmt === 'print') return [['atual', 'Tamanho atual'], ['A4', 'A4'], ['Carta', 'Carta (US Letter)']];
-        if (o.fmt === 'booklet') return [['atual', 'Tamanho atual'], ['A4', 'A4']];
+      const cardsFor = (B) => {
+        const sheets = (tail) => SHEETS.filter((k) => B && B.nup && B.nup[k]).map((k) => { const L = B.nup[k], nm = SH[k][2]; return [k, o.fmt === 'booklet' ? nm : (L.n > 1 ? `${nm} · ${L.n} por folha` : `${nm} · centralizada`), tail && L.n > 1 ? 'Economiza papel' : '', L]; });
+        if (o.fmt === 'print') return [['atual', 'Individual', '', null], ...sheets(true)];
+        if (o.fmt === 'booklet') return [['atual', 'Tamanho atual', '', null], ...sheets(false)];
         if (o.fmt === 'tablet') return [['dupla', 'Página dupla', 'Links no PDF'], ['unica', 'Página única']];
         if (o.fmt === 'kdp') return [['com', 'Com sangria (3 mm)'], ['sem', 'Sem sangria']];
         return [];
@@ -163,16 +204,15 @@
       const sync = () => {
         const B = build(o), n = B.jobs.length, p0 = B.pgs[0];
         // cartões
-        const cs = cardsFor();
+        const cs = cardsFor(B);
+        if ((o.fmt === 'print' || o.fmt === 'booklet') && o.sheet !== 'atual' && !(B.nup && B.nup[o.sheet])) { o.sheet = 'atual'; return sync(); }
         g('#xSizeBox').hidden = !cs.length;
-        g('#xCards').innerHTML = cs.map(([k, n2, badge]) => {
-          const off = (o.fmt === 'print' || o.fmt === 'booklet') && (k === 'A4' || k === 'Carta') && B.fits && B.fits[k] === false;
+        g('#xCards').innerHTML = cs.map(([k, n2, badge, L]) => {
           const lab = k === 'atual' && p0 ? `${n2} · ${o.fmt === 'booklet' ? B.main : sizeName(p0.w, p0.h)}` : n2;
-          return `<button class="xcard${isOn(k) ? ' on' : ''}" data-k="${k}"${off ? ' disabled title="A página não cabe nesse papel"' : ''}><span class="xic">${ICON[k]}</span><span class="xlb">${lab}</span>${badge ? `<span class="xbadge">${badge}</span>` : ''}</button>`;
+          return `<button class="xcard${isOn(k) ? ' on' : ''}" data-k="${k}"><span class="xic">${iconFor(k, L, B)}</span><span class="xlb">${lab}</span>${badge ? `<span class="xbadge">${badge}</span>` : ''}</button>`;
         }).join('');
-        if ((o.fmt === 'print' || o.fmt === 'booklet') && B.fits && B.fits[o.sheet] === false) { o.sheet = 'atual'; return sync(); }
-        g('#xSizeH').textContent = o.fmt === 'tablet' ? 'ESTILO DO ARQUIVO' : o.fmt === 'kdp' ? 'SANGRIA' : o.fmt === 'booklet' ? 'PAPEL DA FOLHA' : 'TAMANHO DO PAPEL';
-        g('#xNote').textContent = o.fmt === 'booklet' && B.main ? `Usa as páginas ${B.main} (${B.sizes[B.main]}). Cada folha tem o dobro da largura da página. Imprima frente e verso virando pela borda curta; páginas em branco completam o último caderno.` : o.fmt === 'tablet' ? 'Dupla: duas páginas lado a lado, como no editor. Única: uma página por tela.' : o.fmt === 'kdp' ? 'A Amazon KDP pede sangria de 3 mm nas bordas.' : o.fmt === 'png' ? 'Gera uma imagem PNG da página atual.' : '';
+        g('#xSizeH').textContent = o.fmt === 'tablet' ? 'ESTILO DO ARQUIVO' : o.fmt === 'kdp' ? 'SANGRIA' : o.fmt === 'booklet' ? 'PAPEL DA FOLHA' : 'COMO IMPRIMIR';
+        g('#xNote').textContent = o.fmt === 'print' ? (B.lay ? `${B.lay.n} páginas ${B.main} por folha ${SH[o.sheet][2]}${B.lay.W > B.lay.H ? ' (deitada)' : ''}, em sequência.${(B.lay.W - B.lay.cols * B.mainPage.w) / 2 < 6 && (B.lay.H - B.lay.rows * B.mainPage.h) / 2 < 6 ? ' As páginas ficam coladas: corte na divisão entre elas.' : ' As marcas indicam onde cortar.'}` : (Object.keys(B.nup || {}).some((k) => B.nup[k]) ? '' : `O miolo ${B.main} não cabe em A4, Ofício ou Carta: só dá para imprimir página por página.`)) : o.fmt === 'booklet' && B.main ? `Usa as páginas ${B.main} (${B.sizes[B.main]}). Cada folha tem o dobro da largura da página. Imprima frente e verso virando pela borda curta; páginas em branco completam o último caderno.` : o.fmt === 'tablet' ? 'Dupla: duas páginas lado a lado, como no editor. Única: uma página por tela.' : o.fmt === 'kdp' ? 'A Amazon KDP pede sangria de 3 mm nas bordas.' : o.fmt === 'png' ? 'Gera uma imagem PNG da página atual.' : '';
         g('#xCutBox').hidden = !(o.fmt === 'print' || o.fmt === 'booklet');
         g('#xRangeBox').hidden = o.fmt === 'png';
         g('#xBleedL').hidden = o.fmt !== 'print'; g('#xSheetsL').hidden = o.fmt !== 'booklet';
@@ -231,6 +271,6 @@
     });
   }
   window.exportModal = exportModal;
-  window.Exportar = { build, generate };
+  window.Exportar = { build, generate, nupLayout, SH, SHEETS };
   const bt = document.getElementById('bExport'); if (bt) bt.onclick = exportModal;
 })();

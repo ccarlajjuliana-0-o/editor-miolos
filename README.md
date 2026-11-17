@@ -45,3 +45,10 @@ links entre páginas). Imagens e adesivos entram como imagem, com transparência
 
 Prévia da folha à esquerda (com "Ver todas") e, à direita, formato (Impressão, Tablet, KDP, Caderno, Imagem), tamanho do papel
 (tamanho atual, A4, Carta), linhas de corte (cor e ocultar) e "Mais opções" (links, sangria, tipo de PDF). Código em `exportar.js`.
+
+## Tamanho do projeto
+
+O botão com o tamanho (ex.: **A5**) na barra do editor abre a janela **Tamanho do projeto**: lista por categoria (papel, cadernos e planners,
+argolas, Traveller's, tablet e redes, KDP), busca, mm ou polegadas, em pé/deitado, tamanho personalizado e "ajustar o conteúdo".
+Aplica em todas as páginas ou só na atual. Na exportação, **Impressão** oferece: individual ou N páginas por folha A4, Ofício ou Carta
+(só aparecem os papéis em que o tamanho cabe). Código em `tamanho.js` e `exportar.js`.
