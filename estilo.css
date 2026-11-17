@@ -623,3 +623,21 @@ body{font-size:calc(15px*var(--escala,1))}
 #mgPanel .tcf .sw{width:24px;height:24px;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1px var(--line);padding:0;cursor:pointer}
 #mgPanel .tcf .sw.on{border-color:var(--ink)}
 #mgPanel .tcf input[type=color]{width:28px;height:28px;padding:0;border:0;background:none;cursor:pointer}
+
+/* seletor de cores */
+#cpop{position:fixed;z-index:80;width:244px;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 34px rgba(62,53,80,.22);user-select:none;touch-action:none}
+#cpop[hidden]{display:none}
+#cpop .cp-h{font:700 12px var(--f-title);color:var(--muted);margin-bottom:8px}
+#cpop .cp-sv{position:relative;height:150px;border-radius:10px;cursor:crosshair;touch-action:none}
+#cpop .cp-sv i,#cpop .cp-hue i{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25),0 1px 4px rgba(0,0,0,.3);pointer-events:none}
+#cpop .cp-hue{position:relative;height:12px;margin:14px 4px 12px;border-radius:8px;background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);cursor:pointer;touch-action:none}
+#cpop .cp-hue i{top:50%}
+#cpop .cp-row{display:flex;align-items:center;gap:8px}
+#cpop .cp-f{font:700 12px var(--f-title);color:var(--muted)}
+#cpop #cpHex{flex:1;min-width:0;height:32px;padding:0 8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font:700 13px var(--f-body);color:var(--ink);text-transform:uppercase}
+#cpop #cpEye{flex:none;width:32px;height:32px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);cursor:pointer;display:grid;place-items:center;padding:0}
+#cpop #cpEye:hover{background:var(--surface2)}
+#cpop .cp-sec{font:700 11px var(--f-title);color:var(--muted);margin:12px 0 6px}
+#cpop .cp-sws{display:flex;flex-wrap:wrap;gap:6px}
+#cpop .cps{width:22px;height:22px;border-radius:50%;border:0;box-shadow:0 0 0 1px rgba(62,53,80,.18);padding:0;cursor:pointer}
+#cpop small{color:var(--muted);font-size:12px}

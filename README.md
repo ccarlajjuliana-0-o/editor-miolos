@@ -93,3 +93,6 @@ Ao selecionar um objeto aparece uma barra sobre ele: para texto, fonte, tamanho,
 
 ## Divisórias (abas)
 Ligue em Layout → Divisórias. Elas ficam fixas na lateral externa (arredondadas para fora, espelhadas na página da direita), são iguais em todas as páginas e empurram o conteúdo para dentro. "Mais configurações" abre os textos, as cores (iguais, alternadas ou individuais), a fonte, o destaque e o plano de fundo.
+
+## Seletor de cores
+Em qualquer campo de cor abre um seletor com quadro de cor, matiz, código HEX, conta-gotas (copia uma cor da tela; onde o aparelho não tem conta-gotas, toque em um ponto da página), cores usadas na página e cores da marca.

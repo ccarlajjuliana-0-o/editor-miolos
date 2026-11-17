@@ -49,6 +49,7 @@
     const els = p && S.view === 'editor' ? selEls() : [];
     const modal = document.getElementById('modal'), busy = (modal && !modal.hidden) || S.editing || S.tool || (typeof D !== 'undefined' && D && D.moved);
     if (!els.length || busy || (els.length === 1 && S.ptEdit === els[0].id)) { bar.hidden = true; sig = ''; return; }
+    if (window.ColorPicker && ColorPicker.isOpen()) { place(els); return; }
     if (bar.contains(document.activeElement) && document.activeElement.matches('input,select')) { place(els); return; }
     const key = JSON.stringify(els.map((e) => [e.id, e.type, e.font, e.weight, e.italic, e.align, e.color, e.size, e.locked, e.g]));
     if (key !== sig) { bar.innerHTML = html(els); sig = key; }

@@ -19,6 +19,7 @@ const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const dkey=d=>d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();
 const SIZES={'A4':[210,297],'A5':[148,210],'A6':[105,148],'B5':[176,250],'B6':[125,176],'Colegial':[170,230],'Carta':[215.9,279.4],'Meia-carta':[139.7,215.9],'Personal':[95,171],'Pocket':[81,120],'Quadrado 15 cm':[150,150]};
 function sizeName(w,h){for(const [n,[a,b]] of Object.entries(SIZES)){if(Math.abs(a-w)<.6&&Math.abs(b-h)<.6)return n;if(Math.abs(a-h)<.6&&Math.abs(b-w)<.6)return n+' deitado'}return `${r1(w)}×${r1(h)} mm`}
+window.BRAND_COLORS=['#C398C8','#92A8D1','#9168A0','#F1CDD9','#E7A6BE','#D8A776','#98B1C2','#6E8AB5','#4A4E79','#3E3550','#FBF7F4','#F7E5E7','#FFFFFF'];
 const BRAND=['#C398C8','#92A8D1','#9168A0','#F1CDD9','#E7A6BE','#D8A776','#98B1C2','#6E8AB5','#4A4E79','#3E3550','#FBF7F4','#F7E5E7','#FFFFFF'];
 const FONTS=[['Great Vibes','caligrafia'],['Alex Brush','caligrafia'],['Allura','caligrafia'],['Parisienne','caligrafia'],['Dancing Script','caligrafia'],['Caveat','manuscrita'],['Patrick Hand','manuscrita'],['Indie Flower','manuscrita'],['Shadows Into Light','manuscrita'],['Amatic SC','manuscrita'],['Quicksand','sem serifa'],['Nunito','sem serifa'],['Comfortaa','sem serifa'],['Josefin Sans','sem serifa'],['Montserrat','sem serifa'],['Poppins','sem serifa'],['Playfair Display','serifa'],['Lora','serifa'],['Cormorant Garamond','serifa']];
 const PALS={
