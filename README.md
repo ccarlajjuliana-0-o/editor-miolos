@@ -52,3 +52,9 @@ O botão com o tamanho (ex.: **A5**) na barra do editor abre a janela **Tamanho 
 argolas, Traveller's, tablet e redes, KDP), busca, mm ou polegadas, em pé/deitado, tamanho personalizado e "ajustar o conteúdo".
 Aplica em todas as páginas ou só na atual. Na exportação, **Impressão** oferece: individual ou N páginas por folha A4, Ofício ou Carta
 (só aparecem os papéis em que o tamanho cabe). Código em `tamanho.js` e `exportar.js`.
+
+## Páginas: títulos, menu e copiar design
+
+No painel **Páginas**, cada página tem um lápis (dar um título; duplo clique no nome também renomeia) e um menu **⋯** (ou botão direito na miniatura):
+adicionar antes/depois, duplicar, renomear, mover (cima, baixo, para…, primeira, última), copiar design para outras páginas, usar o design de outra e excluir.
+**Inserir página** (também o “+” da tira) abre a janela com *Página vazia* ou *Cópia de uma página*, onde inserir (frente, trás, antes, depois) e, em **Mais opções**, título, quantidade, tamanho e design a copiar.

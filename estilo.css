@@ -439,3 +439,18 @@ body{font-size:calc(15px*var(--escala,1))}
 .tmroot .xadv .xrow{align-items:flex-end}
 #tmOri{flex:0 0 auto}#tmOri button{padding:6px 14px;white-space:nowrap}
 .xroot{max-height:calc(100vh - 40px)}.xgrid{overflow:auto;min-height:0}
+
+/* ===== Páginas: menu, títulos, copiar design ===== */
+.insroot{display:flex;flex-direction:column;gap:10px}
+.insroot h3{font:700 11.5px var(--f-title);letter-spacing:.14em;color:var(--muted);margin:4px 0 0}
+.insroot .chk select{margin-left:6px;max-width:190px}
+.cdlist{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.chk.dis{opacity:.45}
+.pwrap[hidden]{display:none}
+.prow .pren{width:100%;min-width:0;padding:2px 6px;font-size:12.5px}
+.pgmenu{position:fixed;z-index:80;min-width:240px;max-height:calc(100vh - 16px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 36px var(--shadow);padding:6px;display:flex;flex-direction:column}
+.pgmenu button{border:0;background:transparent;text-align:left;padding:8px 12px;border-radius:9px;font:600 13px var(--f-title);color:var(--ink);cursor:pointer}
+.pgmenu button:hover:not(:disabled){background:var(--surface2)}
+.pgmenu button:disabled{opacity:.4;cursor:default}
+.pgmenu button.danger{color:var(--danger)}
+.pgmenu hr{border:0;border-top:1px solid var(--line);margin:4px 2px}

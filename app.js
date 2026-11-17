@@ -523,7 +523,7 @@ function renderStage(){const st=$('#stage'),ws=$('#ws'),sp=curSpread(),pgs=sp.ma
   const fit=Math.min(aw/tw,ah/mh);S.k=S.zoom?S.zoom*MM2PX:fit;
   st.className=sp.length>1?'spread':'';st.innerHTML='';
   sp.forEach(idx=>{const id=S.order[idx],p=S.pages[id];if(!p)return;const w=document.createElement('div');w.className='pg'+(idx===S.cur?' on':'');w.dataset.id=id;w.dataset.idx=idx;w.style.width=p.w*S.k+'px';w.style.height=p.h*S.k+'px';
-    w.innerHTML=`<span class="lbl">${idx+1} · ${esc(sizeName(p.w,p.h))}</span><canvas></canvas><div class="ov"><div class="selc"></div></div>`;st.append(w)});
+    w.innerHTML=`<span class="lbl">${idx+1}${p.name&&p.name.trim()?' · '+esc(p.name.trim()):''} · ${esc(sizeName(p.w,p.h))}</span><canvas></canvas><div class="ov"><div class="selc"></div></div>`;st.append(w)});
   $('#bZfit').textContent=Math.round(S.k/MM2PX*100)+'%';redraw();drawRulers()}
 let rafT=0,rafThumb=false;
 function scheduleRedraw(thumbs){if(thumbs)rafThumb=true;if(rafT)return;rafT=requestAnimationFrame(()=>{rafT=0;if(S.view!=='editor'){if(rafThumb&&S.view==='home'){rafThumb=false}return}redraw();if(rafThumb){rafThumb=false;refreshThumbs()}})}
