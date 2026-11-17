@@ -464,7 +464,7 @@ function renderBrand(){const lg=S.lib.find(x=>x.kind==='logo');$('#brand').inner
 
 /* ================= HOME ================= */
 async function loadHome(){S.view='home';$('#home').hidden=false;$('#editor').hidden=true;renderBrand();
-  const hs=$('#hstatus');hs.className='status ok';hs.querySelector('span').textContent='Projetos guardados neste aparelho'+(Cloud.user?' · conectada à nuvem':'');
+  const hs=$('#hstatus');hs.className='status ok';hs.querySelector('span').textContent='Projetos guardados neste aparelho'+(Cloud.user?' · conectada à nuvem':(Cloud.sb?'':' · nuvem desligada'));
   $('#plist').innerHTML='<p class="hint">Carregando projetos…</p>';
   try{S.projects=(await Store.listProjects()).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))}catch(e){S.projects=[];toast('Não consegui ler seus projetos agora.')}
   renderHome()}
@@ -488,7 +488,8 @@ function newProjectModal(){modal(`<h2>Novo projeto</h2><label class="f">Nome<inp
   <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="npGo">Criar projeto</button></div>`,(b,close)=>{
     $('#npSize',b).onchange=()=>{const c=$('#npSize',b).value==='custom';$('#npCw',b).hidden=!c;$('#npCh',b).hidden=!c};
     $('#npGo',b).onclick=async()=>{let [w,h]=$('#npSize',b).value==='custom'?[+$('#npW',b).value||148,+$('#npH',b).value||210]:SIZES[$('#npSize',b).value];if($('#npOr',b).value==='l')[w,h]=[Math.max(w,h),Math.min(w,h)];
-      close();const pg=blankPage(w,h);await createProject($('#npName',b).value.trim()||'Projeto sem nome',{w,h},[pg])}})}
+      const nome=$('#npName',b).value.trim()||'Projeto sem nome';
+      close();const pg=blankPage(w,h);await createProject(nome,{w,h},[pg])}})}
 async function createProject(name,size,pages){const pid=uid('p'),meta={kind:'project',name,size,view:'single',coverAlone:true,weekStart:0,style:{pal:'lavanda',pair:'assinatura'},createdAt:Date.now(),updatedAt:Date.now(),order:pages.map(p=>p.id)};
   S.pid=pid;S.meta=meta;S.order=meta.order.slice();S.pages=Object.fromEntries(pages.map(p=>[p.id,p]));
   setSave('Salvando…');await pool(pages.map(p=>()=>Store.savePage(pid,p.id,p)),4);await Store.saveMeta(pid,metaDoc());await openProject(pid,true)}
@@ -832,15 +833,17 @@ async function buildPackage(prog){const items=S.lib.filter(x=>x.mostruario&&(x.k
   return out}
 /* ---- nuvem (Supabase): o mesmo login do app do ateliê ---- */
 const Cloud={sb:null,user:null,
-  init(){const c=window.CNU||{};if(!c.url||!c.key||!window.supabase)return;
+  why(){const c=window.CNU||{};if(!c.url||!c.key)return 'as chaves da nuvem não chegaram a este site (config.js vazio). Confira as variáveis do repositório e rode o publicador de novo.';if(!window.supabase)return 'a biblioteca do Supabase não carregou (internet bloqueando o jsDelivr?). Atualize a página.';return 'não consegui ligar à nuvem.'},
+  init(){const c=window.CNU||{};if(!c.url||!c.key||!window.supabase){this.changed();return}
     try{this.sb=window.supabase.createClient(c.url,c.key);
       this.sb.auth.getSession().then(({data})=>{this.user=data.session?data.session.user:null;this.changed()});
-      this.sb.auth.onAuthStateChange((_e,ses)=>{this.user=ses?ses.user:null;this.changed()})}catch(e){console.error(e)}},
-  changed(){const b=$('#cloudBtn');if(b){b.hidden=!this.sb;b.textContent=this.user?'Sair da nuvem':'Entrar na nuvem'}
+      this.sb.auth.onAuthStateChange((_e,ses)=>{this.user=ses?ses.user:null;this.changed()})}catch(e){console.error(e)}
+    this.changed()},
+  changed(){const b=$('#cloudBtn');if(b){b.hidden=false;b.textContent=this.user?'Sair da nuvem':'Entrar na nuvem'}
     if(S.view==='home'&&$('#hstatus'))renderHome();if(S.view==='editor'&&S.tab==='app')renderPanel()},
   async login(){if(!this.sb)return;await this.sb.auth.signInWithOAuth({provider:'github',options:{redirectTo:location.origin+location.pathname}})},
   async logout(){if(this.sb)await this.sb.auth.signOut()}};
-$('#cloudBtn').onclick=()=>Cloud.user?Cloud.logout():Cloud.login();
+$('#cloudBtn').onclick=()=>{if(!Cloud.sb){alert('Nuvem desligada: '+Cloud.why());return}Cloud.user?Cloud.logout():Cloud.login()};
 
 const blobOf=(cv,type,q)=>new Promise(r=>cv.toBlob(r,type,q));
 /** Envia direto ao Mostruário do app (mesma tabela e pasta que o app usa para mostrar os modelos às clientes). */
@@ -865,7 +868,7 @@ PANELS.app={html(){const c=cfg(),u=safeUrl(c.appUrl||''),T=S.lib.filter(x=>x.kin
    ${T.length?`<h3>MODELOS DE PÁGINA</h3><div class="plist">${T.map(row).join('')}</div>`:'<p class="hint">Você ainda não tem modelos padrão. Monte uma página e salve com o botão acima.</p>'}
    ${A.length?`<h3>ADESIVOS</h3><div class="plist">${A.map(row).join('')}</div>`:''}
    <div class="sum">No mostruário: <b>${nT}</b> modelo${nT===1?'':'s'} e <b>${nA}</b> adesivo${nA===1?'':'s'}.</div>
-   ${Cloud.sb?(Cloud.user?`<div class="row"><button class="btn pri" id="pkgSend">Enviar ao mostruário agora</button></div><p class="hint">Cria ou atualiza no app do ateliê os itens marcados e esconde os desmarcados. As clientes veem na hora.</p>`:`<div class="row"><button class="btn pri" id="pkgLogin">Entrar na nuvem</button></div><p class="hint">Entre com o mesmo GitHub do app do ateliê para enviar os modelos direto ao mostruário.</p>`):`<p class="hint">A nuvem ainda não foi ligada neste app (arquivo config.js). Enquanto isso, baixe o pacote e importe no app do ateliê.</p>`}
+   ${Cloud.sb?(Cloud.user?`<div class="row"><button class="btn pri" id="pkgSend">Enviar ao mostruário agora</button></div><p class="hint">Cria ou atualiza no app do ateliê os itens marcados e esconde os desmarcados. As clientes veem na hora.</p>`:`<div class="row"><button class="btn pri" id="pkgLogin">Entrar na nuvem</button></div><p class="hint">Entre com o mesmo GitHub do app do ateliê para enviar os modelos direto ao mostruário.</p>`):`<p class="hint">A nuvem está desligada: ${Cloud.why()} Enquanto isso, baixe o pacote e importe no app do ateliê.</p>`}
    <div class="row"><button class="btn" id="pkgDl"${nT+nA?'':' disabled'}>Baixar pacote (.json)</button></div>
    <p class="hint" id="pkgMsg"></p></div>`},
  mount(P){$('#appSave',P).onclick=async()=>{const v=$('#appUrl',P).value.trim(),u=v?safeUrl(/^https?:/i.test(v)?v:'https://'+v):'';if(v&&!u){toast('Esse link não parece um endereço válido.');return}
