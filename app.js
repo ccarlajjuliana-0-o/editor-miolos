@@ -647,7 +647,7 @@ function alignSel(a){const p=curPage(),els=selEls();if(!els.length)return;const 
   change([p.id],()=>els.forEach(e=>{if(e.locked)return;if(a==='al')e.x=r1(ref.x);if(a==='ac')e.x=r1(ref.x+ref.w/2-e.w/2);if(a==='ar')e.x=r1(ref.x+ref.w-e.w);if(a==='at')e.y=r1(ref.y);if(a==='am')e.y=r1(ref.y+ref.h/2-e.h/2);if(a==='ab')e.y=r1(ref.y+ref.h-e.h)}));redraw();renderProps();thumbRefresh(p.id)}
 
 /* ================= trilho e painéis ================= */
-const TABS=[['modelos','Modelos'],['datado','Datado'],['widgets','Widgets'],['adesivos','Adesivos'],['bordas','Bordas'],['texto','Texto'],['biblioteca','Uploads'],['paginas','Páginas'],['app','App']];
+const TABS=[['paginas','Páginas'],['modelos','Modelos'],['datado','Datado'],['widgets','Widgets'],['adesivos','Adesivos'],['bordas','Bordas'],['texto','Texto'],['biblioteca','Uploads'],['app','App']];
 function renderRail(){$('#rail').innerHTML=TABS.map(([k,n])=>`<button data-tab="${k}" class="${S.tab===k?'on':''}" aria-label="${n}">${ico(k)}${n}</button>`).join('');
   $$('#rail button').forEach(b=>b.onclick=()=>{const ed=$('#editor');if(S.tab===b.dataset.tab&&(innerWidth<=980||ed.classList.contains('compact'))){ed.classList.toggle('showpanel')}else{S.tab=b.dataset.tab;ed.classList.add('showpanel');renderRail();renderPanel()}})}
 function closeMob(){if(innerWidth<=980||$('#editor').classList.contains('compact')){$('#editor').classList.remove('showpanel')}}
