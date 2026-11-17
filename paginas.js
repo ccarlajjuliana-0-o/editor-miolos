@@ -13,7 +13,7 @@
   function copyDesign(fromId, toIds, o) {
     o = o || {};
     const s = S.pages[fromId], ids = toIds.filter((id) => id !== fromId && S.pages[id]); if (!s || !ids.length) return 0;
-    const P = Object.assign({ bg: true, text: true, img: true, shape: true, data: true, size: false, name: false }, o.parts || {});
+    const P = Object.assign({ bg: true, text: true, img: true, shape: true, data: true, size: false, name: false, mg: false }, o.parts || {});
     change(ids, () => ids.forEach((tid) => {
       const d = S.pages[tid], nw = P.size ? s.w : d.w, nh = P.size ? s.h : d.h, fx = o.fit ? nw / s.w : 1, fy = o.fit ? nh / s.h : 1, fm = Math.min(fx, fy);
       const els = clone(s.els).filter((e) => P[grp(e)]).map((e) => {
@@ -22,13 +22,14 @@
         return e;
       });
       if (P.bg) {
-        const keep = new Set(['id', 'w', 'h', 'name', 'els']);
+        const keep = new Set(['id', 'w', 'h', 'name', 'els', 'mg']);
         Object.keys(d).forEach((k) => { if (!keep.has(k)) delete d[k]; });
         Object.keys(s).forEach((k) => { if (!keep.has(k)) d[k] = clone(s[k]); });
       }
       if (o.replace) d.els = d.els.filter((e) => !P[grp(e)]);
       d.els.push(...els);
       if (P.size) { d.w = s.w; d.h = s.h; }
+      if (P.mg) { if (s.mg) d.mg = Object.assign(clone(s.mg), { side: d.mg ? d.mg.side : 'auto', lock: d.mg ? d.mg.lock : s.mg.lock }); else delete d.mg; }
       if (P.name) d.name = s.name;
     }));
     ids.forEach((id) => thumbRefresh(id));
@@ -47,6 +48,7 @@
       <h3>TAMBÉM COPIAR</h3>
       <label class="chk"><input type="checkbox" id="cdSize"> O tamanho da página</label>
       <label class="chk"><input type="checkbox" id="cdName"> O título da página</label>
+      <label class="chk"><input type="checkbox" id="cdMg"> Margens, lombada, cabeçalho e rodapé</label>
       <h3>COMO</h3>
       <label class="chk"><input type="radio" name="cdMode" value="r" checked> Substituir (troca o que já existe)</label>
       <label class="chk"><input type="radio" name="cdMode" value="a"> Acrescentar sobre o que já existe</label>
@@ -72,7 +74,7 @@
         const cand = vis.filter((i) => i !== f), k = cand.filter((i) => picked.has(i)).length, all = g('#cdAll');
         all.checked = cand.length > 0 && k === cand.length; all.indeterminate = k > 0 && k < cand.length; all.disabled = !cand.length;
         g('#cdInfo').textContent = picked.size ? `${picked.size} página${picked.size > 1 ? 's' : ''} escolhida${picked.size > 1 ? 's' : ''}.` : 'Escolha para quais páginas copiar.';
-        const any = part.bg || GK.some((k2) => part[k2]) || g('#cdSize').checked || g('#cdName').checked;
+        const any = part.bg || GK.some((k2) => part[k2]) || g('#cdSize').checked || g('#cdName').checked || g('#cdMg').checked;
         g('#cdGo').disabled = !picked.size || !any;
       };
       g('#cdFrom').onchange = () => { drawParts(); drawList(); };
@@ -90,10 +92,10 @@
         drawParts(); drawList();
       };
       b.querySelectorAll('input[name=cdMode]').forEach((r) => { r.onchange = drawParts; });
-      g('#cdSize').onchange = g('#cdName').onchange = drawList;
+      g('#cdSize').onchange = g('#cdName').onchange = g('#cdMg').onchange = drawList;
       g('#cdGo').onclick = () => {
         const f = +g('#cdFrom').value;
-        const k = copyDesign(S.order[f], [...picked].map((i) => S.order[i]), { replace: replace(), fit: g('#cdFit').checked, parts: Object.assign({}, part, { size: g('#cdSize').checked, name: g('#cdName').checked }) });
+        const k = copyDesign(S.order[f], [...picked].map((i) => S.order[i]), { replace: replace(), fit: g('#cdFit').checked, parts: Object.assign({}, part, { size: g('#cdSize').checked, name: g('#cdName').checked, mg: g('#cdMg').checked }) });
         close(); toast(`Design copiado para ${k} página${k > 1 ? 's' : ''}. Ctrl+Z desfaz.`);
       };
       drawParts(); drawList();

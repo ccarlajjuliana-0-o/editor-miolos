@@ -65,3 +65,10 @@ adicionar antes/depois, duplicar, renomear, mover (cima, baixo, para…, primeir
 - Arraste o ⠿ para reorganizar (grupo marcado vai junto); setas ↑ ↓ no ⠿ também movem.
 - "Copiar design" escolhe o que colar: fundo, textos, imagens, formas, tabelas/calendários; opcionalmente tamanho e título.
 - Modo Lista ou Miniaturas no topo do painel.
+
+
+### Margens e áreas
+- Propriedades da página → *Margens e áreas*: topo, base, interna, externa, lombada (total ao meio), cabeçalho e rodapé (liga/desliga), bloquear/desbloquear, remover.
+- Guias tracejadas no editor com alças para arrastar; elementos encostam nas guias; o conteúdo se ajusta à nova área (desligável).
+- Padrão: a página da direita do editor é a da esquerda no impresso; dá para inverter no projeto ou escolher o lado por página.
+- "Copiar design" tem a opção de copiar margens, lombada, cabeçalho e rodapé.

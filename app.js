@@ -584,7 +584,7 @@ $('#stage').addEventListener('pointermove',ev=>{if(S.tool){const w=ev.target.clo
   if(!D)return;const pt=toMM(ev,D.w),dx=pt.x-D.pt.x,dy=pt.y-D.pt.y;if(!D.moved&&Math.hypot(dx,dy)*S.k<3)return;D.moved=true;
   if(D.mode==='vtx'){D.e.pts[D.i]=pageToPt(D.e,pt.x,pt.y);scheduleRedraw();return}
   if(D.mode==='move'){let ddx=dx,ddy=dy;D.guides=[];if(!ev.altKey&&D.ms.length){const bx=bb(D.ms.map(e=>({x:D.o[e.id].x+dx,y:D.o[e.id].y+dy,w:e.w,h:e.h})));const th=6/S.k;
-      const xs=[0,D.p.w/2,D.p.w],ys=[0,D.p.h/2,D.p.h];const m=Math.max(6,Math.min(D.p.w,D.p.h)*.075);xs.push(m,D.p.w-m);ys.push(m,D.p.h-m);(D.p.guides||[]).forEach(g=>{if(g.v!==undefined)xs.push(g.v);else ys.push(g.h)});
+      const xs=[0,D.p.w/2,D.p.w],ys=[0,D.p.h/2,D.p.h];const m=Math.max(6,Math.min(D.p.w,D.p.h)*.075);xs.push(m,D.p.w-m);ys.push(m,D.p.h-m);if(window.Margens){const L=Margens.snapLines(D.p);xs.push(...L.xs);ys.push(...L.ys)}(D.p.guides||[]).forEach(g=>{if(g.v!==undefined)xs.push(g.v);else ys.push(g.h)});
       D.p.els.forEach(o=>{if(S.sel.includes(o.id))return;xs.push(o.x,o.x+o.w/2,o.x+o.w);ys.push(o.y,o.y+o.h/2,o.y+o.h)});
       let best=null;for(const c of [bx.x,bx.x+bx.w/2,bx.x+bx.w])for(const t of xs){const df=t-c;if(Math.abs(df)<th&&(!best||Math.abs(df)<Math.abs(best.d)))best={d:df,t}}if(best){ddx+=best.d;D.guides.push({v:best.t})}
       best=null;for(const c of [bx.y,bx.y+bx.h/2,bx.y+bx.h])for(const t of ys){const df=t-c;if(Math.abs(df)<th&&(!best||Math.abs(df)<Math.abs(best.d)))best={d:df,t}}if(best){ddy+=best.d;D.guides.push({h:best.t})}}
@@ -634,7 +634,7 @@ function addPage(w,h,after=S.cur){const ref=curPage()||{w:148,h:210};const pg=bl
 function dupPage(i){const src=S.pages[S.order[i]];const pg=clone(src);pg.id=uid('pg');pg.els.forEach(e=>e.id=uid('e'));change([],()=>{S.pages[pg.id]=pg;S.order.splice(i+1,0,pg.id)});S.cur=i+1;refreshAll()}
 function delPage(i){if(S.order.length<=1){toast('O projeto precisa de pelo menos uma página.');return}change([],()=>{S.order.splice(i,1)});S.sel=[];refreshAll()}
 function movePage(i,d){const j=i+d;if(j<0||j>=S.order.length)return;change([],()=>{const [x]=S.order.splice(i,1);S.order.splice(j,0,x)});if(S.cur===i)S.cur=j;refreshAll()}
-function resizePage(ids,w,h,scale){change(ids,()=>{ids.forEach(id=>{const p=S.pages[id];if(scale){const fx=w/p.w,fy=h/p.h,fm=Math.min(fx,fy);p.els.forEach(e=>{e.x=r1(e.x*fx);e.y=r1(e.y*fy);e.w=r1(e.w*fx);e.h=r1(e.h*fy);if(e.type==='text'||e.type==='table'||e.type==='divider')e.size=r1((e.size||9)*fm);if(e.sp)e.sp=r1(e.sp*fm)})}p.w=w;p.h=h})});refreshAll()}
+function resizePage(ids,w,h,scale){change(ids,()=>{ids.forEach(id=>{const p=S.pages[id];if(scale){const fx=w/p.w,fy=h/p.h,fm=Math.min(fx,fy);p.els.forEach(e=>{e.x=r1(e.x*fx);e.y=r1(e.y*fy);e.w=r1(e.w*fx);e.h=r1(e.h*fy);if(e.type==='text'||e.type==='table'||e.type==='divider')e.size=r1((e.size||9)*fm);if(e.sp)e.sp=r1(e.sp*fm)});if(p.mg){['top','bottom','hdr','ftr'].forEach(k=>p.mg[k]=r1((p.mg[k]||0)*fy));['inner','outer','gutter'].forEach(k=>p.mg[k]=r1((p.mg[k]||0)*fx))}}p.w=w;p.h=h})});refreshAll()}
 
 /* ================= elementos ================= */
 function addEl(e,keepPos){const p=curPage();if(!keepPos){e.x=r1((p.w-e.w)/2);e.y=r1((p.h-e.h)/2)}change([p.id],()=>p.els.push(e));S.sel=[e.id];redraw();renderProps();thumbRefresh(p.id);closeMob()}
