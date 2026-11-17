@@ -21,6 +21,7 @@
         if (o.fit && (Math.abs(fx - 1) > 0.001 || Math.abs(fy - 1) > 0.001)) { e.x = r1(e.x * fx); e.y = r1(e.y * fy); e.w = r1(e.w * fx); e.h = r1(e.h * fy); if (e.type === 'text' || e.type === 'table' || e.type === 'divider') e.size = r1((e.size || 9) * fm); if (e.sp) e.sp = r1(e.sp * fm); }
         return e;
       });
+      if (o.remap && window.Margens && Margens.remap) Margens.remap(els, s, d);
       if (P.bg) {
         const keep = new Set(['id', 'w', 'h', 'name', 'els', 'mg']);
         Object.keys(d).forEach((k) => { if (!keep.has(k)) delete d[k]; });

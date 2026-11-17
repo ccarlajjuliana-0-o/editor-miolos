@@ -103,3 +103,8 @@ Em qualquer campo de cor abre um seletor com quadro de cor, matiz, código HEX, 
 - Com divisórias ligadas a barra da direita ganha seções (Configuração da página, Layout, Divisórias), cada uma com Ocultar/Expandir.
 - Com divisórias, a linha da margem externa fica rente a elas e a margem de segurança 0,35 mm adiante.
 - Na dupla dá para escolher a página que está sendo editada; cabeçalho e rodapé pelos botões da página valem só para ela.
+
+## Lados: copiar e trocar entre páginas
+- Botão "Lados ⌄" na barra de cima, depois do tamanho: copiar esquerda → direita, direita → esquerda, para outra página…, trocar lados da página e trocar com outra página….
+- Leva tudo (fundo, estilo, textos, fontes, imagens, adesivos, formas, widgets). Com margens ligadas, o conteúdo é reposicionado na área segura da página de destino (só move, não muda tamanhos) e avisa o que não couber. Ctrl+Z desfaz de uma vez.
+- Régua, grade e guias agora também têm Ocultar/Expandir no painel da direita.

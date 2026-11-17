@@ -680,3 +680,9 @@ input[type=color]::-moz-color-swatch{border:1.5px solid rgba(62,53,80,.25);borde
 #avisos time{display:block;font:700 10px var(--f-title);letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
 #avisos li p{margin:2px 0 0;font-size:13px;line-height:1.4;color:var(--text)}
 #avisos .avempty{margin:10px 0;color:var(--muted);font-size:13px}
+
+/* lados: menu copiar/trocar */
+.lmenu{min-width:260px}.lmenu small{padding:6px 12px 2px;font:700 10px var(--f-title);letter-spacing:.12em;color:var(--muted)}
+.lmenu button{display:flex;flex-direction:column;gap:1px}.lmenu button b{font-weight:700}.lmenu button span{font:500 11.5px var(--f-body);color:var(--muted)}
+.lmenu .hint{margin:4px 12px 6px;font-size:11.5px}
+#bLados .lbl{margin:0 4px}

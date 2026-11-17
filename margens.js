@@ -314,7 +314,14 @@
   window.Margens = {
     edit,
     snapLines(p) { const xs = [], ys = []; if (!p || !p.mg || !isOn()) return { xs, ys }; const g = geom(p, p.mg); xs.push(g.x0, g.x1); ys.push(g.top, g.bot); if (g.hasH) ys.push(g.y0); if (g.hasF) ys.push(g.y1); return { xs, ys }; },
-    geom, applyMap, defaults, isLeft, tabEl,
+    geom, applyMap, defaults, isLeft, tabEl, partnerOf,
+    // leva elementos de uma página para outra respeitando a área segura de cada uma (só move; nunca muda tamanho)
+    remap(els, src, dst) {
+      if (!isOn() || !fitOn() || !els.length) return;
+      els.forEach((e) => { delete e.mu; });
+      const a = geom(src, src.mg || null), b = geom(dst, dst.mg || null);
+      fit({ w: dst.w, h: dst.h, els, id: dst.id }, a, b); warnFit();
+    },
   };
 
   /* ---------- painel (propriedades da página) ---------- */
@@ -474,7 +481,7 @@
     P.querySelector('#pgcHide').onclick = () => { pgOpen = false; renderProps(); };
     P.querySelector('#pgcShow').onclick = () => { pgOpen = true; renderProps(); };
   }
-  const secOpen = { lay: true, tabs: true };
+  const secOpen = { lay: true, tabs: true, grid: true };
   const secBar = (id, title, open, pin) => `<div class="secttl"><i></i><b>${title}</b><i></i></div><div class="pgbarc sb2" data-sec="${id}" role="group" aria-label="${title}"><button type="button" data-sh="${id}" class="${open ? 'on' : ''}">⌄ Ocultar</button><button type="button" data-ss="${id}" class="${open ? '' : 'on'}">⌃ Expandir</button></div>`;
   function arrange(P, p) { // Layout e Divisórias viram seções com ocultar/expandir
     const mp = P.querySelector('#mgPanel'); if (!mp || mp.querySelector('#secLay')) return;
@@ -488,6 +495,14 @@
       mp.querySelectorAll('[data-sh]').forEach((b) => { b.onclick = () => { secOpen[b.dataset.sh] = false; renderProps(); }; });
       mp.querySelectorAll('[data-ss]').forEach((b) => { b.onclick = () => { secOpen[b.dataset.ss] = true; renderProps(); }; });
     }
+  }
+  function gridSec(P) { // Régua, grade e guias também viram seção com ocultar/expandir
+    const g = P && P.querySelector('#gRul'), grp = g && g.closest('.pgrp'); if (!grp || grp.dataset.sec) return;
+    grp.dataset.sec = 1; const h = grp.querySelector('h3'); if (h) h.remove();
+    grp.hidden = !secOpen.grid;
+    grp.insertAdjacentHTML('beforebegin', secBar('grid', 'Régua, grade e guias', secOpen.grid));
+    P.querySelectorAll('[data-sec=grid] [data-sh]').forEach((b) => { b.onclick = () => { secOpen.grid = false; renderProps(); }; });
+    P.querySelectorAll('[data-sec=grid] [data-ss]').forEach((b) => { b.onclick = () => { secOpen.grid = true; renderProps(); }; });
   }
   const rp = window.renderProps;
   window.renderProps = function () {
@@ -503,6 +518,7 @@
       if (tabsMore && (selEls().length || !isOn() || !p || !tabsOf(p.mg).on)) tabsMore = false;
       if (tabsMore && P && p && P.querySelector('#psz')) { P.innerHTML = moreHTML(p); mountMore(p, P); }
       else { if (P && p && P.querySelector('#mgPanel')) arrange(P, p); decorate(P); }
+      gridSec(P);
     } catch (e) { console.error(e); }
     return r;
   };
