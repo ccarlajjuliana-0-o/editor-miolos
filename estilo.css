@@ -503,3 +503,36 @@ body{font-size:calc(15px*var(--escala,1))}
 #mgPanel .mgtabs{display:flex;flex-direction:column;gap:8px;margin-top:6px;padding-top:8px;border-top:1px solid var(--line)}
 #mgPanel .segf{display:flex}#mgPanel .segf button{flex:1;padding:6px 8px;border:1px solid var(--line);background:var(--surface);font:600 12px var(--f-title);color:var(--ink);cursor:pointer}
 #mgPanel .segf button.on{background:var(--surface2);color:var(--accent);border-color:var(--accent)}
+
+/* ===== Painel de margens no estilo Planify ===== */
+#mgPanel .mgh3{font-size:12px;color:var(--muted);margin:0 0 6px}
+#mgPanel .mgscope{display:flex;flex-direction:column;gap:2px;border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-bottom:10px;background:var(--surface)}
+#mgPanel .mgscope small{font:700 10px var(--f-title);letter-spacing:.08em;color:var(--muted)}
+#mgPanel .mgscope select{border:0;background:transparent;font:700 14px var(--f-title);color:var(--ink);padding:2px 0;width:100%}
+#mgPanel .mghead{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;margin:10px 0 6px}
+#mgPanel .mghead b{font:700 14px var(--f-title);color:var(--ink)}
+#mgPanel .mgtools{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+#mgPanel .mgtools .btn{padding:3px 8px;font-size:11px;border:1px solid var(--line)}
+#mgPanel .mgtools select{border:0;background:transparent;font:700 11px var(--f-title);color:var(--muted)}
+#mgPanel .mgpair{display:grid;grid-template-columns:1fr 34px;align-items:center;gap:6px;margin-bottom:6px}
+#mgPanel .mrow{display:flex;align-items:center;gap:8px;min-height:34px}
+#mgPanel .mi{width:18px;text-align:center;color:var(--muted);font-size:14px;flex:none}
+#mgPanel .ml{flex:0 0 66px;font:600 12px var(--f-title);color:var(--ink)}
+#mgPanel .mrow input[type=range]{flex:1;min-width:0;accent-color:var(--accent);height:4px}
+#mgPanel .mn{flex:0 0 54px;width:54px;text-align:center;border:1px solid var(--line);border-radius:8px;padding:5px 2px;font:700 12px var(--f-title);background:var(--surface)}
+#mgPanel .mchain{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer}
+#mgPanel .mchain.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.mgchain button{width:32px;height:32px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-style:solid}
+.mgchain.on button{background:var(--accent);border-color:var(--accent);color:#fff}
+.mgsw{position:relative;display:inline-block;width:40px;height:22px;flex:none}.mgsw input{opacity:0;position:absolute;inset:0;margin:0;cursor:pointer;z-index:1}
+.mgsw span{position:absolute;inset:0;border-radius:999px;background:#9aa6bf;transition:.15s}.mgsw span::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s}
+.mgsw input:checked+span{background:var(--accent)}.mgsw input:checked+span::after{left:20px}.mgsw input:disabled{cursor:default}
+#mgPanel .mgcard{border:1px solid var(--line);border-radius:14px;margin:10px 0;overflow:hidden}#mgPanel .mgcard.on{border-color:var(--accent)}
+#mgPanel .mgcard-h{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface)}#mgPanel .mgcard-h b{flex:1;font:700 14px var(--f-title)}
+#mgPanel .mgcard.on .mgcard-h{background:var(--surface2)}
+#mgPanel .mgcard-b{padding:8px 12px 12px;display:flex;flex-direction:column;gap:6px}
+#mgPanel .mgsub{font:700 10px var(--f-title);letter-spacing:.08em;color:var(--muted);margin-top:4px}
+#mgPanel .mstep{display:inline-flex;margin-left:auto;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+#mgPanel .mstep button{width:30px;border:0;background:var(--surface);cursor:pointer;color:var(--accent);font-size:16px}
+#mgPanel .mstep input{width:42px;border:0;border-left:1px solid var(--line);border-right:1px solid var(--line);text-align:center;font:700 13px var(--f-title);background:var(--surface)}
+#mgPanel .mgsw-row .mi{font-size:13px}

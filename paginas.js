@@ -333,5 +333,5 @@
   const rs = window.renderStrip;
   window.renderStrip = function () { const r = rs.apply(this, arguments); const a = document.getElementById('stripAdd'); if (a) a.onclick = insertModal; return r; };
   document.addEventListener('contextmenu', (e) => { const t = e.target.closest && e.target.closest('#strip .tb'); if (t && S.view === 'editor') { e.preventDefault(); pageMenu(+t.dataset.i, null, e); } });
-  window.Paginas = { insertModal, copyModal, copyDesign, pageMenu };
+  window.Paginas = { insertModal, copyModal, copyDesign, pageMenu, selected: () => S.order.filter((id) => psel.has(id)) };
 })();

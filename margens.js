@@ -46,19 +46,57 @@
 
   /* ---------- aplicar (com histórico) ---------- */
   const fitOn = () => S.meta.mgFit !== false;
-  function applyMg(ids, nm, o) {
-    o = o || {};
-    ids = ids.filter((id) => S.pages[id]); if (!ids.length) return;
+  const PAIR = { top: 'bottom', bottom: 'top', inner: 'outer', outer: 'inner' };
+  const linkOn = (k) => (k === 'top' || k === 'bottom' ? S.meta.mgLinkTB === true : S.meta.mgLinkLR === true);
+  const spreadOn = () => S.meta.mgLinkSpread !== false;
+  const NUMK = ['top', 'bottom', 'inner', 'outer', 'gutter', 'holes', 'hdr', 'ftr'], SPK = ['inner', 'holes', 'gutter'];
+  const toast2 = (t) => { if (typeof toast === 'function') toast(t); };
+  function partnerOf(p) { // a outra página da mesma dupla (a capa fica sozinha)
+    const i = S.order.indexOf(p.id), off = S.meta.coverAlone !== false ? 1 : 0; if (i < off) return null;
+    const q = S.order[(i - off) % 2 === 0 ? i + 1 : i - 1]; return q ? S.pages[q] : null;
+  }
+  const scopeOf = () => (S.meta.mgScope === 'page' ? 'page' : S.meta.mgScope === 'sel' ? 'sel' : 'all');
+  const selected = () => (window.Paginas && Paginas.selected ? Paginas.selected() : []);
+  function scopeIds(p) {
+    const sc = scopeOf(); let ids;
+    if (sc === 'page') ids = [p.id]; else if (sc === 'sel' && selected().length) ids = selected(); else ids = S.order.slice();
+    if (!ids.includes(p.id)) ids.push(p.id); return ids;
+  }
+  function linkFix(p, m, old, key) { // margens vinculadas ficam proporcionais
+    const q = PAIR[key]; if (!q || !linkOn(key)) return;
+    m[q] = r1v(old[key] > 0 ? num(old[q], 0) * (m[key] / old[key]) : m[key]);
+    const g = geom(p, m); if (g.x1 - g.x0 < MIN || g.y1 - g.y0 < MIN) m[q] = old[q];
+  }
+  const okGeom = (q, m) => { const g = geom(q, m); return g.x1 - g.x0 >= MIN && g.y1 - g.y0 >= MIN; };
+  function applyMap(map, o) {
+    o = o || {}; const ids = Object.keys(map).filter((id) => S.pages[id]); if (!ids.length) return 0;
     change(ids, () => ids.forEach((id) => {
-      const p = S.pages[id], a = geom(p, p.mg);
-      const m = nm ? Object.assign({}, nm, { tabs: Object.assign({}, nm.tabs || {}) }, { side: p.mg ? p.mg.side : 'auto', lock: o.keepLock !== false && p.mg ? p.mg.lock : !!nm.lock }) : null;
+      const p = S.pages[id], a = geom(p, p.mg), nm = map[id];
+      const m = nm ? Object.assign({}, nm, { tabs: Object.assign({}, nm.tabs || {}), side: nm.side || 'auto', lock: !!nm.lock }) : null;
       if (o.fit !== false && fitOn()) fit(p, a, geom(p, m));
       if (m) p.mg = m; else delete p.mg;
     }));
-    ids.forEach((id) => thumbRefresh(id)); redraw(); renderProps();
+    ids.forEach((id) => thumbRefresh(id)); redraw(); renderProps(); return ids.length;
   }
-  const patchMg = (p, patch, o) => { if (!p.mg) return; applyMg([p.id], Object.assign({}, p.mg, patch, patch.tabs ? { tabs: Object.assign({}, p.mg.tabs, patch.tabs) } : {}), Object.assign({ keepLock: true }, o)); };
-  function setLock(p, on) { if (!p.mg) return; change([p.id], () => { p.mg.lock = on; }); redraw(); renderProps(); }
+  // edita campos (patch) no escopo escolhido, respeitando vínculos
+  function edit(p, patch, primary, o) {
+    o = o || {}; const ids = o.ids || scopeIds(p), map = {};
+    ids.forEach((id) => {
+      const q = S.pages[id]; if (!q) return; const base = q.mg || defaults(q);
+      const nm = Object.assign({}, base, patch, patch.tabs ? { tabs: Object.assign({}, tabsOf(base), patch.tabs) } : {});
+      if (primary) linkFix(q, nm, base, primary);
+      if (okGeom(q, nm)) map[id] = nm;
+    });
+    if (spreadOn()) ids.slice().forEach((id) => {
+      const q = S.pages[id], r = q && partnerOf(q); if (!r || !r.mg || map[r.id] || !map[id]) return;
+      const sp = {}; SPK.forEach((k) => { if (k in patch) sp[k] = map[id][k]; });
+      if (Object.keys(sp).length) { const nm = Object.assign({}, r.mg, sp); if (okGeom(r, nm)) map[r.id] = nm; }
+    });
+    const n = applyMap(map, o); if (!n) { toast2('Esse valor deixa pouco espaço para o conteúdo.'); renderProps(); }
+    return n;
+  }
+  const patchMg = (p, patch, o) => { edit(p, patch, null, o); };
+  function setLock(p, on) { const ids = scopeIds(p).filter((id) => S.pages[id].mg); if (!ids.length) return; change(ids, () => ids.forEach((id) => { S.pages[id].mg.lock = on; })); redraw(); renderProps(); }
 
   /* ---------- desenho no palco ---------- */
   function overlay(p, k) {
@@ -88,6 +126,11 @@
     }
     h += `<div class="mgchip" style="top:-26px;right:0" data-pid="${pid}"><button type="button" data-mgact="lock" title="${lock ? 'Desbloquear' : 'Bloquear'} as margens" aria-pressed="${lock}">${lock ? '🔒' : '🔓'}</button><span class="mgside" title="${g.e ? 'Esta página fica na ESQUERDA do caderno impresso' : 'Esta página fica na DIREITA do caderno impresso'}">${g.e ? 'esq.' : 'dir.'}</span>${lock ? '' : g.hasH ? '<button type="button" data-mgact="hdr-off" title="Remover o cabeçalho">✕ Cabeçalho</button>' : '<button type="button" data-mgact="hdr">+ Cabeçalho</button>'}</div>`;
     if (!lock) h += `<div class="mgchip" style="top:${H + 8}px;left:50%;transform:translateX(-50%)" data-pid="${pid}">${g.hasF ? '<button type="button" data-mgact="ftr-off" title="Remover o rodapé">✕ Rodapé</button>' : '<button type="button" data-mgact="ftr">+ Mostrar rodapé</button>'}</div>`;
+    const r = partnerOf(p);
+    if (r && r.mg && S.order.indexOf(r.id) > S.order.indexOf(p.id) && S.meta.view === 'spread') {
+      const on = spreadOn();
+      h += `<div class="mgchip mgchain${on ? ' on' : ''}" style="left:${W}px;top:50%;transform:translate(-50%,-50%)" data-pid="${pid}"><button type="button" data-mgact="spread" aria-pressed="${on}" title="${on ? 'Lado de dentro das duas páginas vinculado (clique para soltar)' : 'Lado de dentro das duas páginas solto (clique para vincular)'}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/></svg></button></div>`;
+    }
     return h;
   }
   /* botão da barra superior: liga/desliga as margens do projeto (os valores ficam guardados) */
@@ -112,13 +155,6 @@
 
   /* ---------- interação no palco ---------- */
   const pageOf = (el) => { const w = el.closest('.pg'); return w ? { w, p: S.pages[w.dataset.id] } : null; };
-  const PAIR = { top: 'bottom', bottom: 'top', inner: 'outer', outer: 'inner' };
-  const linkOn = (k) => (k === 'top' || k === 'bottom' ? S.meta.mgLinkTB === true : S.meta.mgLinkLR !== false);
-  function linkFix(p, m, old, key) { // margens vinculadas ficam proporcionais
-    const q = PAIR[key]; if (!q || !linkOn(key)) return;
-    m[q] = r1v(old[key] > 0 ? num(old[q], 0) * (m[key] / old[key]) : m[key]);
-    const g = geom(p, m); if (g.x1 - g.x0 < MIN || g.y1 - g.y0 < MIN) m[q] = old[q];
-  }
   function setLine(p, m, line, x, y) {
     const g0 = geom(p, m), e = g0.e, hdr = num(m.hdr, 0), ftr = num(m.ftr, 0), X = g0.X, gh = g0.g + g0.holes;
     const vMax = (a, ex) => p.h - a - ex - hdr - ftr - MIN, hMax = (a, b) => p.w - a - b - MIN;
@@ -137,12 +173,13 @@
     const hd = t.closest('.mgh'); if (!hd) return;
     const o = pageOf(hd); if (!o || !o.p || !o.p.mg || o.p.mg.lock) return;
     ev.preventDefault(); ev.stopPropagation();
-    const { w, p } = o, old = Object.assign({}, p.mg), line = hd.dataset.line; let moved = false;
-    const mv = (e) => { const r = w.getBoundingClientRect(); const cur = p.mg; Object.assign(cur, old); const key = setLine(p, cur, line, Math.round(((e.clientX - r.left) / S.k) * 2) / 2, Math.round(((e.clientY - r.top) / S.k) * 2) / 2); if (key) linkFix(p, cur, old, key); moved = true; scheduleRedraw(); };
+    const { w, p } = o, old = Object.assign({}, p.mg), line = hd.dataset.line; let moved = false, lastKey = null;
+    const mv = (e) => { const r = w.getBoundingClientRect(); const cur = p.mg; Object.assign(cur, old); const key = setLine(p, cur, line, Math.round(((e.clientX - r.left) / S.k) * 2) / 2, Math.round(((e.clientY - r.top) / S.k) * 2) / 2); lastKey = key; if (key) linkFix(p, cur, old, key); moved = true; scheduleRedraw(); };
     const up = () => {
       window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
       const nm = Object.assign({}, p.mg); p.mg = old;
-      if (moved && JSON.stringify(nm) !== JSON.stringify(old)) applyMg([p.id], nm); else redraw();
+      const patch = {}; NUMK.forEach((k) => { if (nm[k] !== old[k]) patch[k] = nm[k]; });
+      if (moved && Object.keys(patch).length) edit(p, patch, lastKey); else redraw();
     };
     window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
   }, true);
@@ -156,87 +193,96 @@
     else if (a === 'ftr') patchMg(p, { ftr: DEF_HF });
     else if (a === 'hdr-off') patchMg(p, { hdr: 0 });
     else if (a === 'ftr-off') patchMg(p, { ftr: 0 });
+    else if (a === 'spread') { S.meta.mgLinkSpread = !spreadOn(); Saver.m(); if (spreadOn()) edit(p, { inner: p.mg.inner, holes: p.mg.holes, gutter: p.mg.gutter }, null, { ids: [p.id] }); else { redraw(); renderProps(); } }
   }, true);
 
   /* ---------- ímãs: elementos encostam nas margens ---------- */
   window.Margens = {
+    edit,
     snapLines(p) { const xs = [], ys = []; if (!p || !p.mg || !isOn()) return { xs, ys }; const g = geom(p, p.mg); xs.push(g.x0, g.x1); ys.push(g.top, g.bot); if (g.hasH) ys.push(g.y0); if (g.hasF) ys.push(g.y1); return { xs, ys }; },
-    geom, applyMg, defaults, isLeft,
+    geom, applyMap, defaults, isLeft,
   };
 
   /* ---------- painel (propriedades da página) ---------- */
-  const f = (k, label, v, dis) => `<label class="pfield"><span>${label}</span><input type="number" step="0.5" min="0" data-mg="${k}" value="${r1v(num(v, 0))}"${dis ? ' disabled' : ''}></label>`;
-  function tabsHTML(m, dis) {
-    const t = tabsOf(m), d = dis ? ' disabled' : '', p = (v, l) => `<button type="button" data-tpos="${v}" class="${t.pos === v ? 'on' : ''}"${d}>${l}</button>`;
-    return `<div class="mgtabs"><label class="chk"><input type="checkbox" id="mgTbOn"${t.on ? ' checked' : ''}${d}> Espaço para divisórias</label>
-      ${t.on ? `<div class="segf" id="mgTbPos">${p('top', 'Topo')}${p('bottom', 'Base')}${p('side', 'Lateral')}</div>
-      <div class="fgrid"><label class="pfield"><span>Quantidade</span><input type="number" min="1" max="30" step="1" data-mgt="n" value="${t.n}"${d}></label><label class="pfield"><span>${t.pos === 'side' ? 'Largura' : 'Altura'} (mm)</span><input type="number" min="3" step="0.5" data-mgt="w" value="${r1v(num(t.w, 12))}"${d}></label><label class="pfield"><span>Raio (mm)</span><input type="number" min="0" step="0.5" data-mgt="r" value="${r1v(num(t.r, 3))}"${d}></label>
-      <label class="pfield"><span>Fundo</span><select data-mgt="bg"${d}><option value="none"${t.bg === 'white' ? '' : ' selected'}>Transparente</option><option value="white"${t.bg === 'white' ? ' selected' : ''}>Branco</option></select></label></div>
-      ${t.pos === 'side' ? `<button type="button" class="btn sm" id="mgTbMake"${d}>Inserir abas na lateral</button>` : ''}` : ''}</div>`;
+  const UNITS = { mm: [1, 1], cm: [0.1, 2], in: [1 / 25.4, 3] };
+  const getUnit = () => { try { const u = localStorage.getItem('cnu.estudio.mgunit'); return UNITS[u] ? u : 'mm'; } catch (_) { return 'mm'; } };
+  const toU = (v) => +(num(v, 0) * UNITS[getUnit()][0]).toFixed(UNITS[getUnit()][1]);
+  const fromU = (v) => num(v, 0) / UNITS[getUnit()][0];
+  const stepU = () => ({ mm: 0.5, cm: 0.05, in: 0.01 }[getUnit()]);
+  const IC = { top: '⤒', bottom: '⤓', outer: '⇤', inner: '⇥', holes: '◎', gutter: '⇔', hdr: '▭', ftr: '▭', w: '↔', r: '◜' };
+  const row = (key, label, val, max, dis, o) => { o = o || {}; const v = num(val, 0); return `<div class="mrow"><span class="mi">${IC[o.ic || key] || ''}</span><span class="ml">${label}</span><input type="range" min="${o.min || 0}" max="${max}" step="0.5" value="${Math.min(v, max)}" data-mgr="${key}" aria-label="${label}"${dis ? ' disabled' : ''}><input type="number" class="mn" step="${stepU()}" min="0" value="${toU(v)}" data-mgn="${key}" aria-label="${label} (${getUnit()})"${dis ? ' disabled' : ''}></div>`; };
+  const chain = (id, on, dis) => `<button type="button" class="mchain${on ? ' on' : ''}" id="${id}" aria-pressed="${on}" title="${on ? 'Vinculadas: mudam juntas (clique para soltar)' : 'Soltas (clique para vincular)'}"${dis ? ' disabled' : ''}><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/></svg></button>`;
+  const sw = (id, on, dis) => `<label class="mgsw"><input type="checkbox" id="${id}"${on ? ' checked' : ''}${dis ? ' disabled' : ''}><span></span></label>`;
+  function tabsHTML(m, dis, p) {
+    const t = tabsOf(m), d = dis ? ' disabled' : '', pb = (v, l) => `<button type="button" data-tpos="${v}" class="${t.pos === v ? 'on' : ''}"${d}>${l}</button>`;
+    const body = t.on ? `<div class="mgsub">POSIÇÃO</div><div class="segf" id="mgTbPos">${pb('top', '⬒ Topo')}${pb('bottom', '⬓ Base')}${pb('side', '◧ Lateral')}</div>
+      <div class="mrow"><span class="mi">#</span><span class="ml">Quantidade</span><span class="mstep"><button type="button" data-tn="-1"${d}>−</button><input type="number" min="1" max="30" step="1" data-mgt="n" value="${t.n}"${d}><button type="button" data-tn="1"${d}>+</button></span></div>
+      <div class="mgsub">TAMANHO E FORMA</div>
+      <div class="mrow"><span class="mi">↔</span><span class="ml">${t.pos === 'side' ? 'Largura' : 'Altura'}</span><input type="range" min="3" max="40" step="0.5" value="${Math.min(num(t.w, 12), 40)}" data-mgtr="w"${d}><input type="number" class="mn" step="${stepU()}" min="0" value="${toU(t.w)}" data-mgtn="w"${d}></div>
+      <div class="mrow"><span class="mi">◜</span><span class="ml">Raio</span><input type="range" min="0" max="15" step="0.5" value="${Math.min(num(t.r, 3), 15)}" data-mgtr="r"${d}><input type="number" class="mn" step="${stepU()}" min="0" value="${toU(t.r)}" data-mgtn="r"${d}></div>
+      <div class="mgsub">PLANO DE FUNDO</div><div class="segf" id="mgTbBgSel"><button type="button" data-tbg="none" class="${t.bg === 'white' ? '' : 'on'}"${d}>Transparente</button><button type="button" data-tbg="white" class="${t.bg === 'white' ? 'on' : ''}"${d}>Branco</button></div>
+      ${t.pos === 'side' ? `<button type="button" class="btn sm" id="mgTbMake"${d}>Inserir abas na lateral</button>` : ''}` : '';
+    return `<div class="mgcard${t.on ? ' on' : ''}"><div class="mgcard-h"><span class="mi">▤</span><b>Divisórias</b>${sw('mgTbOn', t.on, dis)}</div>${body ? `<div class="mgcard-b">${body}</div>` : ''}</div>`;
   }
   function panelHTML(p) {
-    const m = p.mg;
-    if (!m) return `<div class="pgrp" id="mgPanel"><h3 style="font-size:12px;color:var(--muted)">MARGENS E ÁREAS</h3><p class="hint">Esta página está sem margens. Adicione para ver as guias, reservar a lombada e ter cabeçalho e rodapé.</p><div class="row"><button class="btn sm pri" id="mgAdd">Adicionar margens</button>${S.order.length > 1 ? '<button class="btn sm" id="mgAddAll">Em todas</button>' : ''}</div><label class="chk"><input type="checkbox" id="mgFit"${fitOn() ? ' checked' : ''}> Ajustar o conteúdo à área</label></div>`;
-    const g = geom(p, m), dis = !!m.lock, hdrOn = num(m.hdr, 0) > 0, ftrOn = num(m.ftr, 0) > 0;
-    return `<div class="pgrp" id="mgPanel"><h3 style="font-size:12px;color:var(--muted)">MARGENS E ÁREAS</h3>
-      <label class="chk"><input type="checkbox" id="mgLock"${dis ? ' checked' : ''}> Bloquear margens${dis ? ' 🔒' : ''}</label>
-      ${dis ? '<p class="hint">Desbloqueie para arrastrar as guias ou editar os valores.</p>' : ''}
-      <div class="fgrid">${f('top', 'Topo (mm)', m.top, dis)}${f('bottom', 'Base (mm)', m.bottom, dis)}${f('inner', 'Interna (mm)', m.inner, dis)}${f('outer', 'Externa (mm)', m.outer, dis)}</div>
-      <div class="row mglinks"><label class="chk"><input type="checkbox" id="mgLkLR"${linkOn('inner') ? ' checked' : ''}${dis ? ' disabled' : ''}> Externa e interna juntas</label><label class="chk"><input type="checkbox" id="mgLkTB"${linkOn('top') ? ' checked' : ''}${dis ? ' disabled' : ''}> Topo e base juntos</label></div>
-      <p class="hint">Vinculadas, as margens mudam juntas e mantêm a proporção.</p>
-      ${f('gutter', 'Lombada, total ao meio (mm)', m.gutter, dis)}
-      <div class="row mgrow"><label class="chk"><input type="checkbox" id="mgHoOn"${num(m.holes, 0) > 0 ? ' checked' : ''}${dis ? ' disabled' : ''}> Espaço para furos</label><input type="number" step="0.5" min="1" data-mg="holes" value="${num(m.holes, 0) > 0 ? r1v(m.holes) : 20}"${num(m.holes, 0) > 0 && !dis ? '' : ' disabled'} aria-label="Largura do espaço para furos (mm)"><span class="hint">mm</span></div>
-      <p class="hint">No lado de dentro de cada página. O mínimo recomendado é 20 mm (2 cm).</p>
-      <div class="row mgrow"><label class="chk"><input type="checkbox" id="mgHOn"${hdrOn ? ' checked' : ''}${dis ? ' disabled' : ''}> Cabeçalho</label><input type="number" step="0.5" min="3" data-mg="hdr" value="${hdrOn ? r1v(m.hdr) : DEF_HF}"${hdrOn && !dis ? '' : ' disabled'} aria-label="Altura do cabeçalho (mm)"><span class="hint">mm</span></div>
-      <div class="row mgrow"><label class="chk"><input type="checkbox" id="mgFOn"${ftrOn ? ' checked' : ''}${dis ? ' disabled' : ''}> Rodapé</label><input type="number" step="0.5" min="3" data-mg="ftr" value="${ftrOn ? r1v(m.ftr) : DEF_HF}"${ftrOn && !dis ? '' : ' disabled'} aria-label="Altura do rodapé (mm)"><span class="hint">mm</span></div>
-      ${tabsHTML(m, dis)}
-      <label class="pfield"><span>Lado no impresso</span><select data-mg="side"${dis ? ' disabled' : ''}><option value="auto"${m.side === 'e' || m.side === 'd' ? '' : ' selected'}>Automático (agora: ${g.e ? 'esquerda' : 'direita'})</option><option value="e"${m.side === 'e' ? ' selected' : ''}>Página da esquerda</option><option value="d"${m.side === 'd' ? ' selected' : ''}>Página da direita</option></select></label>
+    const m = p.mg, n = S.order.length, sc = scopeOf(), nsel = selected().length;
+    const scope = `<label class="mgscope"><small>AS ALTERAÇÕES VALEM PARA</small><select id="mgScope"><option value="all"${sc === 'all' ? ' selected' : ''}>Todas as páginas · ${n} página${n > 1 ? 's' : ''}</option><option value="page"${sc === 'page' ? ' selected' : ''}>Só esta página</option>${nsel ? `<option value="sel"${sc === 'sel' ? ' selected' : ''}>Páginas selecionadas · ${nsel}</option>` : ''}</select></label>`;
+    if (!m) return `<div class="pgrp" id="mgPanel"><h3 class="mgh3">MARGENS E ÁREAS</h3>${scope}<p class="hint">Esta página está sem margens. Adicione para ver as guias, reservar furos e lombada e ter cabeçalho, rodapé e divisórias.</p><button class="btn sm pri" id="mgAdd">Adicionar margens</button><label class="chk"><input type="checkbox" id="mgFit"${fitOn() ? ' checked' : ''}> Ajustar o conteúdo à área</label></div>`;
+    const g = geom(p, m), dis = !!m.lock, un = getUnit(), allLinked = linkOn('inner') && linkOn('top') && spreadOn();
+    return `<div class="pgrp" id="mgPanel"><h3 class="mgh3">MARGENS E ÁREAS</h3>${scope}
+      <div class="mghead"><b>Preenchimentos e Margens</b><span class="mgtools"><button type="button" class="btn sm ghost" id="mgLinkAll" aria-pressed="${allLinked}">⛓ Vincular tudo</button><button type="button" class="btn sm ghost" id="mgReset"${dis ? ' disabled' : ''}>↺ Redefinir</button><select id="mgUnit" aria-label="Unidade">${Object.keys(UNITS).map((u) => `<option${u === un ? ' selected' : ''}>${u}</option>`).join('')}</select></span></div>
+      <div class="mgpair"><div class="mgrows">${row('top', 'Topo', m.top, 60, dis)}${row('bottom', 'Base', m.bottom, 60, dis)}</div>${chain('mgLkTB', linkOn('top'), dis)}</div>
+      <div class="mgpair"><div class="mgrows">${row('outer', 'Externa', m.outer, 60, dis)}${row('inner', 'Interna', m.inner, 60, dis)}</div>${chain('mgLkLR', linkOn('inner'), dis)}</div>
+      <div class="mgpair"><div class="mgrows">${row('holes', 'Furos', m.holes, 40, dis)}${row('gutter', 'Lombada', m.gutter, 30, dis)}</div>${chain('mgLkSp', spreadOn(), dis)}</div>
+      <p class="hint">Furos: espaço no lado de dentro de cada página (mínimo recomendado 20 mm). Lombada: total ao meio. O ⛓ de baixo mantém o lado de dentro das duas páginas da dupla iguais.</p>
+      <div class="mrow mgsw-row"><span class="mi">🔒</span><span class="ml" style="flex:1">Bloquear margens no editor</span>${sw('mgLock', dis, false)}</div>
+      <div class="mghead"><b>Espaçamento</b></div>
+      ${row('hdr', 'Cabeçalho', m.hdr, 40, dis, { ic: 'hdr' })}${row('ftr', 'Rodapé', m.ftr, 40, dis, { ic: 'ftr' })}
+      <p class="hint">Altura 0 = sem cabeçalho ou rodapé.</p>
+      ${tabsHTML(m, dis, p)}
+      <label class="pfield"><span>Lado no impresso</span><select id="mgSide"${dis ? ' disabled' : ''}><option value="auto"${m.side === 'e' || m.side === 'd' ? '' : ' selected'}>Automático (agora: ${g.e ? 'esquerda' : 'direita'})</option><option value="e"${m.side === 'e' ? ' selected' : ''}>Página da esquerda</option><option value="d"${m.side === 'd' ? ' selected' : ''}>Página da direita</option></select></label>
       <label class="chk"><input type="checkbox" id="mgFlip"${S.meta.mgFlip ? ' checked' : ''}> Inverter o padrão do projeto</label>
-      <p class="hint">Padrão: a página da direita do editor é a da esquerda no impresso (a margem interna fica do lado da lombada).</p>
+      <p class="hint">Padrão: a página da direita do editor é a da esquerda no impresso.</p>
       <label class="chk"><input type="checkbox" id="mgFit"${fitOn() ? ' checked' : ''}> Ajustar o conteúdo à área</label>
-      <div class="row"><button class="btn sm" id="mgAll">Aplicar em todas</button><button class="btn sm ghost danger" id="mgRm">Remover margens</button></div>
-      ${S.order.length > 1 ? '<button class="btn sm ghost danger" id="mgRmAll">Remover de todas as páginas</button>' : ''}</div>`;
+      <button class="btn sm ghost danger" id="mgRm">Remover margens</button></div>`;
   }
   function mount(p, P) {
     const $q = (s) => P.querySelector(s), on = (s, fn) => { const e = $q(s); if (e) e.onclick = fn; };
     const blur = () => { if (document.activeElement && P.contains(document.activeElement)) document.activeElement.blur(); };
-    const toast2 = (t) => { if (typeof toast === 'function') toast(t); };
-    on('#mgAdd', () => { applyMg([p.id], defaults(p)); toast2('Margens adicionadas. Ctrl+Z desfaz.'); });
-    on('#mgAddAll', () => { applyMg(S.order.slice(), defaults(p)); toast2('Margens adicionadas em todas as páginas.'); });
+    const commit = (k, v) => { blur(); if (k === 'hdr' || k === 'ftr') v = v > 0 ? Math.max(3, v) : 0; edit(p, { [k]: v }, PAIR[k] ? k : null); };
+    const sc = $q('#mgScope'); if (sc) sc.onchange = () => { S.meta.mgScope = sc.value; Saver.m(); };
+    on('#mgAdd', () => { const n = edit(p, {}, null); if (n) toast2('Margens adicionadas. Ctrl+Z desfaz.'); });
     const fitEl = $q('#mgFit'); if (fitEl) fitEl.onchange = () => { S.meta.mgFit = fitEl.checked; Saver.m(); };
-    const lk = $q('#mgLock'); if (lk) lk.onchange = () => { setLock(p, lk.checked); };
-    on('#mgAll', () => { applyMg(S.order.slice(), p.mg); toast2('Margens aplicadas em todas as páginas.'); });
-    on('#mgRm', () => { applyMg([p.id], null); });
-    on('#mgRmAll', () => { applyMg(S.order.slice(), null); toast2('Margens removidas de todas as páginas.'); });
+    on('#mgRm', () => { const map = {}; scopeIds(p).forEach((id) => { map[id] = null; }); applyMap(map); });
+    on('#mgReset', () => { const map = {}; scopeIds(p).forEach((id) => { map[id] = defaults(S.pages[id]); }); applyMap(map); toast2('Margens redefinidas. Ctrl+Z desfaz.'); });
+    const un = $q('#mgUnit'); if (un) un.onchange = () => { try { localStorage.setItem('cnu.estudio.mgunit', un.value); } catch (_) { /* ok */ } renderProps(); };
+    on('#mgLinkAll', () => { const all = linkOn('inner') && linkOn('top') && spreadOn(); S.meta.mgLinkLR = S.meta.mgLinkTB = S.meta.mgLinkSpread = !all; Saver.m(); renderProps(); redraw(); });
+    on('#mgLkTB', () => { S.meta.mgLinkTB = !linkOn('top'); Saver.m(); renderProps(); });
+    on('#mgLkLR', () => { S.meta.mgLinkLR = !linkOn('inner'); Saver.m(); renderProps(); });
+    on('#mgLkSp', () => { S.meta.mgLinkSpread = !spreadOn(); Saver.m(); if (spreadOn()) edit(p, { inner: p.mg.inner, holes: p.mg.holes, gutter: p.mg.gutter }, null, { ids: [p.id] }); else { renderProps(); redraw(); } });
+    const lk = $q('#mgLock'); if (lk) lk.onchange = () => setLock(p, lk.checked);
+    const sd = $q('#mgSide'); if (sd) sd.onchange = () => { edit(p, { side: sd.value }, null, { ids: [p.id] }); };
     const fl = $q('#mgFlip'); if (fl) fl.onchange = () => {
       const ids = S.order.filter((id) => S.pages[id].mg), pre = {}; ids.forEach((id) => { pre[id] = geom(S.pages[id], S.pages[id].mg); });
       change(ids, () => { S.meta.mgFlip = fl.checked; ids.forEach((id) => { const q = S.pages[id]; if (fitOn()) fit(q, pre[id], geom(q, q.mg)); }); }); Saver.m();
       ids.forEach((id) => thumbRefresh(id)); redraw(); renderProps();
     };
-    const lLR = $q('#mgLkLR'), lTB = $q('#mgLkTB');
-    if (lLR) lLR.onchange = () => { S.meta.mgLinkLR = lLR.checked; Saver.m(); };
-    if (lTB) lTB.onchange = () => { S.meta.mgLinkTB = lTB.checked; Saver.m(); };
-    const hoOn = $q('#mgHoOn'); if (hoOn) hoOn.onchange = () => { blur(); patchMg(p, { holes: hoOn.checked ? (num($q('[data-mg=holes]').value, 20) || 20) : 0 }); };
-    const tbOn = $q('#mgTbOn'); if (tbOn) tbOn.onchange = () => { blur(); const t = tabsOf(p.mg); patchMg(p, { tabs: Object.assign({}, t, { on: tbOn.checked }) }); };
-    const tp = $q('#mgTbPos'); if (tp) tp.onclick = (e) => { const b = e.target.closest('[data-tpos]'); if (b && !b.disabled) patchMg(p, { tabs: { pos: b.dataset.tpos } }); };
-    P.querySelectorAll('[data-mgt]').forEach((el) => { el.onchange = () => { const k = el.dataset.mgt; let v = el.value; if (k === 'n') v = cl(Math.round(+v || 1), 1, 30); else if (k === 'w') v = Math.max(3, +v || 12); else if (k === 'r') v = Math.max(0, +v || 0); blur(); const nm = Object.assign({}, p.mg, { tabs: Object.assign({}, tabsOf(p.mg), { [k]: v }) }), g = geom(p, nm); if (g.x1 - g.x0 < MIN || g.y1 - g.y0 < MIN) { toast2('Esse valor deixa pouco espaço para o conteúdo.'); renderProps(); return; } applyMg([p.id], nm); }; });
+    P.querySelectorAll('[data-mgr]').forEach((r) => { const k = r.dataset.mgr, nb = $q(`[data-mgn=${k}]`); r.oninput = () => { nb.value = toU(+r.value); }; r.onchange = () => commit(k, +r.value); });
+    P.querySelectorAll('[data-mgn]').forEach((nb) => { nb.onchange = () => commit(nb.dataset.mgn, Math.max(0, fromU(nb.value))); });
+    // divisórias
+    const tbOn = $q('#mgTbOn'); if (tbOn) tbOn.onchange = () => { blur(); edit(p, { tabs: { on: tbOn.checked } }); };
+    const tp = $q('#mgTbPos'); if (tp) tp.onclick = (e) => { const b = e.target.closest('[data-tpos]'); if (b && !b.disabled) edit(p, { tabs: { pos: b.dataset.tpos } }); };
+    const tcommit = (k, v) => { blur(); if (k === 'n') v = cl(Math.round(+v || 1), 1, 30); else if (k === 'w') v = Math.max(3, v || 12); else if (k === 'r') v = Math.max(0, v || 0); edit(p, { tabs: { [k]: v } }); };
+    P.querySelectorAll('[data-mgtr]').forEach((r) => { const k = r.dataset.mgtr, nb = $q(`[data-mgtn=${k}]`); r.oninput = () => { nb.value = toU(+r.value); }; r.onchange = () => tcommit(k, +r.value); });
+    P.querySelectorAll('[data-mgtn]').forEach((nb) => { nb.onchange = () => tcommit(nb.dataset.mgtn, fromU(nb.value)); });
+    const nIn = $q('[data-mgt=n]'); if (nIn) nIn.onchange = () => tcommit('n', nIn.value);
+    P.querySelectorAll('[data-tn]').forEach((b) => { b.onclick = () => tcommit('n', num(tabsOf(p.mg).n, 4) + +b.dataset.tn); });
+    const bs = $q('#mgTbBgSel'); if (bs) bs.onclick = (e) => { const b = e.target.closest('[data-tbg]'); if (b && !b.disabled) edit(p, { tabs: { bg: b.dataset.tbg } }); };
     const mk = $q('#mgTbMake'); if (mk) mk.onclick = () => {
       const g = geom(p, p.mg), t = tabsOf(p.mg), w = num(t.w, 12), n = cl(Math.round(num(t.n, 4)), 1, 30);
       const el = E('tabs', g.e ? 0 : p.w - w, g.top, w, g.bot - g.top, { labels: Array.from({ length: n }, (_, i) => String(i + 1)), links: [], active: -1, font: 'Quicksand', color: '#3E3550', fill1: '#C398C8', fill2: '#92A8D1', activeFill: '#4A4E79' });
       change([p.id], () => p.els.push(el)); S.sel = [el.id]; redraw(); renderProps(); thumbRefresh(p.id); toast2('Abas inseridas. Clique nelas para trocar os nomes.');
     };
-    const hOn = $q('#mgHOn'), fOn = $q('#mgFOn');
-    if (hOn) hOn.onchange = () => { blur(); patchMg(p, { hdr: hOn.checked ? num($q('[data-mg=hdr]').value, DEF_HF) || DEF_HF : 0 }); };
-    if (fOn) fOn.onchange = () => { blur(); patchMg(p, { ftr: fOn.checked ? num($q('[data-mg=ftr]').value, DEF_HF) || DEF_HF : 0 }); };
-    P.querySelectorAll('[data-mg]').forEach((el) => {
-      el.onchange = () => {
-        const k = el.dataset.mg; let v = el.value;
-        if (k !== 'side') { v = Math.max(0, +v || 0); if (k === 'hdr' || k === 'ftr') v = Math.max(3, v); }
-        const nm = Object.assign({}, p.mg, { [k]: v }); if (PAIR[k]) linkFix(p, nm, p.mg, k); const g = geom(p, nm);
-        if (k !== 'side' && (g.x1 - g.x0 < MIN || g.y1 - g.y0 < MIN)) { toast2('Esse valor deixa pouco espaço para o conteúdo.'); blur(); renderProps(); return; }
-        blur(); applyMg([p.id], nm);
-      };
-    });
   }
   const rp = window.renderProps;
   window.renderProps = function () {
