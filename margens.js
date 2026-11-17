@@ -14,7 +14,13 @@
     return S.meta.mgFlip ? !e : e;
   };
   const isLeft = (p, m) => (m && m.side === 'e' ? true : m && m.side === 'd' ? false : autoLeft(p));
-  const defaults = (p) => { const s = Math.min(p.w, p.h), r = (v) => Math.round(v * 2) / 2; return { top: r(s * 0.05), bottom: r(s * 0.05), inner: r(s * 0.04), outer: r(s * 0.04), gutter: 0, holes: 20, hdr: 0, ftr: 0, tabs: { on: false, pos: 'side', n: 4, w: 12, r: 3, bg: 'none' }, lock: false, side: 'auto' }; };
+  const BIND = {
+    spiral: { name: 'Espiral plástico', mm: 15, d: 7, obs: 'Furo redondo e próximo da borda (cerca de 6 a 8 mm). Sobram uns 7 a 9 mm de respiro.' },
+    wire: { name: 'Wire-o (duplo anel)', mm: 18, d: 9, obs: 'Furo quadrado ou redondo (8 a 10 mm). Recomendado de 15 a 18 mm, para o anel girar sem rasgar o papel.' },
+    disc: { name: 'Caderno de discos', mm: 20, d: 11, obs: 'O furo em cogumelo avança mais para dentro da folha (10 a 12 mm). Pede a maior margem: 18 a 20 mm.' },
+  };
+  const bindOf = (m) => (m && BIND[m.bind] ? m.bind : m && m.bind === undefined && num(m.holes, 0) === 20 ? 'disc' : 'custom');
+  const defaults = (p) => { const s = Math.min(p.w, p.h), r = (v) => Math.round(v * 2) / 2; return { top: r(s * 0.05), bottom: r(s * 0.05), inner: r(s * 0.04), outer: r(s * 0.04), gutter: 0, holes: 20, bind: 'disc', hdr: 0, ftr: 0, tabs: { on: false, pos: 'side', n: 4, w: 12, r: 3, bg: 'none' }, lock: false, side: 'auto' }; };
   const tabsOf = (m) => Object.assign({ on: false, pos: 'side', n: 4, w: 12, r: 3, bg: 'none' }, m && m.tabs);
   function extras(m) { const t = tabsOf(m), w = t.on ? Math.max(0, num(t.w, 12)) : 0; return { side: t.pos === 'side' ? w : 0, top: t.pos === 'top' ? w : 0, bot: t.pos === 'bottom' ? w : 0, t }; }
   function geom(p, m) {
@@ -105,9 +111,9 @@
     let h = '';
     if (g.g > 0) h += `<div class="mgband" style="${g.e ? 'right' : 'left'}:0;width:${g.g * k}px"></div>`;
     if (g.holes > 0) {
-      const hx = g.e ? p.w - g.g - g.holes : g.g, n = Math.max(2, Math.round(p.h / 30));
+      const hx = g.e ? p.w - g.g - g.holes : g.g, n = Math.max(2, Math.round(p.h / 30)), dia = BIND[bindOf(m)] ? BIND[bindOf(m)].d : 6;
       h += `<div class="mghole" style="left:${hx * k}px;width:${g.holes * k}px"></div>`;
-      for (let i = 0; i < n; i++) h += `<i class="mgdot" style="left:${(hx + g.holes / 2) * k}px;top:${((i + 0.5) * p.h / n) * k}px;width:${Math.max(4, 4 * k)}px;height:${Math.max(4, 4 * k)}px"></i>`;
+      for (let i = 0; i < n; i++) h += `<i class="mgdot" style="left:${(hx + g.holes / 2) * k}px;top:${((i + 0.5) * p.h / n) * k}px;width:${Math.max(4, dia * k)}px;height:${Math.max(4, dia * k)}px"></i>`;
     }
     if (g.X.t.on) {
       const t = g.X.t, n = cl(Math.round(num(t.n, 4)), 1, 30), w = num(t.w, 12), r = Math.max(0, num(t.r, 3)) * k, gap = 1;
@@ -234,8 +240,10 @@
       <div class="mghead"><b>Preenchimentos e Margens</b><span class="mgtools"><button type="button" class="btn sm ghost" id="mgLinkAll" aria-pressed="${allLinked}">⛓ Vincular tudo</button><button type="button" class="btn sm ghost" id="mgReset"${dis ? ' disabled' : ''}>↺ Redefinir</button><select id="mgUnit" aria-label="Unidade">${Object.keys(UNITS).map((u) => `<option${u === un ? ' selected' : ''}>${u}</option>`).join('')}</select></span></div>
       <div class="mgpair"><div class="mgrows">${row('top', 'Topo', m.top, 60, dis)}${row('bottom', 'Base', m.bottom, 60, dis)}</div>${chain('mgLkTB', linkOn('top'), dis)}</div>
       <div class="mgpair"><div class="mgrows">${row('outer', 'Externa', m.outer, 60, dis)}${row('inner', 'Interna', m.inner, 60, dis)}</div>${chain('mgLkLR', linkOn('inner'), dis)}</div>
+      <label class="pfield mgbind"><span>Tipo de encadernação</span><select id="mgBind"${dis ? ' disabled' : ''}>${Object.keys(BIND).map((k) => `<option value="${k}"${bindOf(m) === k ? ' selected' : ''}>${BIND[k].name} · ${BIND[k].mm} mm</option>`).join('')}<option value="custom"${bindOf(m) === 'custom' ? ' selected' : ''}>Personalizado</option></select></label>
+      ${BIND[bindOf(m)] ? `<p class="hint">${BIND[bindOf(m)].obs}</p>` : ''}
       <div class="mgpair"><div class="mgrows">${row('holes', 'Furos', m.holes, 40, dis)}${row('gutter', 'Lombada', m.gutter, 30, dis)}</div>${chain('mgLkSp', spreadOn(), dis)}</div>
-      <p class="hint">Furos: espaço no lado de dentro de cada página (mínimo recomendado 20 mm). Lombada: total ao meio. O ⛓ de baixo mantém o lado de dentro das duas páginas da dupla iguais.</p>
+      <p class="hint">Furos: espaço no lado de dentro de cada página, no meio da dupla. Lombada: total ao meio. O ⛓ de baixo mantém o lado de dentro das duas páginas da dupla iguais.</p>
       <div class="mrow mgsw-row"><span class="mi">🔒</span><span class="ml" style="flex:1">Bloquear margens no editor</span>${sw('mgLock', dis, false)}</div>
       <div class="mghead"><b>Espaçamento</b></div>
       ${row('hdr', 'Cabeçalho', m.hdr, 40, dis, { ic: 'hdr' })}${row('ftr', 'Rodapé', m.ftr, 40, dis, { ic: 'ftr' })}
@@ -250,7 +258,8 @@
   function mount(p, P) {
     const $q = (s) => P.querySelector(s), on = (s, fn) => { const e = $q(s); if (e) e.onclick = fn; };
     const blur = () => { if (document.activeElement && P.contains(document.activeElement)) document.activeElement.blur(); };
-    const commit = (k, v) => { blur(); if (k === 'hdr' || k === 'ftr') v = v > 0 ? Math.max(3, v) : 0; edit(p, { [k]: v }, PAIR[k] ? k : null); };
+    const bd = $q('#mgBind'); if (bd) bd.onchange = () => { blur(); const v = bd.value; edit(p, v === 'custom' ? { bind: 'custom' } : { bind: v, holes: BIND[v].mm }, null); };
+    const commit = (k, v) => { blur(); if (k === 'holes') { edit(p, { holes: v, bind: BIND[bindOf(p.mg)] && BIND[bindOf(p.mg)].mm === v ? bindOf(p.mg) : 'custom' }); return; } if (k === 'hdr' || k === 'ftr') v = v > 0 ? Math.max(3, v) : 0; edit(p, { [k]: v }, PAIR[k] ? k : null); };
     const sc = $q('#mgScope'); if (sc) sc.onchange = () => { S.meta.mgScope = sc.value; Saver.m(); };
     on('#mgAdd', () => { const n = edit(p, {}, null); if (n) toast2('Margens adicionadas. Ctrl+Z desfaz.'); });
     const fitEl = $q('#mgFit'); if (fitEl) fitEl.onchange = () => { S.meta.mgFit = fitEl.checked; Saver.m(); };
