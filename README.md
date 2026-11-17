@@ -29,3 +29,14 @@ Editor de miolos de cadernos e planners, ligado ao app do ateliê. Funciona no n
 - O login é o mesmo do app do ateliê (mesmo endereço do GitHub Pages, mesma sessão).
 - Modelos e adesivos marcados para o mostruário vão para a tabela `mostruario_itens` e para a pasta `mostruario` do Supabase; o app do ateliê busca sozinho.
 - Arquivos: `index.html`, `estilo.css`, `app.js` (editor), `protecao.js` (lixeira, versões, nuvem), `recursos.js` (bordas, repetir em páginas, régua e grade, widgets de data), `sw.js` (funcionar sem internet).
+
+## PDF vetorial
+
+Em **Exportar → Tipo de PDF** há duas opções: *Vetorial* (padrão) e *Imagem* (o modo antigo).
+No vetorial, formas, linhas e letras vão para o PDF como desenho de verdade (nítidos em qualquer zoom, texto selecionável,
+links entre páginas). Imagens e adesivos entram como imagem, com transparência. O motor está em `vetor.js` e não depende de biblioteca externa.
+
+- As fontes do Google são baixadas na hora de exportar (pacotes Fontsource, via cdn.jsdelivr.net) e guardadas no navegador para as próximas vezes.
+- Fontes enviadas por você (TTF/OTF) são embutidas direto.
+- Se alguma fonte não puder ser embutida, só aquele texto vira imagem (o aviso aparece no fim da exportação).
+- Antes de exportar, o Estúdio avisa de links sem destino e de links para páginas fora do intervalo escolhido.

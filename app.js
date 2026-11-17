@@ -1043,19 +1043,36 @@ $('#props').addEventListener('click',ev=>{const b=ev.target.closest('button');if
 function drawOverlaysOnly(){$$('#stage .pg').forEach(w=>{const p=S.pages[w.dataset.id];if(p)drawOverlay(w,p)})}
 
 /* ================= exportação ================= */
+function scanLinks(){const out=[];S.order.forEach((id,pi)=>{const p=S.pages[id];if(!p)return;for(const e of p.els){
+  if(e.link)out.push({pi,id,e,k:null,to:e.link});
+  if(e.dayLinks)for(const [d,to] of Object.entries(e.dayLinks))if(to)out.push({pi,id,e,k:['dayLinks',d],to});
+  if(e.monthLinks)for(const [d,to] of Object.entries(e.monthLinks))if(to)out.push({pi,id,e,k:['monthLinks',d],to});
+  if(e.links)e.links.forEach((to,i)=>{if(to)out.push({pi,id,e,k:['links',i],to})})}});return out}
+function fixLinks(list){const pgs=new Set();for(const l of list){if(l.k)l.e[l.k[0]][l.k[1]]=null;else l.e.link=null;pgs.add(l.id)}pgs.forEach(id=>Saver.page(id));refreshAll()}
 function exportModal(){const p=curPage();const sizes={};S.order.forEach(id=>{const q=S.pages[id],n=sizeName(q.w,q.h);sizes[n]=(sizes[n]||0)+1});const main=Object.entries(sizes).sort((a,b)=>b[1]-a[1])[0][0];
   modal(`<h2>Exportar</h2>
    <label class="f">O que gerar<select id="xMode"><option value="pdf">PDF com as páginas no tamanho final</option><option value="impo">PDF imposto em cadernos (frente e verso, para dobrar e costurar)</option><option value="png">Imagem PNG da página atual</option></select></label>
+   <label class="f" id="xVecL">Tipo de PDF<select id="xVec"><option value="1" selected>Vetorial · letras e formas nítidas em qualquer zoom</option><option value="0">Imagem · como antes (mais lento e pesado)</option></select></label>
    <div id="xPdf" class="fgrid"><label class="f">Páginas<select id="xRange"><option value="all">Todas (${S.order.length})</option><option value="cur">Só a atual (${S.cur+1})</option><option value="custom">Intervalo…</option></select></label><label class="f">Resolução<select id="xDpi"><option value="150">150 dpi · arquivo leve</option><option value="200" selected>200 dpi · equilíbrio</option><option value="300">300 dpi · gráfica</option></select></label>
     <label class="f" id="xFromL" hidden>De<input type="number" id="xFrom" value="1" min="1" max="${S.order.length}"></label><label class="f" id="xToL" hidden>Até<input type="number" id="xTo" value="${S.order.length}" min="1" max="${S.order.length}"></label></div>
    <div id="xOpt1" style="display:flex;flex-direction:column;gap:8px"><label class="chk"><input type="checkbox" id="xLinks" checked> Links clicáveis entre páginas (GoodNotes, Notability, Xodo)</label><label class="chk"><input type="checkbox" id="xBleed"> Sangria de 3 mm</label><label class="chk"><input type="checkbox" id="xMarks"> Marcas de corte</label></div>
    <div id="xOpt2" hidden class="fgrid"><label class="f">Folhas por caderno<select id="xSheets">${[1,2,3,4,5,6,8].map(n=>`<option value="${n}"${n===4?' selected':''}>${n} folha${n>1?'s':''} · ${n*4} páginas</option>`).join('')}</select></label><p class="hint full">Usa as páginas ${esc(main)} (${sizes[main]}). Cada folha tem o dobro da largura da página. Imprima frente e verso virando pela borda curta. Páginas em branco completam o último caderno.</p></div>
+   <div id="xWarn" class="sum" hidden style="display:flex;flex-direction:column;gap:6px;align-items:flex-start"></div>
    <div class="prog" id="xProg" hidden><i></i></div><p class="hint" id="xMsg"></p>
    <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Fechar</button><button class="btn pri" id="xGo">Gerar arquivo</button></div>`,(b,close)=>{
-   const upd=()=>{const m=$('#xMode',b).value;$('#xPdf',b).hidden=m==='png';$('#xOpt1',b).hidden=m!=='pdf';$('#xOpt2',b).hidden=m!=='impo';const c=$('#xRange',b).value==='custom'&&m!=='png';$('#xFromL',b).hidden=!c;$('#xToL',b).hidden=!c};
-   $('#xMode',b).onchange=upd;$('#xRange',b).onchange=upd;upd();
+   const upd=()=>{const m=$('#xMode',b).value;$('#xPdf',b).hidden=m==='png';$('#xVecL',b).hidden=m==='png';const vec=m!=='png'&&$('#xVec',b).value==='1';$('#xDpi',b).closest('label').hidden=vec;$('#xOpt1',b).hidden=m!=='pdf';$('#xOpt2',b).hidden=m!=='impo';const c=$('#xRange',b).value==='custom'&&m!=='png';$('#xFromL',b).hidden=!c;$('#xToL',b).hidden=!c};
+   $('#xMode',b).onchange=upd;$('#xRange',b).onchange=upd;$('#xVec',b).onchange=upd;upd();
+   const warn=()=>{const W=$('#xWarn',b),m=$('#xMode',b).value,ids=new Set(S.order);let sel=S.order;
+     if(m!=='png'){const r=$('#xRange',b).value;if(r==='cur')sel=[S.order[S.cur]];else if(r==='custom'){const x=cl(Math.min(+$('#xFrom',b).value||1,+$('#xTo',b).value||1),1,S.order.length),y=cl(Math.max(+$('#xFrom',b).value||1,+$('#xTo',b).value||1),1,S.order.length);sel=S.order.slice(x-1,y)}}
+     const inSel=new Set(sel),L=scanLinks().filter(l=>inSel.has(S.order[l.pi])),broken=L.filter(l=>!ids.has(l.to)),out=m==='pdf'&&$('#xLinks',b).checked?L.filter(l=>ids.has(l.to)&&!inSel.has(l.to)):[];
+     if(!broken.length&&!out.length){W.hidden=true;W.innerHTML='';W._h='';return}
+     const ex=a=>[...new Set(a.map(l=>l.pi+1))].slice(0,8).join(', ');
+     const html=(broken.length?`<b>${broken.length} link${broken.length>1?'s':''} sem destino</b><span class="hint">Levam a páginas que já não existem (nas páginas ${ex(broken)}). Ficariam sem efeito no PDF.</span><button class="btn sm" id="xFix">Remover links quebrados</button>`:'')+(out.length?`<b>${out.length} link${out.length>1?'s':''} para fora do intervalo</b><span class="hint">Apontam para páginas que não vão neste PDF (páginas ${ex(out)}). Escolha “Todas” para mantê-los funcionando.</span>`:'');
+     W.hidden=false;if(W._h===html)return;W._h=html;W.innerHTML=html;
+     const fx=$('#xFix',b);if(fx)fx.onclick=()=>{fixLinks(broken);warn();toast(`${broken.length} link(s) removido(s).`)}};
+   ['#xRange','#xFrom','#xTo','#xMode','#xLinks'].forEach(q=>$(q,b).addEventListener('change',warn));$('#xFrom',b).addEventListener('input',warn);$('#xTo',b).addEventListener('input',warn);warn();
    $('#xGo',b).onclick=async()=>{const btn=$('#xGo',b);btn.disabled=true;$('#modal').dataset.lock=1;
-     try{await runExport({mode:$('#xMode',b).value,range:$('#xRange',b).value,from:+$('#xFrom',b).value,to:+$('#xTo',b).value,dpi:+$('#xDpi',b).value,links:$('#xLinks',b).checked,bleed:$('#xBleed',b).checked,marks:$('#xMarks',b).checked,sheets:+$('#xSheets',b).value,main},
+     try{await runExport({mode:$('#xMode',b).value,range:$('#xRange',b).value,from:+$('#xFrom',b).value,to:+$('#xTo',b).value,dpi:+$('#xDpi',b).value,vec:$('#xVec',b).value==='1'&&$('#xMode',b).value!=='png',links:$('#xLinks',b).checked,bleed:$('#xBleed',b).checked,marks:$('#xMarks',b).checked,sheets:+$('#xSheets',b).value,main},
        (f,msg)=>{$('#xProg',b).hidden=false;$('#xProg i',b).style.width=Math.round(f*100)+'%';$('#xMsg',b).textContent=msg})}
      catch(e){console.error(e);$('#xMsg',b).textContent=e&&e.message?e.message:'Algo deu errado ao gerar o arquivo.'}
      finally{btn.disabled=false;delete $('#modal').dataset.lock}}})}
@@ -1070,6 +1087,7 @@ async function runExport(o,prog){const all=S.order.map(id=>S.pages[id]);let idx=
   const pages=idx.map(i=>all[i]),pxmm=o.dpi/25.4;prog(0,'Preparando imagens e fontes…');await prep(pages);
   const cnv=document.createElement('canvas'),c=cnv.getContext('2d');
   if(o.mode==='png'){const p=pages[0];cnv.width=Math.round(p.w*pxmm);cnv.height=Math.round(p.h*pxmm);drawPage(c,p,pxmm);const blob=await new Promise(r=>cnv.toBlob(r,'image/png'));prog(1,'Pronto.');const r=await saveFile(`${fileBase()}-pagina-${S.cur+1}.png`,blob);prog(1,r==='ok'?'Imagem salva.':'Download cancelado.');return}
+  if(o.vec&&window.Vetor)return runVector(o,pages,prog);
   if(!window.jspdf)throw new Error('O gerador de PDF não carregou. Recarregue a página e tente de novo.');
   const {jsPDF}=window.jspdf;let doc=null;const addSheet=(W,H)=>{const or=W>H?'l':'p';if(!doc)doc=new jsPDF({unit:'mm',format:[W,H],orientation:or,compress:true});else doc.addPage([W,H],or)};
   if(o.mode==='pdf'){const b=o.bleed?3:0,pad=b+(o.marks?6:0),pos=new Map();pages.forEach((p,i)=>pos.set(p.id,i+1));
@@ -1083,6 +1101,28 @@ async function runExport(o,prog){const all=S.order.map(id=>S.pages[id]);let idx=
       doc.addImage(cnv.toDataURL('image/jpeg',.92),'JPEG',0,0,pw*2,ph,undefined,'FAST');prog((i+1)/sheets.length,`Folha ${Math.ceil((i+1)/2)} (${s.side}) de ${sheets.length/2}…`);if(i%2===1)await tick()}
     const ex=pages.length-list.length;if(ex)toast(`${ex} página(s) de outro tamanho ficaram de fora da imposição.`)}
   prog(1,'Montando o arquivo…');await tick();const blob=doc.output('blob');const r=await saveFile(`${fileBase()}${o.mode==='impo'?'-cadernos':''}.pdf`,blob);prog(1,r==='ok'?`PDF salvo (${(blob.size/1048576).toFixed(1)} MB).`:'Download cancelado.')}
+
+async function runVector(o,pages,prog){
+  const V=window.Vetor,jobs=[];
+  if(o.mode==='pdf'){const b=o.bleed?3:0,pad=b+(o.marks?6:0);
+    pages.forEach((p,i)=>jobs.push({w:p.w+2*pad,h:p.h+2*pad,p,pad,draw:c=>{drawPage(c,p,1,pad,pad,{bleed:b});if(o.marks)drawMarks(c,p.w,p.h,1,pad,b)}}))}
+  else{const list=pages.filter(p=>sizeName(p.w,p.h)===o.main);if(!list.length)throw new Error('Nenhuma página no tamanho '+o.main+' neste intervalo.');const pw=list[0].w,ph=list[0].h;
+    impose(list,o.sheets).forEach(s=>jobs.push({w:pw*2,h:ph,draw:c=>{if(s.l)drawPage(c,s.l,1,0,0);if(s.r)drawPage(c,s.r,1,pw,0);c.setTransform(1,0,0,1,0,0);c.strokeStyle='rgba(74,78,121,.35)';c.lineWidth=.2;c.beginPath();c.moveTo(pw,0);c.lineTo(pw,3);c.moveTo(pw,ph-3);c.lineTo(pw,ph);c.stroke()}}));
+    const ex=pages.length-list.length;if(ex)toast(`${ex} página(s) de outro tamanho ficaram de fora da imposição.`)}
+  prog(.02,'Conferindo as fontes usadas…');
+  const dry=new V.Doc({dry:true});jobs.forEach(j=>j.draw(dry.page(j.w,j.h)));
+  const userFonts=S.lib.filter(x=>x.kind==='font'&&x.family).map(x=>({family:x.family,load:async()=>(await fetch(srcUrl(x.src))).arrayBuffer()}));
+  const missing=await V.loadFonts(dry.reqs,userFonts,f=>prog(.02+f*.2,'Baixando fontes para embutir no PDF…'));
+  const doc=new V.Doc({title:S.meta.name||'Miolo'});V.useLoaded(doc,dry.reqs);
+  const pos=new Map();if(o.mode==='pdf')pages.forEach((p,i)=>pos.set(p.id,i));
+  for(let i=0;i<jobs.length;i++){const j=jobs[i];j.draw(doc.page(j.w,j.h));
+    if(o.mode==='pdf'&&o.links)for(const L of pageLinks(j.p)){const t=pos.get(L.to);if(t!=null&&t!==i)doc.link(i,L.x+j.pad,L.y+j.pad,L.w,L.h,t)}
+    prog(.22+.7*(i+1)/jobs.length,`Página ${i+1} de ${jobs.length}…`);if(i%4===3)await tick()}
+  prog(.95,'Montando o arquivo…');await tick();const blob=await doc.finish();
+  const r=await saveFile(`${fileBase()}${o.mode==='impo'?'-cadernos':''}.pdf`,blob);
+  let msg=r==='ok'?`PDF vetorial salvo (${(blob.size/1048576).toFixed(1)} MB).`:'Download cancelado.';
+  if(doc.failedText)msg+=` ${doc.failedText} texto(s) viraram imagem porque a fonte${missing.size?' ('+[...missing].slice(0,3).join(', ')+')':''} não pôde ser embutida.`;
+  prog(1,msg)}
 
 /* ================= barra superior e teclado ================= */
 $('#bBack').onclick=async()=>{await Saver.flush();S.view='home';S.pid=null;loadHome()};
