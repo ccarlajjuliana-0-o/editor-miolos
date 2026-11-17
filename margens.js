@@ -20,7 +20,11 @@
     disc: { name: 'Caderno de discos', mm: 20, d: 11, obs: 'O furo em cogumelo avança mais para dentro da folha (10 a 12 mm). Pede a maior margem: 18 a 20 mm.' },
   };
   const bindOf = (m) => (m && BIND[m.bind] ? m.bind : m && m.bind === undefined && num(m.holes, 0) === 20 ? 'disc' : 'custom');
-  const defaults = (p) => { const s = Math.min(p.w, p.h), r = (v) => Math.round(v * 2) / 2; return { top: r(s * 0.05), bottom: r(s * 0.05), inner: r(s * 0.04), outer: r(s * 0.04), gutter: 0, holes: 20, bind: 'disc', hdr: 0, ftr: 0, tabs: { on: false, pos: 'side', n: 4, w: 12, r: 3, bg: 'none' }, lock: false, side: 'auto' }; };
+  // Padrão proporcional ao lado curto da página (A5: 5,8 mm nas bordas e 12,2 mm por dentro). Furos só se houver encadernação.
+  const defaults = (p, bk) => {
+    const s = Math.min(p.w, p.h), r = (v) => Math.round(v * 10) / 10, k = bk !== undefined ? bk : S.meta && S.meta.mgBind, B = BIND[k];
+    return { top: r(s * 0.0392), bottom: r(s * 0.0392), inner: r(s * 0.0824), outer: r(s * 0.0392), gutter: 0, holes: B ? B.mm : 0, bind: B ? k : 'custom', hdr: 0, ftr: 0, tabs: { on: false, pos: 'side', n: 4, w: 12, r: 3, bg: 'none' }, lock: false, side: 'auto' };
+  };
   const tabsOf = (m) => Object.assign({ on: false, pos: 'side', n: 4, w: 12, r: 3, bg: 'none' }, m && m.tabs);
   function extras(m) { const t = tabsOf(m), w = t.on ? Math.max(0, num(t.w, 12)) : 0; return { side: t.pos === 'side' ? w : 0, top: t.pos === 'top' ? w : 0, bot: t.pos === 'bottom' ? w : 0, t }; }
   function geom(p, m) {
@@ -182,14 +186,28 @@
   function toggle() {
     const msg = (t) => { if (typeof toast === 'function') toast(t); };
     if (isOn()) { S.meta.mgOn = false; S.guides = false; Saver.m(); paintBtn(); redraw(); renderProps(); msg('Margens desligadas. Os valores ficam guardados.'); return; }
-    S.meta.mgOn = true; S.guides = true; Saver.m();
-    const need = S.order.filter((id) => S.pages[id] && !S.pages[id].mg);
-    if (need.length) {
-      change(need, () => need.forEach((id) => { const p = S.pages[id], m = defaults(p); if (fitOn()) fit(p, geom(p, null), geom(p, m)); p.mg = m; }));
-      need.forEach((id) => thumbRefresh(id));
+    const need0 = S.order.filter((id) => S.pages[id] && !S.pages[id].mg);
+    if (need0.length && S.meta.mgBind === undefined) { askBind(enable); return; }
+    enable();
+    function enable() {
+      S.meta.mgOn = true; S.guides = true; Saver.m();
+      const need = S.order.filter((id) => S.pages[id] && !S.pages[id].mg);
+      if (need.length) {
+        change(need, () => need.forEach((id) => { const p = S.pages[id], m = defaults(p); if (fitOn()) fit(p, geom(p, null), geom(p, m)); p.mg = m; }));
+        need.forEach((id) => thumbRefresh(id));
+      }
+      paintBtn(); redraw(); renderProps(); msg('Margens ligadas.' + (need.length ? ' Ctrl+Z desfaz o ajuste do conteúdo.' : ''));
+      warnFit();
     }
-    paintBtn(); redraw(); renderProps(); msg('Margens ligadas.' + (need.length ? ' Ctrl+Z desfaz o ajuste do conteúdo.' : ''));
-    warnFit();
+  }
+  // antes de criar o layout: pergunta se o miolo vai ser encadernado (define o espaço dos furos)
+  function askBind(go) {
+    const opts = [['none', 'Sem encadernação', 'Sem espaço para furos. Só margens.']].concat(Object.keys(BIND).filter((k) => k !== 'custom').map((k) => [k, BIND[k].name, BIND[k].mm + ' mm de espaço para os furos']));
+    modal(`<div class="insroot"><h2>Esse miolo vai ser encadernado?</h2><p class="hint">Escolha o tipo para eu reservar o espaço dos furos no meio da dupla. Dá para mudar depois no painel Layout.</p>
+      <div class="bindopts">${opts.map(([k, n, d]) => `<button type="button" class="bindopt" data-bk="${k}"><b>${n}</b><span>${d}</span></button>`).join('')}</div>
+      <div class="row"><button class="btn sm" data-close>Cancelar</button></div></div>`, (box) => {
+      box.querySelectorAll('[data-bk]').forEach((b) => { b.onclick = () => { S.meta.mgBind = b.dataset.bk === 'none' ? 'none' : b.dataset.bk; Saver.m(); const m = document.getElementById('modal'); m.hidden = true; box.innerHTML = ''; go(); }; });
+    });
   }
   const bm = document.getElementById('bMg'); if (bm) bm.onclick = toggle;
   paintBtn();
