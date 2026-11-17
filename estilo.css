@@ -559,3 +559,8 @@ body{font-size:calc(15px*var(--escala,1))}
 .pgbarc button:not(.ppin){padding:7px 6px;white-space:nowrap}
 .pgbarc button.ppin{padding:0;display:grid;place-items:center;width:32px;height:32px;border-radius:12px}
 .pgbarc button.ppin svg{display:block;margin:0}
+/* alfinete: aceso = solta (próxima ação: fixar); apagado = fixa */
+.ppin,.ppin:not(.on){background:#C9D2E6;color:var(--ink);border-color:transparent}
+.ppin.on{background:var(--surface2);color:var(--muted);border-color:var(--line)}
+.pgbarc button.ppin:not(.on){background:#C9D2E6;color:var(--ink);opacity:1}
+.pgbarc button.ppin.on{background:var(--surface2);color:var(--muted);opacity:.85}
