@@ -475,3 +475,6 @@ body{font-size:calc(15px*var(--escala,1))}
 .plist.mini .pthumb canvas{background:#fff;box-shadow:0 1px 4px var(--shadow);max-width:100%}
 .plist.mini .pgcd{flex:0 0 100%}
 .plist.mini .prow.on{background:var(--surface2)}
+.insroot.cdroot>*{flex-shrink:0}
+.cdroot .cdlist{max-height:none;height:clamp(160px,34vh,300px);min-height:160px}
+.cdroot .cdparts{max-height:none}
