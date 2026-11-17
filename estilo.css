@@ -688,3 +688,5 @@ input[type=color]::-moz-color-swatch{border:1.5px solid rgba(62,53,80,.25);borde
 #bLados .lbl{margin:0 4px}
 
 #mgPanel.nosep{border-top:0;padding-top:0;margin-top:0}
+
+.pgrp[data-sec]{border-top:0;padding-top:0;margin-top:0}

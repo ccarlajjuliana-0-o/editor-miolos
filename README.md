@@ -108,3 +108,6 @@ Em qualquer campo de cor abre um seletor com quadro de cor, matiz, código HEX, 
 - Botão "Lados ⌄" na barra de cima, depois do tamanho: copiar esquerda → direita, direita → esquerda, para outra página…, trocar lados da página e trocar com outra página….
 - Leva tudo (fundo, estilo, textos, fontes, imagens, adesivos, formas, widgets). Com margens ligadas, o conteúdo é reposicionado na área segura da página de destino (só move, não muda tamanhos) e avisa o que não couber. Ctrl+Z desfaz de uma vez.
 - Régua, grade e guias agora também têm Ocultar/Expandir no painel da direita.
+
+## Regra do painel da direita
+- Toda configuração nova que entrar na barra lateral, quando ligada/ativada, ganha o título correspondente (linha + nome) e os botões Ocultar/Expandir. Se houver mais de uma seção, a "Configuração da página" também mostra o título. Use `secBar(id, título, aberto)` em margens.js.
