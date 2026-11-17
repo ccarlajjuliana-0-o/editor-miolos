@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Estúdio de Miolos · Craft Notes Unique</title>
+<meta name="theme-color" content="#9168A0">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Quicksand:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;1,400&family=Alex+Brush&family=Allura&family=Parisienne&family=Dancing+Script:wght@400;700&family=Caveat:wght@400;700&family=Patrick+Hand&family=Indie+Flower&family=Shadows+Into+Light&family=Amatic+SC:wght@400;700&family=Comfortaa:wght@400;700&family=Josefin+Sans:wght@400;600&family=Montserrat:wght@400;600;700&family=Poppins:wght@400;600&family=Playfair+Display:wght@400;700&family=Lora:wght@400;700&family=Cormorant+Garamond:wght@400;600&display=swap">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<main id="home">
+  <div class="wrap">
+    <div class="brand" id="brand"></div>
+    <div class="homehead">
+      <div>
+        <div class="tag">estúdio de miolos</div>
+        <h1>Meus projetos</h1>
+        <p>Monte miolos de planners e cadernos página por página, com modelos em português, datas automáticas e tamanhos diferentes no mesmo projeto.</p>
+      </div>
+      <div class="status" id="hstatus"><i></i><span>Conectando…</span></div>
+    </div>
+    <div id="plist"></div>
+    <div class="foot">
+      <span>Seus projetos ficam guardados neste aparelho. Para levar a outro, baixe o backup e restaure lá.</span>
+      <span class="row">
+        <span class="btn sm upl">Trocar logo<input type="file" id="logoUp" accept=".png,.jpg,.jpeg,image/png,image/jpeg" aria-label="Enviar logo"></span>
+        <button class="btn sm ghost" id="logoReset" hidden>Usar logo padrão</button>
+        <button class="btn sm" id="bkBtn">Baixar backup</button>
+        <span class="btn sm upl">Restaurar backup<input type="file" id="bkUp" accept=".json,application/json" aria-label="Restaurar backup"></span>
+        <button class="btn sm" id="cloudBtn" hidden>Entrar na nuvem</button>
+        <a class="btn sm applink" id="appLinkHome" target="_blank" rel="noopener" hidden>Abrir app do ateliê ↗</a>
+      </span>
+    </div>
+  </div>
+</main>
+
+<section id="editor" hidden>
+  <div id="etop">
+    <button class="ib" id="bBack" title="Voltar aos projetos" aria-label="Voltar aos projetos"><svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <input class="pname" id="pName" aria-label="Nome do projeto">
+    <span class="sep hidem"></span>
+    <button class="ib" id="bUndo" title="Desfazer (Ctrl+Z)" aria-label="Desfazer"><svg class="ico" viewBox="0 0 24 24"><path d="M9 7H4V2"/><path d="M4 7a9 9 0 1 1-1.5 7"/></svg></button>
+    <button class="ib" id="bRedo" title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer"><svg class="ico" viewBox="0 0 24 24"><path d="M15 7h5V2"/><path d="M20 7a9 9 0 1 0 1.5 7"/></svg></button>
+    <span class="sep hidem"></span>
+    <div class="seg" id="viewSeg" role="group" aria-label="Visualização">
+      <button data-v="single" title="Página única"><svg class="ico" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="1.5"/></svg><span class="hidem">Única</span></button>
+      <button data-v="spread" title="Páginas duplas"><svg class="ico" viewBox="0 0 24 24"><rect x="2.5" y="4" width="9" height="16" rx="1.2"/><rect x="12.5" y="4" width="9" height="16" rx="1.2"/></svg><span class="hidem">Dupla</span></button>
+    </div>
+    <span class="sep hidem"></span>
+    <button class="ib" id="bPrev" title="Página anterior" aria-label="Página anterior"><svg class="ico" viewBox="0 0 24 24"><path d="M14 6l-6 6 6 6"/></svg></button>
+    <span class="zoomv" id="pgInfo">1/1</span>
+    <button class="ib" id="bNext" title="Próxima página" aria-label="Próxima página"><svg class="ico" viewBox="0 0 24 24"><path d="M10 6l6 6-6 6"/></svg></button>
+    <span class="sep hidem"></span>
+    <button class="ib hidem" id="bZo" title="Diminuir zoom" aria-label="Diminuir zoom"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+    <button class="btn sm ghost zoomv" id="bZfit" title="Ajustar à tela">100%</button>
+    <button class="ib hidem" id="bZi" title="Aumentar zoom" aria-label="Aumentar zoom"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg></button>
+    <button class="ib hidem" id="bRuler" title="Régua e guias" aria-label="Régua"><svg class="ico" viewBox="0 0 24 24"><rect x="2.5" y="8" width="19" height="8" rx="1.5"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/></svg></button>
+    <button class="ib hidem" id="bGrid" title="Grade" aria-label="Grade"><svg class="ico" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 9.3h16M4 14.7h16M9.3 4v16M14.7 4v16"/></svg></button>
+    <span class="grow"></span>
+    <span class="save" id="saveSt">Salvo</span>
+    <a class="btn sm ghost hidem applink" id="appLinkTop" target="_blank" rel="noopener" hidden>App do ateliê ↗</a>
+    <button class="ib mob" id="bMobProps" title="Propriedades" aria-label="Propriedades"><svg class="ico" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button>
+    <button class="btn pri" id="bExport"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span class="hidem">Exportar</span></button>
+  </div>
+  <div id="ebody">
+    <nav id="rail" aria-label="Ferramentas"></nav>
+    <aside id="panel"></aside>
+    <div id="wsw"><canvas id="rulerH" aria-label="Régua horizontal"></canvas><canvas id="rulerV" aria-label="Régua vertical"></canvas><div id="rulerC"></div><div id="ws"><div id="stage"></div></div></div>
+    <div id="toolHint" hidden></div>
+    <aside id="props"></aside>
+  </div>
+  <div id="strip"></div>
+</section>
+
+<div id="modal" hidden><div class="mbox" role="dialog" aria-modal="true"></div></div>
+<div id="toast" role="status"></div>
+<input type="file" id="hiddenUp" hidden>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script src="recursos.js"></script>
+</body>
+</html>

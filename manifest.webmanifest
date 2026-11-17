@@ -1,0 +1,15 @@
+{
+  "name": "Estúdio de Miolos · Craft Notes Unique",
+  "short_name": "Estúdio de Miolos",
+  "description": "Editor de miolos de cadernos e planners",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#9168A0",
+  "background_color": "#FBF7F4",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
