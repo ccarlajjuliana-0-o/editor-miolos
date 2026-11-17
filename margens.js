@@ -33,21 +33,53 @@
   const r1v = (v) => Math.round(v * 10) / 10;
 
   /* ---------- ajusta o conteúdo da área antiga para a nova ---------- */
+  // O conteúdo só se MOVE: tamanhos e fontes nunca mudam. Cada elemento acompanha a borda mais próxima
+  // (os do meio dividem o deslocamento) e fica preso dentro da área segura e da página.
+  // O que não cabe sem mudar de tamanho, ou que passaria a se sobrepor, vira um aviso de incompatibilidade.
+  let FIX = [];
+  const nameOf = (e) => { const t = String(e.text || '').replace(/\s+/g, ' ').trim(); return t ? '“' + t.slice(0, 24) + (t.length > 24 ? '…' : '') + '”' : (typeof TYPE_NAME !== 'undefined' && TYPE_NAME[e.type]) || 'elemento'; };
+  function slide(pos, len, a0, a1, b0, b1, pageLen) { // devolve {v, ok}
+    if (len > a1 - a0 + 1 || (a0 === 0 && a1 === pageLen && len >= pageLen - 1)) return { v: pos, ok: true, bleed: true }; // sangra: não mexe
+    const c = pos + len / 2;
+    if (c < a0) return { v: pos + (b0 - a0), ok: true, edge: true };
+    if (c > a1) return { v: pos + (b1 - a1), ok: true, edge: true };
+    const t = (a1 - a0) > 0 ? (c - a0) / (a1 - a0) : .5;
+    let v = pos + (b0 - a0) * (1 - t) + (b1 - a1) * t;
+    const room = b1 - b0;
+    if (len > room + .05) return { v: Math.max(0, Math.min(b0, pageLen - len)), ok: false };
+    v = Math.max(b0, Math.min(v, b1 - len));
+    return { v, ok: true };
+  }
   function fit(p, a, b) {
-    const sx = (b.x1 - b.x0) / (a.x1 - a.x0), sy = (b.y1 - b.y0) / (a.y1 - a.y0);
-    if (!isFinite(sx) || !isFinite(sy) || sx <= 0 || sy <= 0) return;
-    const fm = Math.min(sx, sy);
+    if (a.full && b.full) return;
+    const moved = [];
     p.els.forEach((e) => {
-      const cx = e.x + e.w / 2, cy = e.y + e.h / 2;
-      if (cx < a.x0) e.x = r1(e.x + (b.x0 - a.x0)); else if (cx > a.x1) e.x = r1(e.x + (b.x1 - a.x1));
-      else { e.x = r1(b.x0 + (e.x - a.x0) * sx); e.w = r1(e.w * sx); }
-      if (cy < a.y0) e.y = r1(e.y + (b.top - a.top));
-      else if (cy <= a.y1) {
-        e.y = r1(b.y0 + (e.y - a.y0) * sy); e.h = r1(e.h * sy);
-        if (e.type === 'text' || e.type === 'table' || e.type === 'divider') e.size = r1((e.size || 9) * fm);
-        if (e.sp) e.sp = r1(e.sp * fm);
-      } else e.y = r1(e.y + (b.bot - a.bot));
+      if (e.locked) return;
+      const before = { x: e.x, y: e.y }, hasX = !(e.w > a.x1 - a.x0 + 1), hasY = !(e.h > a.y1 - a.y0 + 1);
+      const X = slide(e.x, e.w, a.x0, a.x1, b.x0, b.x1, p.w);
+      let Y;
+      if (e.y + e.h / 2 < a.y0) Y = { v: e.y + (b.top - a.top), ok: true };
+      else if (e.y + e.h / 2 <= a.y1) Y = slide(e.y, e.h, a.y0, a.y1, b.y0, b.y1, p.h);
+      else Y = { v: e.y + (b.bot - a.bot), ok: true };
+      if (hasY === false) Y = { v: e.y, ok: true };
+      const nx = r1(Math.max(0, Math.min(X.v, Math.max(0, p.w - e.w)))), ny = r1(Math.max(0, Math.min(Y.v, Math.max(0, p.h - e.h))));
+      e.x = nx; e.y = ny;
+      if (!X.ok) FIX.push({ p, e, why: 'largura' }); else if (!Y.ok) FIX.push({ p, e, why: 'altura' });
+      moved.push({ e, before });
     });
+    // novas sobreposições (estrutura/espaçamento perdidos)
+    const ov = (A, B2) => A.x < B2.x + B2.w - .3 && A.x + A.w > B2.x + .3 && A.y < B2.y + B2.h - .3 && A.y + A.h > B2.y + .3;
+    if (moved.length < 160) for (let i = 0; i < moved.length; i++) for (let k = i + 1; k < moved.length; k++) {
+      const m1 = moved[i], m2 = moved[k], e1 = m1.e, e2 = m2.e;
+      if (ov(e1, e2) && !ov({ x: m1.before.x, y: m1.before.y, w: e1.w, h: e1.h }, { x: m2.before.x, y: m2.before.y, w: e2.w, h: e2.h })) FIX.push({ p, e: e2, why: 'sobrepõe ' + nameOf(e1) });
+    }
+  }
+  function warnFit() {
+    const L = FIX; FIX = []; if (!L.length) return;
+    const seen = new Set(), U = L.filter((f) => { if (seen.has(f.e.id)) return false; seen.add(f.e.id); return true; });
+    const pages = new Set(U.map((f) => f.p.id)).size, ex = nameOf(U[0].e);
+    const msg = 'Incompatibilidade: ' + U.length + ' elemento' + (U.length > 1 ? 's' : '') + (pages > 1 ? ' em ' + pages + ' páginas' : '') + ' não ' + (U.length > 1 ? 'cabem' : 'cabe') + ' na nova área sem mudar de tamanho ou ' + (U.length > 1 ? 'passam' : 'passa') + ' a se sobrepor (ex.: ' + ex + '). Mantive tamanhos e fontes. Reduza o recuo ou desfaça com Ctrl+Z.';
+    toast2(msg); try { clearTimeout(toastT); toastT = setTimeout(() => document.querySelector('#toast').classList.remove('on'), 9000); } catch (e) { /* sem toastT */ }
   }
 
   /* ---------- aplicar (com histórico) ---------- */
@@ -82,7 +114,7 @@
       if (o.fit !== false && fitOn()) fit(p, a, geom(p, m));
       if (m) p.mg = m; else delete p.mg;
     }));
-    ids.forEach((id) => thumbRefresh(id)); redraw(); renderProps(); return ids.length;
+    ids.forEach((id) => thumbRefresh(id)); redraw(); renderProps(); warnFit(); return ids.length;
   }
   // edita campos (patch) no escopo escolhido, respeitando vínculos
   function edit(p, patch, primary, o) {
@@ -153,6 +185,7 @@
       need.forEach((id) => thumbRefresh(id));
     }
     paintBtn(); redraw(); renderProps(); msg('Margens ligadas.' + (need.length ? ' Ctrl+Z desfaz o ajuste do conteúdo.' : ''));
+    warnFit();
   }
   const bm = document.getElementById('bMg'); if (bm) bm.onclick = toggle;
   paintBtn();
@@ -277,7 +310,7 @@
     const fl = $q('#mgFlip'); if (fl) fl.onchange = () => {
       const ids = S.order.filter((id) => S.pages[id].mg), pre = {}; ids.forEach((id) => { pre[id] = geom(S.pages[id], S.pages[id].mg); });
       change(ids, () => { S.meta.mgFlip = fl.checked; ids.forEach((id) => { const q = S.pages[id]; if (fitOn()) fit(q, pre[id], geom(q, q.mg)); }); }); Saver.m();
-      ids.forEach((id) => thumbRefresh(id)); redraw(); renderProps();
+      ids.forEach((id) => thumbRefresh(id)); redraw(); renderProps(); warnFit();
     };
     P.querySelectorAll('[data-mgr]').forEach((r) => { const k = r.dataset.mgr, nb = $q(`[data-mgn=${k}]`); r.oninput = () => { nb.value = toU(+r.value); }; r.onchange = () => commit(k, +r.value); });
     P.querySelectorAll('[data-mgn]').forEach((nb) => { nb.onchange = () => commit(nb.dataset.mgn, Math.max(0, fromU(nb.value))); });

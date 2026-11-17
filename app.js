@@ -535,6 +535,8 @@ function drawOverlay(w,p){const sc=w.querySelector('.selc'),k=S.k;let h=extraOve
   if(S.ptEdit&&!S.sel.includes(S.ptEdit))S.ptEdit=null;
   if(isCur){const sel=p.els.filter(e=>S.sel.includes(e.id));sel.forEach(e=>{const single=sel.length===1&&!e.locked&&S.editing!==e.id&&S.ptEdit!==e.id;
     h+=`<div class="sb${e.locked?' lk':''}" style="left:${e.x*k}px;top:${e.y*k}px;width:${e.w*k}px;height:${Math.max(e.h*k,2)}px;transform:rotate(${e.rot||0}deg)">${single?['nw','n','ne','e','se','s','sw','w'].map(hd=>{const [l,t]={nw:[0,0],n:[50,0],ne:[100,0],e:[100,50],se:[100,100],s:[50,100],sw:[0,100],w:[0,50]}[hd];return `<i class="hd" data-h="${hd}" style="left:calc(${l}% - 6px);top:calc(${t}% - 6px);cursor:${hd}-resize"></i>`}).join('')+'<i class="hd rot" data-h="rot" style="cursor:grab"></i>':''}</div>`});
+    if(sel.length>1){const B=bb(sel);h+=`<div class="sb gb" style="left:${B.x*k}px;top:${B.y*k}px;width:${B.w*k}px;height:${B.h*k}px">${[['nw',0,0],['ne',100,0],['se',100,100],['sw',0,100]].map(([hd,l,t])=>`<i class="hd" data-h="${hd}" style="left:calc(${l}% - 6px);top:calc(${t}% - 6px);cursor:${hd}-resize"></i>`).join('')}${sel.some(e=>e.g)?'<span class="gtag">grupo</span>':''}</div>`}
+    if(D&&D.mode==='marq'&&D.moved&&D.p===p){const r=D.r;h+=`<div class="marq" style="left:${r.x*k}px;top:${r.y*k}px;width:${r.w*k}px;height:${r.h*k}px"></div>`}
     if(D&&D.guides)D.guides.forEach(g=>{h+=g.v?`<div class="snapl" style="left:${g.v*k}px;top:0;width:1px;height:100%"></div>`:`<div class="snapl" style="top:${g.h*k}px;left:0;height:1px;width:100%"></div>`})}
   if(isCur&&S.ptEdit){const e=p.els.find(x=>x.id===S.ptEdit);if(e&&e.pts)e.pts.forEach(([u,v],i)=>{const q=ptToPage(e,u,v);h+=`<i class="vh" data-v="${i}" style="left:${q.x*k}px;top:${q.y*k}px" title="Arraste para mover · dois cliques remove"></i>`})}
   const t=S.tool;if(t&&t.pid===p.id&&t.pts.length){const pts=t.pts.map(q=>(q[0]*k).toFixed(1)+','+(q[1]*k).toFixed(1));if(t.kind!=='free'&&t.hover)pts.push((t.hover.x*k).toFixed(1)+','+(t.hover.y*k).toFixed(1));
@@ -564,6 +566,13 @@ function finishTool(closed){const t=S.tool;if(!t)return;let pts=t.pts.filter((q,
 /* interação */
 let D=null;
 function toMM(ev,w){const r=w.getBoundingClientRect();return{x:(ev.clientX-r.left)/S.k,y:(ev.clientY-r.top)/S.k}}
+/* ---- grupos: elementos com o mesmo e.g se comportam como um só ---- */
+function gx(p,ids){const gs=new Set(p.els.filter(e=>ids.includes(e.id)&&e.g).map(e=>e.g));return gs.size?[...new Set([...ids,...p.els.filter(e=>gs.has(e.g)).map(e=>e.id)])]:ids}
+function groupSel(){const p=curPage(),els=selEls();if(els.length<2){toast('Selecione 2 ou mais elementos para agrupar.');return}
+  const g=uid('g');change([p.id],()=>els.forEach(e=>{e.g=g}));redraw();renderProps();toast('Agrupado: agora eles se movem e mudam de tamanho juntos. 🌸')}
+function ungroupSel(){const p=curPage(),els=selEls().filter(e=>e.g);if(!els.length)return;change([p.id],()=>els.forEach(e=>{delete e.g}));redraw();renderProps();toast('Grupo desfeito.')}
+function regroup(cp){const m={};cp.forEach(e=>{if(e.g)e.g=m[e.g]||(m[e.g]=uid('g'))});return cp}
+function scaleEl(e,s){e.size!==undefined&&(e.size=r1((e.size||9)*s));if(e.sp)e.sp=r1(e.sp*s);if(e.sw)e.sw=Math.round(e.sw*s*100)/100}
 function hit(p,pt){for(let i=p.els.length-1;i>=0;i--){const e=p.els[i],cx=e.x+e.w/2,cy=e.y+e.h/2,a=-(e.rot||0)*Math.PI/180,dx=pt.x-cx,dy=pt.y-cy,lx=dx*Math.cos(a)-dy*Math.sin(a),ly=dx*Math.sin(a)+dy*Math.cos(a),hw=Math.max(e.w/2,1.5),hh=Math.max(e.h/2,1.5);
   if(Math.abs(lx)<=hw&&Math.abs(ly)<=hh)return e}return null}
 $('#stage').addEventListener('pointerdown',ev=>{const w=ev.target.closest('.pg');if(!w||ev.button>0)return;if(ev.target.classList.contains('tedit'))return;
@@ -574,10 +583,11 @@ $('#stage').addEventListener('pointerdown',ev=>{const w=ev.target.closest('.pg')
     else{if(t.pts.length>=3&&Math.hypot(pt.x-t.pts[0][0],pt.y-t.pts[0][1])*S.k<10){finishTool(true);return}t.pts.push([pt.x,pt.y])}
     drawOverlaysOnly();return}
   if(ev.target.dataset.v!==undefined&&S.ptEdit){const e=p.els.find(x=>x.id===S.ptEdit);if(e){D={mode:'vtx',w,p,e,i:+ev.target.dataset.v,pt,b:snapOf([p.id]),moved:false};w.setPointerCapture(ev.pointerId);return}}
-  if(hd&&S.sel.length===1){const e=p.els.find(x=>x.id===S.sel[0]);D={mode:hd==='rot'?'rot':'res',h:hd,w,p,pt,e,o:{x:e.x,y:e.y,w:e.w,h:e.h,rot:e.rot||0},b:snapOf([p.id]),moved:false}}
-  else{const e=hit(p,pt);if(e){if(ev.shiftKey){S.sel=S.sel.includes(e.id)?S.sel.filter(x=>x!==e.id):[...S.sel,e.id]}else if(!S.sel.includes(e.id))S.sel=[e.id];
+  if(hd&&S.sel.length>1&&hd!=='rot'){const ms=p.els.filter(x=>S.sel.includes(x.id)&&!x.locked);if(ms.length){const B=bb(ms);D={mode:'gres',h:hd,w,p,pt,ms,B,o:Object.fromEntries(ms.map(x=>[x.id,{x:x.x,y:x.y,w:x.w,h:x.h,size:x.size,sp:x.sp,sw:x.sw}])),b:snapOf([p.id]),moved:false}}}
+  else if(hd&&S.sel.length===1){const e=p.els.find(x=>x.id===S.sel[0]);D={mode:hd==='rot'?'rot':'res',h:hd,w,p,pt,e,o:{x:e.x,y:e.y,w:e.w,h:e.h,rot:e.rot||0},b:snapOf([p.id]),moved:false}}
+  else{const e=hit(p,pt);if(e){if(ev.shiftKey){const ids=gx(p,[e.id]);S.sel=S.sel.includes(e.id)?S.sel.filter(x=>!ids.includes(x)):[...new Set([...S.sel,...ids])]}else if(!S.sel.includes(e.id))S.sel=gx(p,[e.id]);
       const ms=p.els.filter(x=>S.sel.includes(x.id)&&!x.locked);D={mode:'move',w,p,pt,ms,o:Object.fromEntries(ms.map(x=>[x.id,{x:x.x,y:x.y}])),b:snapOf([p.id]),moved:false}}
-    else{S.sel=[];D=null}}
+    else{const keep=ev.shiftKey?S.sel.slice():[];S.sel=keep;D={mode:'marq',w,p,pt,keep,r:{x:pt.x,y:pt.y,w:0,h:0},moved:false}}}
   w.setPointerCapture(ev.pointerId);redraw();renderProps()});
 $('#stage').addEventListener('pointermove',ev=>{if(S.tool){const w=ev.target.closest('.pg');const t=S.tool;if(!w||(t.pid&&w.dataset.id!==t.pid))return;const pt=toMM(ev,w);
     if(t.kind==='free'){if(t.drawing){const l=t.pts[t.pts.length-1];if(Math.hypot(pt.x-l[0],pt.y-l[1])>.35){t.pts.push([pt.x,pt.y]);drawOverlaysOnly()}}}else if(t.pts.length){t.hover=pt;drawOverlaysOnly()}return}
@@ -591,6 +601,12 @@ $('#stage').addEventListener('pointermove',ev=>{if(S.tool){const w=ev.target.clo
     if(Pref.snap&&!ev.altKey&&D.ms.length){const b0=bb(D.ms.map(e=>({x:D.o[e.id].x+ddx,y:D.o[e.id].y+ddy,w:e.w,h:e.h})));
       if(!D.guides.some(g=>g.v!==undefined))ddx+=Math.round(b0.x/Pref.step)*Pref.step-b0.x;if(!D.guides.some(g=>g.h!==undefined))ddy+=Math.round(b0.y/Pref.step)*Pref.step-b0.y}
     D.ms.forEach(e=>{e.x=r1(D.o[e.id].x+ddx);e.y=r1(D.o[e.id].y+ddy)})}
+  else if(D.mode==='marq'){const x=Math.min(pt.x,D.pt.x),y=Math.min(pt.y,D.pt.y);D.r={x,y,w:Math.abs(dx),h:Math.abs(dy)};
+    const ids=D.p.els.filter(e=>e.x<D.r.x+D.r.w&&e.x+e.w>D.r.x&&e.y<D.r.y+D.r.h&&e.y+e.h>D.r.y).map(e=>e.id);S.sel=[...new Set([...D.keep,...gx(D.p,ids)])];scheduleRedraw();return}
+  else if(D.mode==='gres'){const B=D.B,L=D.h.includes('w'),T=D.h.includes('n'),ax=L?B.x+B.w:B.x,ay=T?B.y+B.h:B.y;
+    let sc=Math.max(Math.abs(pt.x-ax)/B.w,Math.abs(pt.y-ay)/B.h);sc=Math.max(.05,sc);
+    D.ms.forEach(e=>{const o=D.o[e.id];e.x=r1(ax+(o.x-ax)*sc);e.y=r1(ay+(o.y-ay)*sc);e.w=Math.max(.5,r1(o.w*sc));e.h=Math.max(.3,r1(o.h*sc));
+      if(o.size!==undefined)e.size=r1((o.size||9)*sc);if(o.sp)e.sp=r1(o.sp*sc);if(o.sw)e.sw=Math.round(o.sw*sc*100)/100})}
   else if(D.mode==='res'){const e=D.e,o=D.o,a=o.rot*Math.PI/180,lx=dx*Math.cos(-a)-dy*Math.sin(-a),ly=dx*Math.sin(-a)+dy*Math.cos(-a);
     const dir={n:[0,-1],s:[0,1],e:[1,0],w:[-1,0],ne:[1,-1],nw:[-1,-1],se:[1,1],sw:[-1,1]}[D.h];let nw=Math.max(1,o.w+dir[0]*lx),nh=Math.max(.5,o.h+dir[1]*ly);
     const keep=(dir[0]&&dir[1])&&((e.type==='image'||e.type==='shape')!==ev.shiftKey);if(keep){const s=Math.max(nw/o.w,nh/o.h);nw=o.w*s;nh=o.h*s}
@@ -600,7 +616,7 @@ $('#stage').addEventListener('pointermove',ev=>{if(S.tool){const w=ev.target.clo
   scheduleRedraw();updGeom()});
 const bb=a=>{const x=Math.min(...a.map(e=>e.x)),y=Math.min(...a.map(e=>e.y));return{x,y,w:Math.max(...a.map(e=>e.x+e.w))-x,h:Math.max(...a.map(e=>e.y+e.h))-y}};
 function endDrag(){if(S.tool&&S.tool.kind==='free'&&S.tool.drawing){S.tool.drawing=false;finishTool(undefined);return}
-  if(!D)return;const d=D;D=null;if(d.mode==='vtx'&&d.moved)renorm(d.e);if(d.moved){pushHist(d.b,snapOf([d.p.id]));thumbRefresh(d.p.id)}redraw();renderProps()}
+  if(!D)return;const d=D;D=null;if(d.mode==='vtx'&&d.moved)renorm(d.e);if(d.moved&&d.mode!=='marq'){pushHist(d.b,snapOf([d.p.id]));thumbRefresh(d.p.id)}redraw();renderProps()}
 $('#stage').addEventListener('pointerup',endDrag);$('#stage').addEventListener('pointercancel',endDrag);
 $('#stage').addEventListener('dblclick',ev=>{const w=ev.target.closest('.pg');if(!w)return;
   if(S.tool){if(S.tool.kind!=='free'){S.tool.pts=S.tool.pts.filter((q,i,a)=>i===0||Math.hypot(q[0]-a[i-1][0],q[1]-a[i-1][1])>1);finishTool(false)}return}
@@ -640,10 +656,12 @@ function resizePage(ids,w,h,scale){change(ids,()=>{ids.forEach(id=>{const p=S.pa
 function addEl(e,keepPos){const p=curPage();if(!keepPos){e.x=r1((p.w-e.w)/2);e.y=r1((p.h-e.h)/2)}change([p.id],()=>p.els.push(e));S.sel=[e.id];redraw();renderProps();thumbRefresh(p.id);closeMob()}
 function selEls(){const p=curPage();return p?p.els.filter(e=>S.sel.includes(e.id)):[]}
 function delSel(){const p=curPage();if(!S.sel.length)return;change([p.id],()=>{p.els=p.els.filter(e=>!S.sel.includes(e.id)||e.locked)});S.sel=[];redraw();renderProps();thumbRefresh(p.id)}
-function dupSel(){const p=curPage(),cp=selEls().map(e=>Object.assign(clone(e),{id:uid('e'),x:e.x+4,y:e.y+4,locked:false}));if(!cp.length)return;change([p.id],()=>p.els.push(...cp));S.sel=cp.map(e=>e.id);redraw();renderProps();thumbRefresh(p.id)}
+function dupSel(){const p=curPage(),cp=selEls().map(e=>Object.assign(clone(e),{id:uid('e'),x:e.x+4,y:e.y+4,locked:false}));regroup(cp);if(!cp.length)return;change([p.id],()=>p.els.push(...cp));S.sel=cp.map(e=>e.id);redraw();renderProps();thumbRefresh(p.id)}
 function orderSel(mode){const p=curPage(),ids=S.sel;if(!ids.length)return;change([p.id],()=>{const s=p.els.filter(e=>ids.includes(e.id)),r=p.els.filter(e=>!ids.includes(e.id));
   if(mode==='front')p.els=[...r,...s];else if(mode==='back')p.els=[...s,...r];else{const i=p.els.findIndex(e=>e.id===ids[0]),j=cl(i+(mode==='up'?1:-1),0,p.els.length-1);const [x]=p.els.splice(i,1);p.els.splice(j,0,x)}});redraw();thumbRefresh(p.id)}
-function alignSel(a){const p=curPage(),els=selEls();if(!els.length)return;const ref=els.length>1?bb(els):{x:0,y:0,w:p.w,h:p.h};
+function alignSel(a){const p=curPage(),els=selEls();if(!els.length)return;const one=els.every(e=>e.g&&e.g===els[0].g),ref=els.length>1&&!one?bb(els):{x:0,y:0,w:p.w,h:p.h};
+  const B=bb(els),mv=a==='al'?ref.x-B.x:a==='ac'?ref.x+ref.w/2-(B.x+B.w/2):a==='ar'?ref.x+ref.w-(B.x+B.w):0,mw=a==='at'?ref.y-B.y:a==='am'?ref.y+ref.h/2-(B.y+B.h/2):a==='ab'?ref.y+ref.h-(B.y+B.h):0;
+  if(one&&els.length>1){change([p.id],()=>els.forEach(e=>{if(!e.locked){e.x=r1(e.x+mv);e.y=r1(e.y+mw)}}));redraw();renderProps();thumbRefresh(p.id);return}
   change([p.id],()=>els.forEach(e=>{if(e.locked)return;if(a==='al')e.x=r1(ref.x);if(a==='ac')e.x=r1(ref.x+ref.w/2-e.w/2);if(a==='ar')e.x=r1(ref.x+ref.w-e.w);if(a==='at')e.y=r1(ref.y);if(a==='am')e.y=r1(ref.y+ref.h/2-e.h/2);if(a==='ab')e.y=r1(ref.y+ref.h-e.h)}));redraw();renderProps();thumbRefresh(p.id)}
 
 /* ================= trilho e painéis ================= */
@@ -1002,7 +1020,7 @@ function renderProps(){const P=$('#props');if(!P||!S.meta)return;if(P.contains(d
     ${e.type==='image'?`<button class="btn sm" data-a="mksticker">Tirar fundo e virar adesivo</button>`:''}
     <div class="pgrp">${(FIELDS[e.type]||[]).map(f=>fieldHTML(f,e)).join('')}</div>
     <div class="pgrp"><label class="pfield"><span>Link para página (PDF digital)</span><select data-k="link" data-t="sel">${pageOptions(e.link)}</select></label></div>`}
-  else if(els.length>1){P.innerHTML=`<h2>${els.length} elementos</h2><div class="pact"><button class="ib" data-a="dup" title="Duplicar" aria-label="Duplicar">${ico('dup')}</button><button class="ib" data-a="del" title="Excluir" aria-label="Excluir">${ico('del')}</button><button class="ib" data-a="front" title="Frente" aria-label="Frente">${ico('front')}</button><button class="ib" data-a="back" title="Trás" aria-label="Trás">${ico('back')}</button></div><button class="btn sm" data-a="rep">Repetir em outras páginas…</button><h3 style="font-size:12px;color:var(--muted)">ALINHAR ENTRE SI</h3><div class="pact">${['al','ac','ar','at','am','ab'].map(a=>`<button class="ib" data-al="${a}" title="Alinhar" aria-label="Alinhar">${ico(a)}</button>`).join('')}</div><p class="hint">Shift + clique adiciona ou tira elementos da seleção.</p>`}
+  else if(els.length>1){P.innerHTML=`<h2>${els.length} elementos</h2><div class="pact"><button class="ib" data-a="dup" title="Duplicar" aria-label="Duplicar">${ico('dup')}</button><button class="ib" data-a="del" title="Excluir" aria-label="Excluir">${ico('del')}</button><button class="ib" data-a="front" title="Frente" aria-label="Frente">${ico('front')}</button><button class="ib" data-a="back" title="Trás" aria-label="Trás">${ico('back')}</button></div><div class="row"><button class="btn sm pri" data-a="group" title="Agrupar (Ctrl+G)">Agrupar</button><button class="btn sm" data-a="ungroup" title="Desagrupar (Ctrl+Shift+G)"${els.some(e=>e.g)?'':' disabled'}>Desagrupar</button></div><button class="btn sm" data-a="rep">Repetir em outras páginas…</button><h3 style="font-size:12px;color:var(--muted)">ALINHAR ENTRE SI</h3><div class="pact">${['al','ac','ar','at','am','ab'].map(a=>`<button class="ib" data-al="${a}" title="Alinhar" aria-label="Alinhar">${ico(a)}</button>`).join('')}</div><p class="hint">Shift + clique adiciona ou tira da seleção; arraste no vazio para selecionar vários; Ctrl+A seleciona tudo. Arraste um canto da caixa para mudar o tamanho de todos juntos, na mesma proporção.</p>`}
   else{const sn=sizeName(p.w,p.h).replace(' deitado','');P.innerHTML=`<h2>Página ${S.cur+1}</h2>
     <label class="pfield"><span>Nome</span><input type="text" data-pk="name" value="${esc(p.name||'')}"></label>
     <div class="pgrp"><h3 style="font-size:12px;color:var(--muted)">TAMANHO</h3><label class="pfield"><span>Formato</span><select id="psz">${Object.keys(SIZES).map(n=>`<option${n===sn?' selected':''}>${n}</option>`).join('')}<option value="custom"${SIZES[sn]?'':' selected'}>Personalizado</option></select></label>
@@ -1032,7 +1050,7 @@ $('#props').addEventListener('input',ev=>{const el=ev.target,p=curPage();if(!p)r
 $('#props').addEventListener('change',ev=>{const el=ev.target,p=curPage();if(!p||!(el.dataset.k||el.dataset.pk))return;if(el.dataset.k){const e=selEls()[0];if(e){propB??=snapOf([p.id]);setElProp(e,el.dataset.k,parseVal(el.dataset.t,el))}}else{propB??=snapOf([p.id]);p[el.dataset.pk]=el.value}
   if(propB)pushHist(propB,snapOf([p.id]));propB=null;scheduleRedraw();thumbRefresh(p.id);if(el.dataset.pk==='name'&&S.tab==='paginas')renderPanel();if(el.tagName==='SELECT'||el.type==='checkbox')renderProps()});
 $('#props').addEventListener('click',ev=>{const b=ev.target.closest('button');if(!b)return;const p=curPage();
-  if(b.dataset.a){const a=b.dataset.a;if(a==='dup')dupSel();if(a==='del')delSel();if(a==='front'||a==='back')orderSel(a);if(a==='lock'){change([p.id],()=>selEls().forEach(e=>e.locked=!e.locked));redraw();renderProps()}
+  if(b.dataset.a){const a=b.dataset.a;if(a==='dup')dupSel();if(a==='del')delSel();if(a==='group')groupSel();if(a==='ungroup')ungroupSel();if(a==='front'||a==='back')orderSel(a);if(a==='lock'){change([p.id],()=>selEls().forEach(e=>e.locked=!e.locked));redraw();renderProps()}
     if(a==='rep'){repeatModal();return}
     if(a==='pts'){const e=selEls()[0];S.ptEdit=S.ptEdit===e.id?null:e.id;redraw();renderProps()}
     if(a==='mksticker'){const e=selEls()[0];if(e&&e.src)stickerMaker(e.src)}return}
@@ -1135,8 +1153,10 @@ $('#logoUp').onchange=async e=>{const f=e.target.files[0];if(!f)return;const old
 $('#logoReset').onclick=async()=>{for(const o of S.lib.filter(x=>x.kind==='logo')){try{await Store.delLib(o)}catch(_){}}S.lib=S.lib.filter(x=>x.kind!=='logo');renderBrand()};
 document.addEventListener('keydown',ev=>{if(S.view!=='editor'||!$('#modal').hidden)return;const t=ev.target;if(t.matches('input,textarea,select'))return;const mod=ev.ctrlKey||ev.metaKey,p=curPage();
   if(mod&&ev.key.toLowerCase()==='z'){ev.preventDefault();ev.shiftKey?redo():undo();return}if(mod&&ev.key.toLowerCase()==='y'){ev.preventDefault();redo();return}
+  if(mod&&ev.key.toLowerCase()==='g'){ev.preventDefault();ev.shiftKey?ungroupSel():groupSel();return}
+  if(mod&&ev.key.toLowerCase()==='a'&&p){ev.preventDefault();S.sel=p.els.filter(e=>!e.locked).map(e=>e.id);redraw();renderProps();return}
   if(mod&&ev.key.toLowerCase()==='d'){ev.preventDefault();dupSel();return}if(mod&&ev.key.toLowerCase()==='c'){S.clip=clone(selEls());return}
-  if(mod&&ev.key.toLowerCase()==='v'&&S.clip&&S.clip.length){ev.preventDefault();const cp=S.clip.map(e=>Object.assign(clone(e),{id:uid('e'),x:e.x+3,y:e.y+3}));change([p.id],()=>p.els.push(...cp));S.sel=cp.map(e=>e.id);redraw();renderProps();thumbRefresh(p.id);return}
+  if(mod&&ev.key.toLowerCase()==='v'&&S.clip&&S.clip.length){ev.preventDefault();const cp=regroup(S.clip.map(e=>Object.assign(clone(e),{id:uid('e'),x:e.x+3,y:e.y+3})));change([p.id],()=>p.els.push(...cp));S.sel=cp.map(e=>e.id);redraw();renderProps();thumbRefresh(p.id);return}
   if(ev.key==='Delete'||ev.key==='Backspace'){if(S.sel.length){ev.preventDefault();delSel()}return}
   if(ev.key==='Escape'){if(S.tool){if(S.tool.pts.length){S.tool.pts=[];S.tool.hover=null;drawOverlaysOnly()}else stopTool();return}if(S.ptEdit){S.ptEdit=null;redraw();renderProps();return}S.sel=[];redraw();renderProps();return}
   if(ev.key==='Enter'&&S.tool&&S.tool.kind!=='free'){ev.preventDefault();finishTool(false);return}

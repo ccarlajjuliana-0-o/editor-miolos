@@ -564,3 +564,8 @@ body{font-size:calc(15px*var(--escala,1))}
 .ppin.on{background:var(--surface2);color:var(--muted);border-color:var(--line)}
 .pgbarc button.ppin:not(.on){background:#C9D2E6;color:var(--ink);opacity:1}
 .pgbarc button.ppin.on{background:var(--surface2);color:var(--muted);opacity:.85}
+
+/* seleção múltipla e grupos */
+.sb.gb{border-style:dashed;border-color:var(--sel)}
+.gtag{position:absolute;left:0;top:-20px;font:600 10px/1 Quicksand,sans-serif;letter-spacing:.08em;background:var(--sel);color:#fff;border-radius:6px;padding:3px 7px}
+.marq{position:absolute;border:1.5px solid var(--sel);background:rgba(195,152,200,.18);border-radius:3px;pointer-events:none}

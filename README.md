@@ -78,3 +78,12 @@ adicionar antes/depois, duplicar, renomear, mover (cima, baixo, para…, primeir
 - Painel de margens no estilo Planify: "As alterações valem para" (todas / só esta / selecionadas), sliders com valor, ⛓ para vincular topo/base, externa/interna e o lado de dentro das duas páginas da dupla (⛓ no meio da dupla no editor), Vincular tudo, Redefinir e unidade (mm/cm/in).
 - Coluna da direita: com o Layout (ou régua/grade) ativo, a configuração da página fica recolhida numa barra com Ocultar/Expandir; ao selecionar um elemento há o botão "← Voltar" para a janela anterior.
 - Barra da direita: dois cliques na seta (ou o alfinete no topo) fixam a barra, que então não fecha sozinha (nem ao selecionar/soltar objetos nem com Esc); dois cliques de novo soltam. No modo compacto, fixa ela divide espaço com a página em vez de cobri-la.
+
+## Seleção múltipla e grupos
+- Arraste no vazio da página (ou Shift+clique) para selecionar vários; Ctrl+A seleciona tudo.
+- Ctrl+G agrupa, Ctrl+Shift+G desagrupa. O grupo move, duplica, exclui e alinha como um só objeto.
+- Arraste um canto da caixa da seleção para redimensionar tudo na mesma proporção (inclui tamanho de fonte).
+
+## Proteção do conteúdo nas margens
+- Ao mudar margens, furos, cabeçalho/rodapé ou divisórias, o conteúdo só se move: tamanhos e fontes não mudam, e nada sai da área segura nem da página.
+- Se algo não couber sem mudar de tamanho, ou passar a se sobrepor, aparece um aviso de incompatibilidade (Ctrl+Z desfaz).
