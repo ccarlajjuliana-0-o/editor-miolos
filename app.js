@@ -490,12 +490,12 @@ function newProjectModal(){modal(`<h2>Novo projeto</h2><label class="f">Nome<inp
     $('#npGo',b).onclick=async()=>{let [w,h]=$('#npSize',b).value==='custom'?[+$('#npW',b).value||148,+$('#npH',b).value||210]:SIZES[$('#npSize',b).value];if($('#npOr',b).value==='l')[w,h]=[Math.max(w,h),Math.min(w,h)];
       const nome=$('#npName',b).value.trim()||'Projeto sem nome';
       close();const pg=blankPage(w,h);await createProject(nome,{w,h},[pg])}})}
-async function createProject(name,size,pages){const pid=uid('p'),meta={kind:'project',name,size,view:'single',coverAlone:true,weekStart:0,style:{pal:'lavanda',pair:'assinatura'},createdAt:Date.now(),updatedAt:Date.now(),order:pages.map(p=>p.id)};
+async function createProject(name,size,pages,coverAlone){const pid=uid('p'),meta={kind:'project',name,size,view:'single',coverAlone:!!coverAlone,weekStart:0,style:{pal:'lavanda',pair:'assinatura'},createdAt:Date.now(),updatedAt:Date.now(),order:pages.map(p=>p.id)};
   S.pid=pid;S.meta=meta;S.order=meta.order.slice();S.pages=Object.fromEntries(pages.map(p=>[p.id,p]));
   setSave('Salvando…');await pool(pages.map(p=>()=>Store.savePage(pid,p.id,p)),4);await Store.saveMeta(pid,metaDoc());await openProject(pid,true)}
 async function createSample(){const y=new Date().getMonth()>=8?new Date().getFullYear()+1:new Date().getFullYear();const st={pal:PALS.lavanda,...PAIRS.assinatura};toast('Montando o planner de exemplo…');
   const pages=genPages({y,m:0,months:3,size:{w:148,h:210},cover:true,coverSize:{w:105,h:148},title:'Meu Planner',annual:true,sep:true,monthly:true,weekly:true,weeklyStyle:'semanal',daily:false,habits:true,goals:false,fin:false,notes:1,notesKind:'pontilhada',tabs:true,links:true,holidays:true,ws:0},st);
-  await createProject(`Planner ${y} · exemplo`,{w:148,h:210},pages)}
+  await createProject(`Planner ${y} · exemplo`,{w:148,h:210},pages,true)}
 function remapLinks(pg,map){for(const e of pg.els){if(e.link)e.link=map[e.link]||null;if(e.dayLinks)for(const k in e.dayLinks)e.dayLinks[k]=map[e.dayLinks[k]]||null;if(e.monthLinks)for(const k in e.monthLinks)e.monthLinks[k]=map[e.monthLinks[k]]||null;if(e.links)e.links=e.links.map(x=>map[x]||null)}}
 async function dupProject(pid){const p=S.projects.find(x=>x.id===pid);if(!p)return;toast('Duplicando…');const pages=await Store.loadPages(pid,p.order||[]);const map={};(p.order||[]).forEach(id=>map[id]=uid('pg'));
   const np=(p.order||[]).filter(id=>pages[id]).map(id=>{const pg=clone(pages[id]);pg.id=map[id];remapLinks(pg,map);return pg});const nid=uid('p');
