@@ -7,7 +7,6 @@
   const DEFNO = new Set(['calendar', 'yearcal', 'table', 'checklist', 'habit', 'hours', 'progress', 'numgrid']);
   const MKF = { checklist: 'box', habit: 'mk', numgrid: 'mk', rate: 'mk' };
   const MKC = { checklist: 'color', habit: 'accent', numgrid: 'color', rate: 'color' };
-  const TRI = ['#8BC34A', '#7FB6D9', '#E26BD1', '#E07A7A', '#D4A373', '#E8955A', '#E1B84B', '#4CC24C', '#16A085', '#9168A0'];
   const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
   const isW = (e) => ISW.has(e.type) || e.noOver === true;
   const isNoOver = (e) => (e.noOver !== undefined ? e.noOver : DEFNO.has(e.type));
@@ -34,7 +33,7 @@
   }
   const inCol = (o, path, l, none) => fld(l, wc(path, get(o, path), none));
   const openAcc = (id) => { Pref.acc = Pref.acc || { cont: true }; return !!Pref.acc[id]; };
-  const acc = (id, title, i, inner) => `<div class="wacc${openAcc(id) ? ' open' : ''}" data-acc="${id}"><button class="wah" type="button" aria-expanded="${openAcc(id)}"><i class="wtri" style="color:${TRI[i % TRI.length]}"></i><b>${title}</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab">${inner}</div></div>`;
+  const acc = (id, title, i, inner) => `<div class="wacc${openAcc(id) ? ' open' : ''}" data-acc="${id}"><button class="wah" type="button" aria-expanded="${openAcc(id)}"><i class="wtri"></i><b>${title}</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab">${inner}</div></div>`;
   const grp = (t) => `<div class="wgp">${t}</div>`;
 
   /* ---------- seções ---------- */
@@ -122,7 +121,7 @@
       const e = els[0], grpEl = $('#fldGrp', P); if (!grpEl) return;
       RT = 'e'; const W = WX.ACCEPT.has(e.type), mk = !!MKF[e.type];
       const wrap = document.createElement('div'); wrap.className = 'wacc' + (openAcc('cont') ? ' open' : ''); wrap.dataset.acc = 'cont';
-      wrap.innerHTML = `<button class="wah" type="button" aria-expanded="${openAcc('cont')}"><i class="wtri" style="color:${TRI[0]}"></i><b>Conteúdo</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"></div>`;
+      wrap.innerHTML = `<button class="wah" type="button" aria-expanded="${openAcc('cont')}"><i class="wtri"></i><b>Conteúdo</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"></div>`;
       grpEl.parentNode.insertBefore(wrap, grpEl); $('.wab', wrap).appendChild(grpEl);
       wrap.insertAdjacentHTML('beforebegin', W ? grp('INTERNO · TEXTOS, CORES E LINHAS') : '');
       let h = '';

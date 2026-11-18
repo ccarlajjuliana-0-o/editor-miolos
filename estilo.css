@@ -725,7 +725,7 @@ input[type=color]::-moz-color-swatch{border:1.5px solid rgba(62,53,80,.25);borde
 .wacc{border-top:1px solid var(--line)}
 .wah{display:flex;align-items:center;gap:10px;width:100%;padding:13px 2px;background:none;border:0;cursor:pointer;text-align:left;color:var(--ink)}
 .wah b{flex:1;font:700 15px var(--f-title)}
-.wtri{width:0;height:0;border-style:solid;border-width:7px 0 7px 12px;border-color:transparent transparent transparent currentColor;transition:transform .15s;flex:none;display:inline-block}
+.wtri{width:0;height:0;border-style:solid;border-width:7px 0 7px 12px;border-color:transparent transparent transparent var(--accent);transition:transform .15s;flex:none;display:inline-block}
 .wacc.open>.wah .wtri{transform:rotate(90deg)}
 .wcol{color:var(--muted);display:grid;place-items:center}
 .wab{display:none;flex-direction:column;gap:12px;padding:2px 2px 14px}
