@@ -29,7 +29,7 @@ jobs:
       - name: Montar a pasta do site
         run: |
           mkdir site
-          cp -r index.html estilo.css app.js vetor.js aparencia.js layout.js protecao.js recursos.js exportar.js tamanho.js paginas.js margens.js lados.js importar.js camadas.js widgets.js estilos.js widgetsbib.js widgetsprop.js barra.js seletor.js avisos.js config.js sw.js manifest.webmanifest icons vendor site/
+          cp -r index.html estilo.css modulab.js app.js vetor.js aparencia.js layout.js protecao.js recursos.js exportar.js tamanho.js paginas.js margens.js lados.js importar.js camadas.js widgets.js estilos.js widgetsbib.js widgetsprop.js barra.js seletor.js avisos.js config.js sw.js manifest.webmanifest icons vendor site/
           sed -i "s/__V__/${GITHUB_SHA::8}/g" site/index.html
       - uses: actions/upload-pages-artifact@v3
         with:

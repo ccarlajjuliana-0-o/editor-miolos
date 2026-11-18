@@ -155,3 +155,23 @@ O gerador de agenda saiu do editor: na tela de projetos, o botão **Planner data
 ## Contracapa e moldura da capa
 - **Contracapa:** a última página do projeto, quando se chama "Contracapa". Na dupla ela fica sozinha (à esquerda, como a capa fica sozinha à direita), a margem interna dela fica do lado certo, e na exportação em caderno (imposição) as páginas em branco entram antes dela, para que feche o caderno. No tablet em dupla ela também sai sozinha.
 - **Moldura da página:** um retângulo vazado do tamanho da folha (como a borda da capa) acompanha a área segura quando as margens são ligadas e volta ao tamanho original quando são desligadas. É a única exceção à regra "margens só movem". Elementos centralizados continuam centralizados na nova área.
+
+## ModuLab (laboratório de componentes)
+Item **ModuLab** no menu da tela de projetos. Aqui se cria, edita, duplica e exclui o que depois aparece no editor. Arquivo: `modulab.js`.
+
+| Tipo | Guardado como | Aparece no editor em |
+|---|---|---|
+| Widget | `wgt` (elementos prontos, a partir de um modelo-base + estilo + título) | Widgets → Salvos |
+| Borda | `bdr` (desenho, cor/imagem, traço, medidas) | Bordas → Minhas bordas |
+| Tema | `tema` (paleta de 7 cores + fontes + estilo + borda + moldura) | Modelos → Temas e "Tema do projeto…" (a paleta também entra na lista de paletas) |
+| Estilo | `wsty` (moldura, fundo, título, espaço, sombra) | Estilo dos widgets → coleção "Meus estilos" |
+| Adesivo | `stk` (um ou cartela de formas da marca) | Adesivos → Do ModuLab |
+| Coleção | `colecao` (junta temas, estilos, bordas, widgets e adesivos) | Modelos → Coleções (botão "Aplicar coleção") |
+| Outro | `outro` (base pronta, a definir) | só no ModuLab |
+
+- **Sugestões:** cada criador tem a caixa "Sugestões". A IA só **propõe** (até 3 propostas, ou a coleção completa); você escolhe uma, ela é carregada no formulário e você muda o que quiser antes de salvar.
+- **Sem IA:** funciona com as cores de uma imagem enviada ou com palavras (natal, páscoa, verão, outono, inverno, primavera, flor, oceano, amor…).
+- **Com IA:** "Configurar IA" guarda a chave da Anthropic só neste aparelho (a chamada vai direto do navegador). Use uma chave com limite de gasto.
+- **Modelos → Tema do projeto…**: ajusta paleta, fontes, estilo dos widgets, moldura e borda de uma vez (só esta página ou todas, trocando ou não os widgets que já existem) e permite salvar o resultado como tema no ModuLab.
+- Seções novas na barra lateral do editor seguem a regra de ocultar/expandir com título.
+- Para criar um tipo novo: adicionar em `KIND`/`EDIT` no `modulab.js` (formulário, prévia, como salvar) e onde ele entra no editor.

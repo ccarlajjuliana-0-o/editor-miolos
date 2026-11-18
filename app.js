@@ -422,7 +422,7 @@ function metaDoc(){const m=Object.assign({},S.meta,{kind:'project',order:S.order
 /* ================= estado ================= */
 const S={view:'home',projects:[],pid:null,meta:null,pages:{},order:[],cur:0,sel:[],zoom:0,k:1,hist:[],fut:[],tab:'modelos',lib:[],editing:null,clip:null,guides:true,tplRef:null,genOpt:null,stripKey:''};
 const curId=()=>S.order[S.cur],curPage=()=>S.pages[curId()];
-const styleOf=()=>{const st=S.meta&&S.meta.style||{};const pr=PAIRS[st.pair]||PAIRS.assinatura;return{pal:PALS[st.pal]||PALS.lavanda,script:pr.script,title:pr.title,body:pr.body,ws:S.meta?S.meta.weekStart||0:0}};
+const styleOf=()=>{const st=S.meta&&S.meta.style||{};const pr=PAIRS[st.pair]||PAIRS.assinatura;return{pal:PALS[st.pal]||(st.palC?Object.assign({nome:'Tema'},st.palC):PALS.lavanda),script:pr.script,title:pr.title,body:pr.body,ws:S.meta?S.meta.weekStart||0:0}};
 const blankPage=(w,h)=>({id:uid('pg'),w,h,bg:'#FFFFFF',bgImg:null,name:'Página em branco',els:[]});
 
 /* histórico */
@@ -692,7 +692,7 @@ function applyTpl(out,name,mode){const p=curPage();if(mode==='replace'){change([
 function styleControls(){const st=S.meta.style||{};return `<div class="pfield"><span>Paleta</span><div class="chips">${Object.entries(PALS).map(([k,p])=>`<button class="chip${(st.pal||'lavanda')===k?' on':''}" data-pal="${k}"><i style="background:linear-gradient(135deg,${p.a} 50%,${p.b} 50%)"></i>${p.nome}</button>`).join('')}</div></div>
   <label class="f">Fontes dos modelos<select id="pairSel">${Object.entries(PAIRS).map(([k,p])=>`<option value="${k}"${(st.pair||'assinatura')===k?' selected':''}>${p.nome} · ${p.script} + ${p.title}</option>`).join('')}</select></label>
   <div class="pfield"><span>Estilo dos widgets e molduras</span><button class="btn sm" id="wstBtn" type="button">${window.WX?esc(WX.globalName()):'Escolher'} · trocar…</button></div>`}
-function mountStyle(P,after){$$('[data-pal]',P).forEach(b=>b.onclick=()=>{S.meta.style=Object.assign({},S.meta.style,{pal:b.dataset.pal});Saver.m();after()});const wb=$('#wstBtn',P);if(wb&&window.WX)wb.onclick=()=>WX.openGlobal(after);const ps=$('#pairSel',P);if(ps)ps.onchange=()=>{S.meta.style=Object.assign({},S.meta.style,{pair:ps.value});Saver.m();after()}}
+function mountStyle(P,after){$$('[data-pal]',P).forEach(b=>b.onclick=()=>{S.meta.style=Object.assign({},S.meta.style,{pal:b.dataset.pal});if(/^u_/.test(b.dataset.pal)&&PALS[b.dataset.pal])S.meta.style.palC=Object.assign({},PALS[b.dataset.pal]);else delete S.meta.style.palC;Saver.m();after()});const wb=$('#wstBtn',P);if(wb&&window.WX)wb.onclick=()=>WX.openGlobal(after);const ps=$('#pairSel',P);if(ps)ps.onchange=()=>{S.meta.style=Object.assign({},S.meta.style,{pair:ps.value});Saver.m();after()}}
 const PANELS={
  modelos:{html(){const r=tplRef(),user=S.lib.filter(x=>x.kind==='template');return `<h2>Modelos de miolo</h2>${styleControls()}
    <div class="fgrid"><label class="f">Mês de referência<select id="tRefM">${MESES.map((m,i)=>`<option value="${i}"${i===r.m?' selected':''}>${cap(m)}</option>`).join('')}</select></label><label class="f">Ano<input type="number" id="tRefY" value="${r.y}" min="1900" max="2200"></label></div>

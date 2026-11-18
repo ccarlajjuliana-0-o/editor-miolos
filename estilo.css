@@ -787,3 +787,45 @@ input[type=color]::-moz-color-swatch{border:1.5px solid rgba(62,53,80,.25);borde
 #fldGrp>.pfield:has(.cfield.cc.open),.wab>.pfield:has(.cfield.cc.open){flex-basis:100%}
 .cfield.cc input[type=color]{width:34px;height:30px}
 .cfield.cc .cct{width:24px;height:24px}
+
+/* ===== ModuLab ===== */
+.mlh2{font:700 18px var(--f-title);margin:22px 0 10px;color:var(--ink)}
+.mlnew{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.mlnewc{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--text);cursor:pointer;text-align:left;font-family:inherit}
+.mlnewc:hover{border-color:var(--accent);box-shadow:0 4px 14px var(--shadow)}
+.mlnewc .mli{font-size:22px;color:var(--accent);line-height:1}.mlnewc b{font:700 15px var(--f-title)}.mlnewc small{color:var(--muted);font-size:11.5px}
+.mlf{margin-bottom:12px}
+.mlgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.mlcard{border:1px solid var(--line);border-radius:16px;background:var(--surface);overflow:hidden;display:flex;flex-direction:column}
+.mlpv{background:var(--surface2);display:grid;place-items:center;height:130px}.mlpv canvas{width:190px;height:120px}
+.mlb{padding:10px 12px;display:flex;flex-direction:column;gap:4px}.mlb b{font:700 14px var(--f-title);overflow-wrap:anywhere}.mlb small{color:var(--muted)}
+.mlbadge{align-self:flex-start;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.mlb .ac{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+#modal .mbox.wide:has(.mlx){max-width:1040px}
+.mlx{display:flex;flex-direction:column;gap:10px;width:100%}
+.mlh{display:flex;gap:14px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}.mlh h2{margin:0}.mlname{min-width:220px;flex:1;max-width:340px}
+.mlcols{display:flex;gap:16px;align-items:flex-start}
+.mlleft{flex:1 1 0;min-width:0;max-height:62vh;overflow:auto;padding-right:6px}
+.mlright{flex:0 0 310px;position:sticky;top:0;display:flex;flex-direction:column;gap:6px}
+#mlPv{width:300px;height:210px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.mlrow{display:flex;gap:10px;flex-wrap:wrap}.mlrow .pfield{flex:1 1 150px;min-width:130px}
+.mlc{display:inline-flex;gap:6px;align-items:center}.mlc select{flex:1;min-width:0}.mlc input[type=color]{width:36px;height:32px;padding:0;border:1px solid var(--line);border-radius:8px;background:none}
+.mlai{border:1px dashed var(--lav);border-radius:14px;padding:10px 12px;margin-bottom:12px;background:var(--surface2);display:flex;flex-direction:column;gap:8px}
+.mlai textarea{width:100%;resize:vertical;border:1px solid var(--line);border-radius:10px;padding:8px;font:inherit;background:var(--surface);color:var(--text)}
+.mlaih{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.mlaih small{flex:1;color:var(--muted)}
+.mlprops{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.mlprop{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:6px;cursor:pointer;display:flex;flex-direction:column;gap:4px;align-items:center;color:var(--text);font:600 11.5px var(--f-title)}
+.mlprop:hover{border-color:var(--accent)}.mlprop canvas{width:120px;height:80px}
+.mlshapes{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.mlshape{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:6px;display:flex;flex-direction:column;align-items:center;gap:2px;font:600 11px var(--f-title);color:var(--text);cursor:pointer}
+.mlshape.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}.mlshape canvas{width:44px;height:36px}
+.mlgrp{margin:8px 0}.mlgrp b{display:block;font:700 12px var(--f-title);color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
+.mlgen{display:flex;flex-direction:column;gap:6px}.mlgi{display:flex;align-items:center;gap:8px;font-size:13px}.mlgi canvas{width:64px;height:48px;border:1px solid var(--line);border-radius:8px;background:#fff}
+@media(max-width:820px){.mlcols{flex-direction:column}.mlright{position:static;flex:none;width:100%}#mlPv{width:100%;height:auto;aspect-ratio:300/210}.mlleft{max-height:none}}
+/* ModuLab no editor: seções recolhíveis (mesmo padrão dos painéis) */
+.macc{border-top:1px solid var(--line)}.macc>.wah{padding:10px 2px}.macc>.mab{display:none;padding:0 0 10px}.macc.open>.mab{display:block}
+.macc.open>.wah .wtri{transform:rotate(90deg)}
+.mlmini{margin:6px 0}.mlcol{border:1px solid var(--line);border-radius:12px;padding:8px;margin-bottom:8px;background:var(--surface)}.mlch{display:flex;justify-content:space-between;align-items:baseline}.mlch small{color:var(--muted)}
+.mlits,.mlitems{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;margin-top:6px}
+.mlit{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:4px;display:flex;flex-direction:column;align-items:center;gap:2px;font:600 10px var(--f-title);color:var(--text);cursor:pointer}.mlit:hover{border-color:var(--accent)}.mlit canvas{width:54px;height:40px}.mlit span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mlleft h3{margin:16px 0 8px}.mlleft h3:first-child{margin-top:2px}
