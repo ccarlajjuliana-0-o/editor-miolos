@@ -64,7 +64,13 @@
     return true;
   }
   let sig = '';
+  /* usou a janela da direita: o menu rápido se esconde até clicar de novo num widget na página */
+  let panelUse = false;
+  const pr = document.getElementById('props'), stg = document.getElementById('stage');
+  if (pr) pr.addEventListener('pointerdown', () => { panelUse = true; bar.hidden = true; }, true);
+  if (stg) stg.addEventListener('pointerdown', () => { panelUse = false; }, true);
   function update() {
+    if (panelUse) { bar.hidden = true; return; }
     const p = typeof curPage === 'function' ? curPage() : null;
     const els = p && S.view === 'editor' ? selEls() : [];
     const modal = document.getElementById('modal'), busy = (modal && !modal.hidden) || S.editing || S.tool || (typeof D !== 'undefined' && D && D.moved);

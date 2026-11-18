@@ -779,3 +779,11 @@ input[type=color]::-moz-color-swatch{border:1.5px solid rgba(62,53,80,.25);borde
 #qbar select[data-q="fmt"]{appearance:none;-webkit-appearance:none;max-width:104px;height:28px;padding:0 8px;font:600 11.5px var(--f-body);border-radius:8px}
 #qbar button[data-q="m-"],#qbar button[data-q="m+"],#qbar button[data-q="y-"],#qbar button[data-q="y+"],#qbar button[data-q="d-"],#qbar button[data-q="d+"]{min-width:22px;width:22px;padding:0}
 #qbar button[data-q="hol"],#qbar button[data-q="ttl"]{height:28px;min-width:0;padding:0 8px;font-size:12px}
+
+/* cores em duas colunas */
+#fldGrp,.wab{flex-flow:row wrap;align-items:flex-start}
+#fldGrp>*,.wab>*{flex:1 1 100%;min-width:0}
+#fldGrp>.pfield:has(.cfield.cc),.wab>.pfield:has(.cfield.cc){flex:1 1 calc(50% - 6px);min-width:112px}
+#fldGrp>.pfield:has(.cfield.cc.open),.wab>.pfield:has(.cfield.cc.open){flex-basis:100%}
+.cfield.cc input[type=color]{width:34px;height:30px}
+.cfield.cc .cct{width:24px;height:24px}
