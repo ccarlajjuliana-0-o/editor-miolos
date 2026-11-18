@@ -184,8 +184,10 @@
   }
   function wgtEls(s) {
     const it = WX.CAT.find((x) => x.k === s.base); if (!it) return [];
-    return withCtx(styleFor({ pal: s.pal, pair: s.pair, wst: s.wst }), () => {
+    return withCtx(styleFor(s.palC ? { pal: '_c', palC: s.palC, pair: s.pair, wst: s.wst } : { pal: s.pal, pair: s.pair, wst: s.wst }), () => {
       const p = S.pages._ml, st = styleOf(); let els = [].concat(it.fn(p, st));
+      const main = els.find((e) => WX.ACCEPT.has(e.type));
+      if (main && s.adj) Object.entries(s.adj).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') main[k] = v; });
       if (s.titulo) els.forEach((e) => { if (e.wx && e.wx.hd) e.wx.hd.text = s.titulo; });
       return clone(els);
     });
@@ -239,6 +241,36 @@
   const chk = (path, v, label) => `<label class="chk"><input type="checkbox" data-k="${path}"${v ? ' checked' : ''}> ${label}</label>`;
   const pvPick = (s) => `<div class="pfield"><span>Pré-visualizar com a paleta</span><div class="chips">${Object.entries(PALS).map(([k, p]) => `<button type="button" class="chip${(s.pv || 'lavanda') === k ? ' on' : ''}" data-pv="${k}"><i style="background:linear-gradient(135deg,${p.a} 50%,${p.b} 50%)"></i>${esc(p.nome)}</button>`).join('')}</div></div>`;
 
+
+  /* ---------- ajustes do widget (linhas, colunas, símbolo) e paletas livres ---------- */
+  const ADJ_SKIP = new Set(['ta', 'text', 'lines', 'list', 'font']);
+  const ADJ_LIM = { rows: [1, 40, 1], cols: [1, 12, 1], n: [1, 40, 1], days: [1, 31, 1], from: [0, 23, 1], to: [1, 24, 1], active: [0, 20, 1] };
+  const MKF2 = { checklist: 'box', habit: 'mk', numgrid: 'mk', rate: 'mk' }, MKC2 = { checklist: 'color', habit: 'accent', numgrid: 'color', rate: 'color' };
+  function primaryOf(s) { const base = wgtEls({ base: s.base, wst: s.wst, titulo: s.titulo, pal: s.pv, pair: s.pair, palC: s.palC }); return base.find((e) => WX.ACCEPT.has(e.type)) || null; }
+  function adjForm(s) {
+    const m = primaryOf(s); if (!m) return ''; const a = s.adj || {}, val = (k) => (a[k] !== undefined ? a[k] : m[k]), FD = (typeof FIELDS !== 'undefined' ? FIELDS : {})[m.type] || [];
+    const rows = FD.filter((f) => !ADJ_SKIP.has(f[2])).map(([k, l, t, x]) => {
+      if (t === 'num' || t === 'numa') { const lim = ADJ_LIM[k] || [-9999, 9999, x || 1]; return fld(l, nin('adj.' + k, val(k) ?? '', lim[0], lim[1], lim[2] || x || 1)); }
+      if (t === 'sel') { const opts = Array.isArray(x) ? x : []; return fld(l, sel('adj.' + k, val(k), opts, typeof (opts[0] || [])[0] === 'number')); }
+      if (t === 'chk') return chk('adj.' + k, !!val(k), l);
+      if (t === 'color' || t === 'colorN') { const v = val(k); return fld(l, colIn('adj.' + k, isHex(v) ? v : '#3E3550', { tokens: false })); }
+      return '';
+    }).filter(Boolean).join('');
+    const mk = MKF2[m.type] ? (() => { const f = MKF2[m.type], cur = a[f] || m[f] || (m.type === 'habit' ? 'circle' : 'square'); return `<h3>SÍMBOLO</h3><p class="hint">Troque os quadradinhos ou bolinhas por outro símbolo.</p><div class="mkgrid">${WX.MARKS.map(([k, n]) => `<button type="button" class="mkb${cur === k ? ' on' : ''}" data-amk="${k}" title="${n}" aria-label="${n}"><canvas data-mkc="${k}"></canvas></button>`).join('')}</div><div class="mlrow">${fld('Preenchimento', sel('adj.mfill', a.mfill ?? m.mfill ?? '', [['', 'Contorno'], ['solid', 'Cheio'], ['soft', 'Suave']]))}${fld('Cor do símbolo', colIn('adj.' + MKC2[m.type], isHex(val(MKC2[m.type])) ? val(MKC2[m.type]) : '#C398C8', { tokens: false }))}</div>`; })() : '';
+    return `${mk}<h3>AJUSTES · ${esc((typeof TYPE_NAME !== 'undefined' ? TYPE_NAME : {})[m.type] || 'WIDGET')}</h3><div class="mlrow">${rows}</div><p class="hint">Quantidade de linhas e colunas, cores e opções do widget. O resto você muda no editor.</p>`;
+  }
+  const PCOLS = [['a', 'Cor A (destaque)'], ['b', 'Cor B (apoio)'], ['ink', 'Tinta (títulos)'], ['soft', 'Suave'], ['soft2', 'Suave 2'], ['line', 'Linhas'], ['text', 'Texto']];
+  function palTools(s) {
+    if (s.palC) return `<div class="pfield"><span>Cores da paleta (qualquer cor)</span><div class="mlrow">${PCOLS.map(([k, n]) => fld(n, colIn('palC.' + k, s.palC[k] || '#C398C8', { tokens: false }))).join('')}</div>
+      <div class="row"><input type="text" id="palName" placeholder="Nome da paleta" value="Minha paleta" style="max-width:200px"><button type="button" class="btn sm" data-palsave>Guardar como nova paleta</button><button type="button" class="btn sm ghost" data-paloff>Voltar às paletas</button></div></div>`;
+    return `<div class="row"><button type="button" class="btn sm" data-paledit>Escolher cores livres / criar paleta</button></div>`;
+  }
+  async function palSave(s, name) {
+    const pal = {}; PCOLS.forEach(([k]) => { pal[k] = isHex(s.palC[k]) ? s.palC[k] : '#C398C8'; });
+    const it = { id: uid('l'), kind: 'tema', name: (name || '').trim() || 'Minha paleta', pal, pair: s.pair || 'assinatura', wst: '', frame: false, bdr: '', createdAt: Date.now(), updatedAt: Date.now() };
+    await put(it); sync(); s.pv = 'u_' + it.id; s.palC = null; toast('Paleta guardada. Ela aparece em todo o estúdio. 💜');
+  }
+
   const EDIT = {
     /* ---- estilo ---- */
     wsty: {
@@ -288,14 +320,15 @@
     },
     /* ---- widget ---- */
     wgt: {
-      title: 'Novo widget', blank: () => ({ kind: 'wgt', name: 'Meu widget', base: 'tarefas', wst: '', titulo: '', pv: 'lavanda', pair: 'assinatura', els: [], w: 0, h: 0 }),
+      title: 'Novo widget', blank: () => ({ kind: 'wgt', name: 'Meu widget', base: 'tarefas', wst: '', titulo: '', pv: 'lavanda', pair: 'assinatura', els: [], w: 0, h: 0, adj: {}, palC: null }),
+      readExtra(s) { if (s._lb !== s.base) { if (s._lb !== undefined) s.adj = {}; s._lb = s.base; } },
       form(s) {
         const base = WX.CATS.map(([id, n]) => `<optgroup label="${esc(n)}">${WX.CAT.filter((x) => x.cats[0] === id).map((x) => `<option value="${x.k}"${s.base === x.k ? ' selected' : ''}>${esc(x.n)}</option>`).join('')}</optgroup>`).join('');
         const sty = [['', 'Estilo padrão do projeto']].concat(Object.values(WX.STY).map((x) => [x.id, x.colName + ' · ' + x.n]));
-        return `<div class="mlrow">${fld('Modelo-base', `<select data-k="base">${base}</select>`)}${fld('Estilo', sel('wst', s.wst || '', sty))}${fld('Título do widget', `<input type="text" data-k="titulo" value="${esc(s.titulo || '')}" placeholder="(do estilo)">`)}</div>${pvPick(s)}
+        return `<div class="mlrow">${fld('Modelo-base', `<select data-k="base">${base}</select>`)}${fld('Estilo', sel('wst', s.wst || '', sty))}${fld('Título do widget', `<input type="text" data-k="titulo" value="${esc(s.titulo || '')}" placeholder="(do estilo)">`)}</div>${pvPick(s)}${palTools(s)}${adjForm(s)}
           <p class="hint">Depois de salvo, o widget fica em Widgets → Salvos, com todas as opções de personalização do editor.</p>`;
       },
-      preview(cv, s) { const els = wgtEls({ base: s.base, wst: s.wst, titulo: s.titulo, pal: s.pv, pair: s.pair }); if (!els.length) return; boxPrev(cv, els, 300, 200); },
+      preview(cv, s) { const els = wgtEls({ base: s.base, wst: s.wst, titulo: s.titulo, pal: s.pv, pair: s.pair, palC: s.palC, adj: s.adj }); if (!els.length) return; boxPrev(cv, els, 300, 200); },
       apply(s, p) { s.base = p.base; s.titulo = p.titulo; s.name = p.name; }, propPrev(cv, p) { boxPrev(cv, wgtEls({ base: p.base, pal: 'lavanda', pair: 'assinatura' }), 150, 100); },
     },
     /* ---- adesivo ---- */
@@ -351,7 +384,7 @@
 
     modal(html(), (b, close) => {
       let render;
-      const paint = () => { const cv = $('#mlPv', b); if (cv) { try { ED.preview(cv, s); } catch (e) { console.warn(e); } } $$('canvas[data-sh]', b).forEach((c) => boxPrev(c, [shapeEl(c.dataset.sh, '#F1CDD9', '#E7A6BE', '#4A4E79')], 44, 36)); $$('canvas[data-pp]', b).forEach((c) => { try { (ED.propPrev || (() => { }))(c, props[+c.dataset.pp]); } catch (e) { /* sem prévia */ } }); $$('canvas[data-gp]', b).forEach((c) => { const g = s.gen[c.dataset.gp]; itemPrev(c, Object.assign({ kind: c.dataset.gp }, g, { els: c.dataset.gp === 'stk' ? stkEls(g) : undefined }), 64, 48); }); };
+      const paint = () => { $$('canvas[data-mkc]', b).forEach((c) => { try { const k = c.dataset.mkc, z = 30; c.width = z * 2; c.height = z * 2; c.style.width = c.style.height = z + 'px'; const g = c.getContext('2d'); g.scale(2, 2); WX.mark(g, k, z / 2, z / 2, z * 0.62, { stroke: '#4A4E79', fill: '#C398C8', mode: 'soft', sw: 1.4, num: 1, font: 'Nunito' }); } catch (e) { /* sem ícone */ } }); const cv = $('#mlPv', b); if (cv) { try { ED.preview(cv, s); } catch (e) { console.warn(e); } } $$('canvas[data-sh]', b).forEach((c) => boxPrev(c, [shapeEl(c.dataset.sh, '#F1CDD9', '#E7A6BE', '#4A4E79')], 44, 36)); $$('canvas[data-pp]', b).forEach((c) => { try { (ED.propPrev || (() => { }))(c, props[+c.dataset.pp]); } catch (e) { /* sem prévia */ } }); $$('canvas[data-gp]', b).forEach((c) => { const g = s.gen[c.dataset.gp]; itemPrev(c, Object.assign({ kind: c.dataset.gp }, g, { els: c.dataset.gp === 'stk' ? stkEls(g) : undefined }), 64, 48); }); };
       render = (full) => { if (full) { const sc = $('.mlleft', b).scrollTop; const aiKeep = $('#mlPrompt', b) && $('#mlPrompt', b).value; $('.mlx', b).outerHTML = html(); if (aiKeep != null && $('#mlPrompt', b)) $('#mlPrompt', b).value = aiKeep; $('.mlleft', b).scrollTop = sc; $$('[data-close]', b).forEach((x) => x.onclick = close); } wire(); paint(); };
       const readInput = (i) => {
         const k = i.dataset.k; if (!k) return; let v = i.type === 'checkbox' ? i.checked : i.type === 'number' ? (+i.value || 0) : i.value;
@@ -368,7 +401,11 @@
       };
         $$('[data-k]', b).forEach((i) => { i.onchange = () => { readInput(i); if (ED.readExtra) ED.readExtra(s, b); const full = i.dataset.k !== 'name' && (i.tagName === 'SELECT' || i.type === 'checkbox'); render(full); }; if (i.type === 'number' || i.type === 'text') i.oninput = () => { readInput(i); paint(); }; });
         $$('[data-kc]', b).forEach((i) => { i.oninput = () => { const k = i.dataset.kc; setPath(s, k, i.value); const sl = $(`select[data-k="${k}"]`, b); if (sl) sl.value = '#'; paint(); }; });
-        $$('[data-pv]', b).forEach((x) => x.onclick = () => { s.pv = x.dataset.pv; render(true); });
+        $$('[data-pv]', b).forEach((x) => x.onclick = () => { s.pv = x.dataset.pv; s.palC = null; render(true); });
+        $$('[data-amk]', b).forEach((x) => x.onclick = () => { const m = primaryOf(s); if (!m) return; s.adj = s.adj || {}; s.adj[MKF2[m.type]] = x.dataset.amk; render(true); });
+        const pe = $('[data-paledit]', b); if (pe) pe.onclick = () => { const base = PALS[s.pv] || PALS.lavanda; s.palC = {}; PCOLS.forEach(([k]) => { s.palC[k] = base[k]; }); render(true); };
+        const po = $('[data-paloff]', b); if (po) po.onclick = () => { s.palC = null; render(true); };
+        const ps = $('[data-palsave]', b); if (ps) ps.onclick = async () => { await palSave(s, ($('#palName', b) || {}).value); render(true); };
         $$('[data-shape]', b).forEach((x) => x.onclick = () => { const k = x.dataset.shape, i = s.shapes.indexOf(k); if (i >= 0) { if (s.shapes.length > 1) s.shapes.splice(i, 1); } else s.shapes.push(k); render(true); });
         $$('[data-it]', b).forEach((x) => x.onchange = () => { const id = x.dataset.it; s.items = s.items.filter((y) => y !== id); if (x.checked) s.items.push(id); });
         $$('[data-gi]', b).forEach((x) => x.onchange = () => { s.gen['on_' + x.dataset.gi] = x.checked; });
@@ -399,7 +436,7 @@
     if (kind === 'wsty') it = Object.assign(base, { spec: s.spec, pv: s.pv });
     else if (kind === 'bdr') it = Object.assign(base, { border: s.border }, s.border.src ? { src: s.border.src } : {});
     else if (kind === 'tema') it = Object.assign(base, { pal: s.pal, pair: s.pair, wst: s.wst || '', frame: !!s.frame, bdr: s.bdr || '' });
-    else if (kind === 'wgt') { const els = wgtEls({ base: s.base, wst: s.wst, titulo: s.titulo, pal: s.pv, pair: s.pair }); if (!els.length) throw new Error('vazio'); const bx = WX.boxOf(els); els.forEach((e) => { e.x = r1(e.x - bx.x); e.y = r1(e.y - bx.y); }); it = Object.assign(base, { els, w: r1(bx.w), h: r1(bx.h), ml: { base: s.base, wst: s.wst || '', titulo: s.titulo || '', pv: s.pv, pair: s.pair } }); }
+    else if (kind === 'wgt') { const els = wgtEls({ base: s.base, wst: s.wst, titulo: s.titulo, pal: s.pv, pair: s.pair, palC: s.palC, adj: s.adj }); if (!els.length) throw new Error('vazio'); const bx = WX.boxOf(els); els.forEach((e) => { e.x = r1(e.x - bx.x); e.y = r1(e.y - bx.y); }); it = Object.assign(base, { els, w: r1(bx.w), h: r1(bx.h), ml: { base: s.base, wst: s.wst || '', titulo: s.titulo || '', pv: s.pv, pair: s.pair, palC: s.palC || null, adj: s.adj || {} } }); }
     else if (kind === 'stk') { const els = stkEls(s); const bx = WX.boxOf(els); els.forEach((e) => { e.x = r1(e.x - bx.x); e.y = r1(e.y - bx.y); }); it = Object.assign(base, { els, w: r1(bx.w), h: r1(bx.h), shapes: s.shapes, cols: s.cols, stroke: s.stroke }); }
     else if (kind === 'outro') it = Object.assign(base, { tipo: s.tipo, nota: s.nota });
     else if (kind === 'colecao') {

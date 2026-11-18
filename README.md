@@ -187,3 +187,6 @@ Item **ModuLab** no menu da tela de projetos. Aqui se cria, edita, duplica e exc
 
 ### Soltar em peças (editor livre)
 Qualquer widget (calendário, tabela, hábitos, horários…) pode ser transformado em peças soltas: linhas, caixas com cantos, textos e traçados. Use o botão **Soltar em peças** na barra do editor livre (vale para o widget selecionado, ou para todos da página se nada estiver selecionado) ou **Soltar em peças editáveis** em "Copiar e salvar" no painel direito. As peças ficam agrupadas como um objeto só; **Desagrupar** libera cada uma para apagar números, mudar cores/espessura/tipo de linha, arredondar cantos, trocar fontes, duplicar linhas e colunas, colocar imagens dentro, fora ou ao fundo, e título. Ao **Salvar no ModuLab**, o widget com várias peças é guardado como um único objeto. Ctrl+Z desfaz.
+
+### Assistente rápido de widget (ajustes e paletas livres)
+No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo e título, há **Ajustes** do widget escolhido (quantidade de linhas, colunas, itens, dias, tamanhos, cores e opções), **Símbolo** (quadrado, coração, estrela, flor, visto… para listas, hábitos etc.) e **cores livres**: "Escolher cores livres / criar paleta" abre 7 seletores de cor; "Guardar como nova paleta" grava no ModuLab e a paleta passa a aparecer em todo o estúdio.
