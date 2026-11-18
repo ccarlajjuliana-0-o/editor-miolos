@@ -99,6 +99,7 @@
   function secCopy(e) {
     return `<div class="row"><button type="button" class="btn sm" data-wxa="copy">Copiar estilo</button><button type="button" class="btn sm" data-wxa="paste"${S.wxClip ? '' : ' disabled'}>Colar estilo</button></div>
       <div class="row"><button type="button" class="btn sm" data-wxa="applyType">Em todos deste tipo (página)</button><button type="button" class="btn sm" data-wxa="applyAll">Em todos deste tipo (projeto)</button></div>
+      <button type="button" class="btn sm" data-wxa="soltar" title="Transforma em linhas, caixas e textos soltos">Soltar em peças editáveis</button>
       <p class="hint">“Copiar estilo” leva moldura, título, fundo, cores e fontes. Cole em qualquer outro widget.</p>`;
   }
   function secPage(p) {
@@ -217,6 +218,7 @@
     const p = curPage(), e = selEls()[0];
     if (a === 'style') { if (e) { S.wxView = { t: 'el', id: e.id, col: null }; renderProps(); } return; }
     if (a === 'resetwx') { if (!e) return; change([p.id], () => { delete e.wx; }); redraw(); renderProps(); thumbRefresh(p.id); return; }
+    if (a === 'soltar') { if (window.ModuLab) ModuLab.soltar(); return; }
     if (a === 'front' || a === 'back') { orderSel(a); return; }
     if (a === 'copy') { if (e) { S.wxClip = grab(e); toast('Estilo copiado. Selecione outro widget e use “Colar estilo”.'); renderProps(); } return; }
     if (a === 'paste') {

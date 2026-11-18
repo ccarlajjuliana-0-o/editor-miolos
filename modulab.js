@@ -460,13 +460,105 @@
     await createProject('ModuLab · ' + pg.name, { w, h }, [pg], false, { modulab: true, ml: { kind, itemId: item ? item.id : null, name: pg.name } });
     S.tab = 'widgets'; if (typeof renderRail === 'function') { renderRail(); renderPanel(); }
   }
+
+  /* =====================================================================
+     Soltar em peças: transforma um widget (calendário, tabela, hábitos…) em linhas, retângulos e textos soltos,
+     um por um, para editar tudo livremente. As peças ficam agrupadas (1 objeto); "Desagrupar" libera cada uma.
+     Funciona gravando o que o widget desenha e convertendo em elementos do editor.
+     ===================================================================== */
+  function recordWidget(e) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 8; const real = cv.getContext('2d');
+    const out = [], st = { path: null, dash: [] };
+    const M = () => real.getTransform(), P = (x, y) => { const q = M().transformPoint(new DOMPoint(x, y)); return [q.x, q.y]; };
+    const alpha = () => real.globalAlpha;
+    const flush = () => { if (st.path && (st.path.fill || st.path.stroke)) out.push(st.path); st.path = null; };
+    const ensure = () => st.path || (st.path = { subs: [], fill: null, stroke: null });
+    const cur = () => { const p = ensure(); return p.subs[p.subs.length - 1]; };
+    const hooks = {
+      beginPath() { flush(); st.path = { subs: [], fill: null, stroke: null }; },
+      moveTo(x, y) { const p = ensure(); p.subs.push({ pts: [P(x, y)], closed: false }); },
+      lineTo(x, y) { const sp = cur(); if (sp) sp.pts.push(P(x, y)); else ensure().subs.push({ pts: [P(x, y)], closed: false }); },
+      closePath() { const sp = cur(); if (sp) sp.closed = true; },
+      rect(x, y, w, h) { const p = ensure(); p.subs.push({ pts: [P(x, y), P(x + w, y), P(x + w, y + h), P(x, y + h)], closed: true, rect: [P(x, y), P(x + w, y + h)] }); },
+      arcTo(x1, y1, x2, y2) { const sp = cur(); if (sp) { sp.pts.push(P(x1, y1)); sp.arcs = (sp.arcs || 0) + 1; sp.pts.push(P(x2, y2)); } },
+      arc(x, y, r, a0, a1) { const sp = ensure(); sp.subs.push({ pts: Array.from({ length: 13 }, (_, i) => P(x + r * Math.cos(a0 + (a1 - a0) * i / 12), y + r * Math.sin(a0 + (a1 - a0) * i / 12))), closed: Math.abs(a1 - a0) > 6 }); },
+      ellipse(x, y, rx, ry, rot, a0, a1) { const p = ensure(); p.subs.push({ pts: [P(x - rx, y - ry), P(x + rx, y + ry)], ell: true, closed: true }); },
+      bezierCurveTo(a, b, c, d, x, y) { const sp = cur(); if (!sp) return; const p0 = sp.pts[sp.pts.length - 1], m = M().inverse(), q = m.transformPoint(new DOMPoint(p0[0], p0[1])); for (let i = 1; i <= 8; i++) { const t = i / 8, u = 1 - t; sp.pts.push(P(u * u * u * q.x + 3 * u * u * t * a + 3 * u * t * t * c + t * t * t * x, u * u * u * q.y + 3 * u * u * t * b + 3 * u * t * t * d + t * t * t * y)); } },
+      quadraticCurveTo(a, b, x, y) { const sp = cur(); if (!sp) return; const p0 = sp.pts[sp.pts.length - 1], q = M().inverse().transformPoint(new DOMPoint(p0[0], p0[1])); for (let i = 1; i <= 8; i++) { const t = i / 8, u = 1 - t; sp.pts.push(P(u * u * q.x + 2 * u * t * a + t * t * x, u * u * q.y + 2 * u * t * b + t * t * y)); } },
+      fill() { const p = ensure(); p.fill = { c: real.fillStyle, a: alpha() }; },
+      stroke() { const p = ensure(); p.stroke = { c: real.strokeStyle, w: real.lineWidth * Math.hypot(M().a, M().b), a: alpha(), dash: st.dash.slice(), cap: real.lineCap }; },
+      setLineDash(d) { st.dash = Array.from(d || []); },
+      fillRect(x, y, w, h) { flush(); const a = P(x, y), b = P(x + w, y + h); out.push({ subs: [{ pts: [a, [b[0], a[1]], b, [a[0], b[1]]], closed: true, rect: [a, b] }], fill: { c: real.fillStyle, a: alpha() }, stroke: null }); },
+      fillText(t, x, y) { flush(); const fm = /^(italic )?(?:(\d+) )?(\d+(?:\.\d+)?)px (.+)$/.exec(real.font) || [], k = Math.hypot(M().a, M().b), px = parseFloat(fm[3]) || 16, w = real.measureText(t).width * k, fam0 = String(fm[4] || 'Nunito').split(',')[0].replace(/["']/g, '').trim(), m = [0, fm[1], fm[2], fm[3], fam0];
+          out.push({ text: String(t), at: P(x, y), size: px * k, fam: m[4] || 'Nunito', weight: +m[2] || 400, italic: !!m[1], color: real.fillStyle, align: real.textAlign, w, a: alpha() }); },
+      drawImage() { out.push({ skipped: 'image' }); },
+    };
+    const proxy = new Proxy(real, {
+      get(t, k) { if (hooks[k]) return (...a) => { const r = real[k] ? real[k](...a) : undefined; hooks[k](...a); return r; }; const v = t[k]; return typeof v === 'function' ? v.bind(t) : v; },
+      set(t, k, v) { t[k] = v; return true; },
+    });
+    const el = clone(e); el.x = 0; el.y = 0; el.rot = 0; el.opacity = 1;
+    real.setTransform(1, 0, 0, 1, 0, 0); drawEl(proxy, el); flush();
+    return out;
+  }
+  function piecesOf(e) {
+    const rec = recordWidget(e), els = [], mm = (n) => r1(n);
+    rec.forEach((o) => {
+      if (o.skipped) return;
+      const x0 = e.x, y0 = e.y;
+      if (o.text !== undefined) {
+        const sz = o.size / F_MM, h = o.size * 1.25, w = Math.max(2, o.w + 1.2), ax = o.align === 'center' ? o.at[0] - w / 2 : o.align === 'right' || o.align === 'end' ? o.at[0] - w : o.at[0];
+        const t = tx(mm(x0 + ax), mm(y0 + o.at[1] - h / 2), mm(w), mm(h), o.text, { font: o.fam, size: r1(sz), weight: o.weight, italic: o.italic, color: hexOf(o.color), align: o.align === 'end' ? 'right' : o.align === 'start' ? 'left' : (['left', 'center', 'right'].includes(o.align) ? o.align : 'left'), valign: 'middle', lh: 1.25 });
+        if (o.a < 1) t.opacity = r1(o.a); els.push(t); return;
+      }
+      const fillC = o.fill ? hexOf(o.fill.c) : 'none', strC = o.stroke ? hexOf(o.stroke.c) : 'none', sw = o.stroke ? Math.max(0.05, r1(o.stroke.w)) : 0.3, al = Math.min(o.fill ? o.fill.a : 1, o.stroke ? o.stroke.a : 1);
+      const dsh = o.stroke && o.stroke.dash.length ? (o.stroke.dash[0] < sw * 0.8 ? 'dot' : 'dash') : 'solid';
+      o.subs.forEach((sp) => {
+        let n;
+        if (sp.ell) { const [a, b] = sp.pts; n = E('ellipse', mm(x0 + Math.min(a[0], b[0])), mm(y0 + Math.min(a[1], b[1])), mm(Math.abs(b[0] - a[0])), mm(Math.abs(b[1] - a[1])), { fill: fillC, stroke: strC, sw }); }
+        else if (sp.rect || (sp.closed && isRectPts(sp.pts) )) { const xs = sp.pts.map((q) => q[0]), ys = sp.pts.map((q) => q[1]), x = Math.min(...xs), y = Math.min(...ys), w = Math.max(...xs) - x, h = Math.max(...ys) - y; n = E('rect', mm(x0 + x), mm(y0 + y), mm(w), mm(h), { fill: fillC, stroke: strC, sw, radius: 0 }); }
+        else if (sp.arcs >= 4 && sp.closed) { const xs = sp.pts.map((q) => q[0]), ys = sp.pts.map((q) => q[1]), x = Math.min(...xs), y = Math.min(...ys), w = Math.max(...xs) - x, h = Math.max(...ys) - y, first = sp.pts[0], rad = Math.max(0, Math.min(first[0] - x, w / 2, h / 2)); n = E('rect', mm(x0 + x), mm(y0 + y), mm(w), mm(h), { fill: fillC, stroke: strC, sw, radius: mm(rad) }); }
+        else if (sp.pts.length === 2 && !o.fill) {
+          const [a, b] = sp.pts, len = Math.hypot(b[0] - a[0], b[1] - a[1]); if (len < 0.01) return;
+          if (Math.abs(b[1] - a[1]) < 0.01) n = E('line', mm(x0 + Math.min(a[0], b[0])), mm(y0 + a[1] - 0.5), mm(len), 1, { stroke: strC, sw, dash: dsh });
+          else if (Math.abs(b[0] - a[0]) < 0.01) n = E('path', mm(x0 + a[0] - 0.5), mm(y0 + Math.min(a[1], b[1])), 1, mm(len), { pts: [[0.5, 0], [0.5, 1]], closed: false, smooth: false, fill: 'none', stroke: strC, sw, dash: dsh === 'solid' ? null : [sw * (dsh === 'dot' ? 0.01 : 5), sw * (dsh === 'dot' ? 3 : 3.5)] });
+          else { const x = Math.min(a[0], b[0]), y = Math.min(a[1], b[1]), w = Math.max(0.5, Math.abs(b[0] - a[0])), h = Math.max(0.5, Math.abs(b[1] - a[1])); n = E('path', mm(x0 + x), mm(y0 + y), mm(w), mm(h), { pts: [[r4((a[0] - x) / w), r4((a[1] - y) / h)], [r4((b[0] - x) / w), r4((b[1] - y) / h)]], closed: false, smooth: false, fill: 'none', stroke: strC, sw, dash: null }); }
+        } else if (sp.pts.length >= 2) {
+          const xs = sp.pts.map((q) => q[0]), ys = sp.pts.map((q) => q[1]), x = Math.min(...xs), y = Math.min(...ys), w = Math.max(0.5, Math.max(...xs) - x), h = Math.max(0.5, Math.max(...ys) - y);
+          n = E('path', mm(x0 + x), mm(y0 + y), mm(w), mm(h), { pts: sp.pts.map((q) => [r4((q[0] - x) / w), r4((q[1] - y) / h)]), closed: !!sp.closed, smooth: false, fill: sp.closed ? fillC : 'none', stroke: strC, sw, dash: null });
+        }
+        if (n) { if (al < 1) n.opacity = r1(al); els.push(n); }
+      });
+    });
+    return els;
+  }
+  const F_MM = 0.3528, r4 = (v) => Math.round(v * 10000) / 10000;
+  const isRectPts = (P) => P.length === 4 && ((P[0][1] === P[1][1] && P[1][0] === P[2][0] && P[2][1] === P[3][1]) || (Math.abs(P[0][1] - P[1][1]) < 1e-6 && Math.abs(P[1][0] - P[2][0]) < 1e-6));
+  const hexOf = (c) => { c = String(c || ''); if (isHex(c)) return c; if (c === 'none' || c === 'transparent') return 'none'; const m = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c); return m ? '#' + [1, 2, 3].map((i) => (+m[i]).toString(16).padStart(2, '0')).join('') : (/^#[0-9a-f]{3}$/i.test(c) ? '#' + c.slice(1).split('').map((x) => x + x).join('') : '#3E3550'); };
+  function soltar() {
+    const p = curPage(); if (!p) return;
+    let alvos = selEls().filter((e) => WX.ACCEPT && WX.ACCEPT.has(e.type)); if (!alvos.length) alvos = p.els.filter((e) => WX.ACCEPT && WX.ACCEPT.has(e.type) && !e.hidden);
+    if (!alvos.length) { toast('Não achei widgets para soltar. Selecione um widget na página.'); return; }
+    const novos = [];
+    change([p.id], () => {
+      alvos.forEach((e) => {
+        const pcs = piecesOf(e); if (!pcs.length) return; const g = uid('g'); pcs.forEach((x) => { x.g = g; });
+        if (e.rot) { const cx = e.x + e.w / 2, cy = e.y + e.h / 2, a = e.rot * Math.PI / 180, co = Math.cos(a), si = Math.sin(a); pcs.forEach((x) => { const px = x.x + x.w / 2 - cx, py = x.y + x.h / 2 - cy, nx = cx + px * co - py * si, ny = cy + px * si + py * co; x.x = r1(nx - x.w / 2); x.y = r1(ny - x.h / 2); x.rot = r1((x.rot || 0) + e.rot); }); }
+        const i = p.els.findIndex((q) => q.id === e.id); if (i >= 0) p.els.splice(i, 1, ...pcs); else p.els.push(...pcs); novos.push(...pcs);
+      });
+    });
+    if (!novos.length) { toast('Esse widget não pôde ser solto em peças.'); return; }
+    S.sel = novos.map((x) => x.id); redraw(); renderProps(); thumbRefresh(p.id);
+    toast(`Soltei em ${novos.length} peças, ainda agrupadas. Use “Desagrupar” para mexer em cada uma. ✨`);
+  }
+
   function dockBox() { let d = document.getElementById('mlDock'); if (!d) { d = document.createElement('div'); d.id = 'mlDock'; d.hidden = true; document.body.appendChild(d); } return d; }
   function dock() {
     const d = dockBox(), on = S.view === 'editor' && S.meta && S.meta.ml;
     if (!on) { d.hidden = true; return; }
     const k = S.meta.ml.kind, f = FREE[k] || FREE.wgt;
-    d.hidden = false; d.innerHTML = `<span class="mlt"><b>ModuLab</b> · criando ${esc(f.n.toLowerCase())}</span><button class="btn sm" id="mlAiDraw" type="button">✨ Pedir à IA</button><button class="btn sm pri" id="mlFreeSave" type="button">Salvar no ModuLab</button><button class="btn sm ghost" id="mlFreeExit" type="button">Sair</button>`;
-    $('#mlAiDraw', d).onclick = aiDrawModal; $('#mlFreeSave', d).onclick = freeSaveModal; $('#mlFreeExit', d).onclick = () => { const b = $('#bBack'); if (b) b.click(); };
+    d.hidden = false; d.innerHTML = `<span class="mlt"><b>ModuLab</b> · criando ${esc(f.n.toLowerCase())}</span><button class="btn sm" id="mlAiDraw" type="button">✨ Pedir à IA</button><button class="btn sm" id="mlSoltar" type="button" title="Transforma o widget selecionado em linhas, caixas e textos soltos para editar tudo">Soltar em peças</button><button class="btn sm pri" id="mlFreeSave" type="button">Salvar no ModuLab</button><button class="btn sm ghost" id="mlFreeExit" type="button">Sair</button>`;
+    $('#mlAiDraw', d).onclick = aiDrawModal; $('#mlSoltar', d).onclick = soltar; $('#mlFreeSave', d).onclick = freeSaveModal; $('#mlFreeExit', d).onclick = () => { const b = $('#bBack'); if (b) b.click(); };
   }
   const freeEls = () => { const p = curPage(), sel = selEls(); const ids = sel.length ? gx(p, sel.map((e) => e.id)) : null; return p.els.filter((e) => !e.hidden && (!ids || ids.includes(e.id))); };
   async function renderPng(els, bx) {
@@ -494,6 +586,7 @@
             it = Object.assign(base, { src: asset, border: { preset: 'moldura', kind: 'imagem', color: '#C398C8', width: r1(Math.max(2, bx.h)), inset: 6, style: 'solid', radius: 0, opacity: 1, src: asset } });
           } else {
             const els = clone(src).map((e) => Object.assign(e, { x: r1(e.x - bx.x), y: r1(e.y - bx.y), locked: false, link: null, hidden: false }));
+            if (kind === 'wgt' && els.length > 1) { const g = uid('g'); els.forEach((e) => { e.g = g; }); }
             it = Object.assign(base, { els, w: r1(bx.w), h: r1(bx.h) });
           }
           await put(it); sync(); close(); ml.itemId = id; ml.kind = kind; ml.name = name; S.meta.ml = ml; Saver.m(); dock();
@@ -664,6 +757,6 @@
     const lh2 = window.loadHome; if (typeof lh2 === 'function' && !lh2._ml2) { const w = async function () { const r = await lh2.apply(this, arguments); dock(); return r; }; w._ml = 1; w._ml2 = 1; window.loadHome = w; }
     sync();
   }
-  window.ModuLab = { openFree, freeModal, dock, mount, sync, openEditor, themeModal, IA, refresh() { const b = $('#mlBox'); if (b && $('#vModulab') && !$('#vModulab').hidden) mount(b); }, applyTheme, colorsFromText, dominant, palFrom };
+  window.ModuLab = { soltar, piecesOf, openFree, freeModal, dock, mount, sync, openEditor, themeModal, IA, refresh() { const b = $('#mlBox'); if (b && $('#vModulab') && !$('#vModulab').hidden) mount(b); }, applyTheme, colorsFromText, dominant, palFrom };
   boot();
 })();
