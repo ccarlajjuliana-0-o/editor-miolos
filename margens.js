@@ -185,7 +185,7 @@
     if (t.pos === 'side') { side = g.e ? 'l' : 'r'; x = g.e ? 0 : pg.w - w; y = g.top; ww = w; hh = g.bot - g.top; }
     else { side = t.pos === 'top' ? 't' : 'b'; x = g.x0; y = t.pos === 'top' ? 0 : pg.h - w; ww = g.x1 - g.x0; hh = w; }
     const cols = Array.from({ length: n }, (_, i) => (t.cmode === 'same' ? t.c1 : t.cmode === 'each' ? (t.cols[i] || (i % 2 ? t.c2 : t.c1)) : (i % 2 ? t.c2 : t.c1)));
-    return { id: 'mgtabs', type: 'mgtabs', x, y, w: ww, h: hh, side, n, len: num(t.len, 0), gap: num(t.gap, 1), al: t.al, rad: num(t.r, 3), labels: Array.from({ length: n }, (_, i) => (t.labels[i] != null ? t.labels[i] : String(i + 1))), cols, tc: t.tc, font: t.font, act: num(t.act, 0), actc: t.actc, fs: num(t.fs, 0), bgr: t.bg === 'white' ? (side === 'l' || side === 'r' ? { x: 0, y: -y, w: ww, h: pg.h } : { x: -x, y: 0, w: pg.w, h: hh }) : null };
+    return { id: 'mgtabs', type: 'mgtabs', x, y, w: ww, h: hh, side, n, len: num(t.len, 0), gap: num(t.gap, 1), al: t.al, rad: num(t.r, 3), labels: Array.from({ length: n }, (_, i) => (t.labels[i] != null ? t.labels[i] : String(i + 1))), cols, tc: t.tc, font: t.font, act: num(t.act, 0), actc: t.actc, fs: num(t.fs, 0), links: Array.isArray(t.links) ? t.links : [], bgr: t.bg === 'white' ? (side === 'l' || side === 'r' ? { x: 0, y: -y, w: ww, h: pg.h } : { x: -x, y: 0, w: pg.w, h: hh }) : null };
   }
   // aplica a mudança em TODAS as páginas com layout (as divisórias são vinculadas)
   function tabsEdit(p, patch) {

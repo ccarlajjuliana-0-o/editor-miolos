@@ -187,6 +187,8 @@ function pageLinks(pg){const out=[];for(const e of pg.els){if(e.link)out.push({.
   if(e.type==='calendar'&&e.dayLinks){const L=calLayout(e);for(const [d,to] of Object.entries(e.dayLinks)){if(!to)continue;const idx=L.off+(+d)-1;out.push({x:e.x+(idx%7)*L.cw,y:e.y+L.top+Math.floor(idx/7)*L.ch,w:L.cw,h:L.ch,to})}}
   if(e.type==='yearcal'&&e.monthLinks){const Y=ycLayout(e);for(const [m,to] of Object.entries(e.monthLinks)){if(!to)continue;const b=Y.box(+m);out.push({x:e.x+b.x,y:e.y+b.y,w:b.w,h:b.h,to})}}
   if(e.type==='tabs'&&e.links){const th=e.h/(e.labels||[]).length;e.links.forEach((to,i)=>{if(to)out.push({x:e.x,y:e.y+i*th,w:e.w,h:th,to})})}}
+  const te=window.Margens&&Margens.tabEl&&Margens.tabEl(pg);if(te&&te.links&&te.links.some(Boolean)){const V=te.side==='l'||te.side==='r',L=V?te.h:te.w,D=V?te.w:te.h,n=te.n,gap=Math.max(0,te.gap),auto=Math.max(1,(L-(n-1)*gap)/n),th=te.len>0?Math.min(te.len,auto):auto,tot=n*th+(n-1)*gap,st=te.len>0?(te.al==='start'?0:te.al==='end'?L-tot:(L-tot)/2):0;
+    te.links.forEach((to,i)=>{if(!to||i>=n)return;const a=st+i*(th+gap);out.push(V?{x:te.x,y:te.y+a,w:D,h:th,to}:{x:te.x+a,y:te.y,w:th,h:D,to})})}
   return out}
 
 /* ================= fábricas de elementos ================= */
@@ -351,16 +353,21 @@ function genSpecs(o){const specs=[],months=[];for(let i=0;i<o.months;i++){const 
     for(let n=0;n<(o.notes|0);n++)specs.push({k:o.notesKind||'pautada',d:{},mk});
   });
   return{specs,months}}
-function genPages(o,st){const {specs,months}=genSpecs(o);specs.forEach(sp=>sp.id=uid('pg'));
+function genPages(o,st){const {specs,months}=genSpecs(o);specs.forEach((sp,i)=>{sp.id=uid('pg');const off=o.cover?1:0;sp.left=i>=off&&(i-off)%2===0});
   const first={},mon={},day={},wk={};specs.forEach(sp=>{if(sp.mk){first[sp.mk]??=sp.id;if(sp.isMonth)mon[sp.mk]=sp.id}if(sp.day)day[sp.day]=sp.id;if(sp.wk)wk[sp.wk]=sp.id});
   const mt=mk=>mon[mk]||first[mk]||null;
   const links=o.links?{day:dt=>day[dkey(dt)]||wk[dkey(weekStartOf(dt,o.ws))]||null,month:(y,m)=>mt(y+'-'+m)}:null;
   const sty=Object.assign({},st,{ws:o.ws});
   return specs.map(sp=>{const sz=sp.size||o.size,W=sz.w,H=sz.h,useTabs=o.tabs&&sp.k!=='capa',tw=useTabs?cl(Math.min(W,H)/148*7,5,10):0;
     const out=TPL[sp.k].fn(W,H,sty,Object.assign({links,holidays:o.holidays},sp.d),{reserveR:tw?tw+1:0});
-    if(useTabs){const m=fr(W,H).m;out.els.push(E('tabs',W-tw,m*.6,tw,H-m*1.2,{labels:months.map(x=>MES3[x.m]),links:months.map(x=>mt(x.y+'-'+x.m)),active:sp.mk?months.findIndex(x=>x.y+'-'+x.m===sp.mk):-1,font:sty.title,color:'#3E3550',fill1:sty.pal.a,fill2:sty.pal.b,activeFill:'#4A4E79'}))}
+    let mg=null;
+    if(useTabs){const sh=Math.min(W,H),r=v=>Math.round(v*10)/10;
+      /* divisórias do Layout (lateral externa, espelhadas): mesmas regras do editor */
+      mg={top:r(sh*.0392),bottom:r(sh*.0392),inner:r(sh*.0824),outer:r(sh*.0392),gutter:0,holes:0,bind:'custom',bindOn:false,hdr:0,ftr:0,lock:false,side:'auto',
+        tabs:{on:true,pos:'side',n:months.length,w:r(tw),r:3,gap:1,len:0,al:'center',bg:'none',labels:months.map(x=>MES3[x.m]),cmode:'alt',c1:sty.pal.a,c2:sty.pal.b,cols:[],tc:'#3E3550',font:sty.title,act:0,actc:'#4A4E79',fs:0,links:months.map(x=>mt(x.y+'-'+x.m))}};
+      if(sp.left)out.els.forEach(e=>{e.x=r(e.x+tw+1)})}
     let nm=TPL[sp.k].nome;if(sp.d.m!=null&&sp.k!=='capa')nm+=' · '+MES3[sp.d.m]+' '+sp.d.y;if(sp.d.start)nm+=' · '+weekLabel(sp.d.start);if(sp.d.date)nm+=' · '+sp.d.date.getDate()+' '+MES3[sp.d.date.getMonth()];if(sp.k==='anual')nm+=' '+sp.d.y;
-    return{id:sp.id,w:W,h:H,bg:out.bg||'#FFFFFF',bgImg:null,name:nm,els:out.els}})}
+    const pgo={id:sp.id,w:W,h:H,bg:out.bg||'#FFFFFF',bgImg:null,name:nm,els:out.els};if(mg)pgo.mg=mg;return pgo})}
 
 /* ================= imposição em cadernos ================= */
 function impose(list,sheets){const per=4*sheets,L=list.slice();while(L.length%per)L.push(null);const out=[];
@@ -497,7 +504,7 @@ async function createProject(name,size,pages,coverAlone,extra){const pid=uid('p'
 async function createSample(){const y=new Date().getMonth()>=8?new Date().getFullYear()+1:new Date().getFullYear();const st={pal:PALS.lavanda,...PAIRS.assinatura};toast('Montando o planner de exemplo…');
   const pages=genPages({y,m:0,months:3,size:{w:148,h:210},cover:true,coverSize:{w:105,h:148},title:'Meu Planner',annual:true,sep:true,monthly:true,weekly:true,weeklyStyle:'semanal',daily:false,habits:true,goals:false,fin:false,notes:1,notesKind:'pontilhada',tabs:true,links:true,holidays:true,ws:0},st);
   await createProject(`Planner ${y} · exemplo`,{w:148,h:210},pages,true)}
-function remapLinks(pg,map){for(const e of pg.els){if(e.link)e.link=map[e.link]||null;if(e.dayLinks)for(const k in e.dayLinks)e.dayLinks[k]=map[e.dayLinks[k]]||null;if(e.monthLinks)for(const k in e.monthLinks)e.monthLinks[k]=map[e.monthLinks[k]]||null;if(e.links)e.links=e.links.map(x=>map[x]||null)}}
+function remapLinks(pg,map){if(pg.mg&&pg.mg.tabs&&pg.mg.tabs.links)pg.mg.tabs.links=pg.mg.tabs.links.map(x=>map[x]||null);for(const e of pg.els){if(e.link)e.link=map[e.link]||null;if(e.dayLinks)for(const k in e.dayLinks)e.dayLinks[k]=map[e.dayLinks[k]]||null;if(e.monthLinks)for(const k in e.monthLinks)e.monthLinks[k]=map[e.monthLinks[k]]||null;if(e.links)e.links=e.links.map(x=>map[x]||null)}}
 async function dupProject(pid){const p=S.projects.find(x=>x.id===pid);if(!p)return;toast('Duplicando…');const pages=await Store.loadPages(pid,p.order||[]);const map={};(p.order||[]).forEach(id=>map[id]=uid('pg'));
   const np=(p.order||[]).filter(id=>pages[id]).map(id=>{const pg=clone(pages[id]);pg.id=map[id];remapLinks(pg,map);return pg});const nid=uid('p');
   const meta=Object.assign(clone(p),{name:p.name+' (cópia)',order:np.map(x=>x.id),createdAt:Date.now(),updatedAt:Date.now()});delete meta.id;
@@ -777,7 +784,7 @@ function datadoModal(){const o=genOpt();
     const wire=()=>{$$('[data-g]',b).forEach(i=>i.onchange=()=>{const k=i.dataset.g;o[k]=i.type==='checkbox'?i.checked:i.type==='number'?(+i.value||0):(k==='ws'||k==='m')?+i.value:k==='land'?!!i.value:i.value;
         if(['cover','weekly','wst'].includes(k)){if(k==='wst'&&!o.wst)o.frameP=false;paint()}else sum()});
       $$('[data-pal]',b).forEach(x=>x.onclick=()=>{o.pal=x.dataset.pal;paint()});sum();
-      $('#gGo',b).onclick=async()=>{const a=genArgs(),meta={style:{pal:o.pal,pair:o.pair,wst:o.wst||undefined},weekStart:o.ws};
+      $('#gGo',b).onclick=async()=>{const a=genArgs(),meta={style:{pal:o.pal,pair:o.pair,wst:o.wst||undefined},weekStart:o.ws,mgOn:!!o.tabs};
         const st={pal:PALS[o.pal]||PALS.lavanda,...(PAIRS[o.pair]||PAIRS.assinatura)};
         const pages=genPages(a,st);if(!pages.length){toast('Escolha pelo menos um tipo de página.');return}
         GenHooks.forEach(h=>{try{h(pages,a,meta)}catch(e){console.warn('gancho do planner',e)}});

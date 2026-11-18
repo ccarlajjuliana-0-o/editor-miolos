@@ -149,3 +149,5 @@ Em qualquer campo de cor abre um seletor com quadro de cor, matiz, código HEX, 
 O gerador de agenda saiu do editor: na tela de projetos, o botão **Planner datado** (ao lado de "Novo projeto") abre a janela com mês/ano de início, quantidade de meses, início da semana, tamanho e orientação do miolo, capa, tipos de página, navegação (abas, links, feriados), paleta, fontes, **estilo dos widgets** e moldura opcional nas páginas. Ao criar, vira um projeto comum: tudo o que existe no editor (widgets, estilos, molduras, divisórias, camadas, margens, desfazer) vale nele.
 
 **Regra para o futuro:** toda regra nova que precise valer nas páginas geradas se registra em `GenHooks` (app.js): `GenHooks.push((pages, opções, meta) => { ... })`. Ela roda logo depois de as páginas serem geradas e antes de o projeto ser criado. O estilo de widgets e a moldura de página já usam esse caminho.
+
+**Divisórias no planner datado:** usam as Divisórias do Layout (lateral externa, espelhadas na dupla, uma por mês, com link para o mês). Por serem iguais em todas as páginas, o destaque do mês atual não é automático; dá para escolher um destaque fixo em Layout → Divisórias.
