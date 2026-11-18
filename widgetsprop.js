@@ -99,7 +99,6 @@
   function secCopy(e) {
     return `<div class="row"><button type="button" class="btn sm" data-wxa="copy">Copiar estilo</button><button type="button" class="btn sm" data-wxa="paste"${S.wxClip ? '' : ' disabled'}>Colar estilo</button></div>
       <div class="row"><button type="button" class="btn sm" data-wxa="applyType">Em todos deste tipo (página)</button><button type="button" class="btn sm" data-wxa="applyAll">Em todos deste tipo (projeto)</button></div>
-      <button type="button" class="btn sm pri" data-wxa="save">Salvar como widget…</button>
       <p class="hint">“Copiar estilo” leva moldura, título, fundo, cores e fontes. Cole em qualquer outro widget.</p>`;
   }
   function secPage(p) {
@@ -127,11 +126,11 @@
       let h = '';
       if (mk) h += acc('mark', 'Marcadores', 3, secMarkers(e));
       if (W) h += acc('hd', 'Título do widget', 1, secHeader(e)) + grp('EXTERNO · FUNDO E MOLDURA') + acc('bg', 'Fundo', 2, secBg(e)) + acc('fr', 'Borda e moldura', 4, secFrame(e)) + acc('sty', 'Estilo', 5, secStyle(e));
-      h += grp('GERAL') + acc('size', 'Tamanho e opacidade', 6, secSize(e)) + acc('lay', 'Camadas e sobreposição', 7, secLayers(e)) + acc('cp', 'Copiar e salvar', 8, secCopy(e));
+      h += grp('GERAL') + acc('size', 'Tamanho e opacidade', 6, secSize(e)) + acc('cp', 'Copiar e salvar', 8, secCopy(e));
       wrap.insertAdjacentHTML('afterend', h);
       paintIcons(P);
     } else if (els.length > 1) {
-      P.insertAdjacentHTML('beforeend', acc('cp', 'Copiar e salvar', 8, `<div class="row"><button type="button" class="btn sm" data-wxa="paste"${S.wxClip ? '' : ' disabled'}>Colar estilo</button><button type="button" class="btn sm pri" data-wxa="save">Salvar seleção como widget…</button></div>`));
+      P.insertAdjacentHTML('beforeend', acc('cp', 'Copiar e salvar', 8, `<div class="row"><button type="button" class="btn sm" data-wxa="paste"${S.wxClip ? '' : ' disabled'}>Colar estilo</button></div>`));
     } else if ($('#psz', P)) {
       const hint = [...P.children].reverse().find((x) => x.classList.contains('hint'));
       const html = acc('pframe', 'Moldura da página', 2, secPage(p));
@@ -321,5 +320,6 @@
   const dup0 = window.dupSel;
   window.dupSel = function () { const r = dup0.apply(this, arguments); const p = curPage(), els = selEls(); if (els.length && free(p, els)) { redraw(); renderProps(); } return r; };
 
-  Object.assign(window.WX, { free, guard, isNoOver, isW, decorate });
+  const setLay = (k, v) => { const p = curPage(), ws = selEls().filter(isW); if (!p || !ws.length) return; change([p.id], () => ws.forEach((e) => { if (k === 'pin') { if (v) e.pin = v; else delete e.pin; } else e[k] = v; })); redraw(); renderProps(); thumbRefresh(p.id); };
+  Object.assign(window.WX, { free, guard, isNoOver, isW, decorate, setLay });
 })();

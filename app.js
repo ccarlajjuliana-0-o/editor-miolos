@@ -123,7 +123,7 @@ const R={
       font(c,Math.min(hH*.55,cw*.5),e.font,600);c.fillStyle=e.color;
       for(let i=0;i<7;i++)T(c,DIA1[(e.weekStart+i)%7],b.x+cw*i+cw/2,b.y+tH+hH/2,'center','middle');
       const off=(new Date(e.year,m,1).getDay()-e.weekStart+7)%7,dim=daysIn(e.year,m);font(c,Math.min(ch*.52,cw*.46),e.font,400);
-      for(let d=1;d<=dim;d++){const idx=off+d-1,wd=(e.weekStart+idx%7)%7;c.fillStyle=H[m+'-'+d]?e.accent:wd===0?e.accent:e.color;c.globalAlpha=(H[m+'-'+d]||wd!==0)?1:.75;T(c,String(d),b.x+(idx%7)*cw+cw/2,b.y+tH+hH+Math.floor(idx/7)*ch+ch/2,'center','middle');c.globalAlpha=1}}},
+      const ga=c.globalAlpha;for(let d=1;d<=dim;d++){const idx=off+d-1,wd=(e.weekStart+idx%7)%7;c.fillStyle=H[m+'-'+d]?e.accent:wd===0?e.accent:e.color;c.globalAlpha=ga*((H[m+'-'+d]||wd!==0)?1:.75);T(c,String(d),b.x+(idx%7)*cw+cw/2,b.y+tH+hH+Math.floor(idx/7)*ch+ch/2,'center','middle');c.globalAlpha=ga}}},
   table(c,e){const hasH=Array.isArray(e.header)&&e.header.length>0,rows=e.rows+(hasH?1:0),rh=e.h/rows,cw=colWidths(e);
     if(hasH&&e.headFill&&e.headFill!=='none'){rr(c,0,0,e.w,rh,Math.min(1.6,rh/4));c.fillStyle=e.headFill;c.fill()}
     c.beginPath();for(let r=hasH?1:0;r<=rows;r++){c.moveTo(0,r*rh);c.lineTo(e.w,r*rh)}let x=0;for(let i=0;i<=e.cols;i++){c.moveTo(x,hasH?rh:0);c.lineTo(x,e.h);x+=cw[i]||0}strokeIf(c,e.stroke,e.sw||.3);

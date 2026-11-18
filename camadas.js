@@ -110,6 +110,13 @@
     if (e) { v = v.trim(); const cur = e.name || ''; if (v !== cur && v !== nameOf(e)) { change([p.id], () => { if (v) e.name = v; else delete e.name; }); } }
     paint(true);
   }
+  function widgetLay(els) {
+    const W = window.WX; if (!W || !W.isW) return ''; const ws = els.filter((e) => W.isW(e)); if (!ws.length) return '';
+    const same = (f) => ws.every((e) => f(e) === f(ws[0])), pin = same((e) => e.pin || '') ? (ws[0].pin || '') : null, no = same((e) => !!W.isNoOver(e)) ? !!W.isNoOver(ws[0]) : null, lk = ws.every((e) => e.locked);
+    return `<div class="lywl"><div class="lywt">Posição do widget${ws.length > 1 ? ' (' + ws.length + ')' : ''}</div><div class="segf">${[['', 'Normal'], ['top', 'Sempre na frente'], ['back', 'Sempre atrás']].map(([v, n]) => `<button type="button" data-lp="${v}" class="${pin === v ? 'on' : ''}">${n}</button>`).join('')}</div>
+      <label class="chk"><input type="checkbox" data-ln="1"${no ? ' checked' : ''}> Não deixar outros widgets por cima</label>
+      <p class="hint">“Sempre na frente/atrás” vale mesmo quando você muda a ordem na lista. Textos, adesivos e imagens podem ficar por cima de widgets.</p></div>`;
+  }
   function paintSel(p) {
     const box = P && P.querySelector('#lySel'); if (!box) return;
     const els = selEls(); if (!els.length) { box.innerHTML = ''; return; }
@@ -117,9 +124,11 @@
     box.innerHTML = `<div class="lysel"><b>${els.length} selecionado${els.length > 1 ? 's' : ''}</b>
       <button type="button" class="ib" data-s="front" title="Trazer para a frente" aria-label="Trazer para a frente">⤒</button><button type="button" class="ib" data-s="up" title="Subir uma camada" aria-label="Subir uma camada">↑</button><button type="button" class="ib" data-s="down" title="Descer uma camada" aria-label="Descer uma camada">↓</button><button type="button" class="ib" data-s="back" title="Enviar para trás" aria-label="Enviar para trás">⤓</button>
       <button type="button" class="ib" data-s="lock" title="${allL ? 'Destravar' : 'Travar'}" aria-label="${allL ? 'Destravar' : 'Travar'}">${allL ? I.lock : I.unlock}</button><button type="button" class="ib" data-s="hide" title="${allH ? 'Mostrar' : 'Ocultar'}" aria-label="${allH ? 'Mostrar' : 'Ocultar'}">${allH ? I.eyeOff : I.eye}</button>
-      <button type="button" class="ib" data-s="group" title="${grp ? 'Desagrupar' : 'Agrupar'}" aria-label="${grp ? 'Desagrupar' : 'Agrupar'}">${grp ? '⊟' : '⊞'}</button></div>`;
+      <button type="button" class="ib" data-s="group" title="${grp ? 'Desagrupar' : 'Agrupar'}" aria-label="${grp ? 'Desagrupar' : 'Agrupar'}">${grp ? '⊟' : '⊞'}</button></div>${widgetLay(els)}`;
+    box.onchange = (ev) => { if (ev.target.dataset && ev.target.dataset.ln) { WX.setLay('noOver', ev.target.checked); paintSel(curPage()); } };
     box.onclick = (ev) => {
-      const b = ev.target.closest('button'); if (!b) return; const a = b.dataset.s, p2 = curPage(), ids = S.sel.slice();
+      const b = ev.target.closest('button'); if (!b) return;
+      if (b.dataset.lp !== undefined) { WX.setLay('pin', b.dataset.lp); paintSel(curPage()); return; } const a = b.dataset.s, p2 = curPage(), ids = S.sel.slice();
       if (a === 'front' || a === 'back') orderSel(a);
       else if (a === 'up' || a === 'down') stepOrder(p2, ids, a === 'up' ? 1 : -1);
       else if (a === 'lock') { const v = !selEls().every((e) => e.locked); change([p2.id], () => selEls().forEach((e) => { e.locked = v; })); }
