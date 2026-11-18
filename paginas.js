@@ -241,7 +241,7 @@
       prune();
       const n = S.order.length, mini = getView() === 'mini';
       return `<h2>Páginas <span class="hint">${S.cur + 1} / ${n}</span><span class="pgview" role="group" aria-label="Modo de visualização"><button type="button" class="ib${mini ? '' : ' on'}" data-view="lista" title="Lista" aria-label="Lista" aria-pressed="${!mini}">☰</button><button type="button" class="ib${mini ? ' on' : ''}" data-view="mini" title="Miniaturas" aria-label="Miniaturas" aria-pressed="${mini}">▦</button></span></h2>
-      <div class="row"><button class="btn sm pri" id="pgIns">+ Inserir página</button><button class="btn sm" id="pgCopy">Copiar design…</button></div>
+      <div class="row"><button class="btn sm pri" id="pgIns">+ Inserir página</button><button class="btn sm" id="pgCopy">Copiar design…</button><button class="btn sm" id="pgPdf">Importar PDF…</button></div>
       <details class="xadv"><summary>Visualização dupla</summary><label class="chk"><input type="checkbox" id="coverAlone"${S.meta.coverAlone !== false ? ' checked' : ''}> A primeira página fica sozinha (capa)</label></details>
       ${n > 10 ? '<input type="search" id="pgQ" placeholder="Procurar página…" aria-label="Procurar página">' : ''}
       <div class="pgtools"><label class="chk"><input type="checkbox" id="pgAll"> <span>Selecionar todas</span></label><span class="hint" id="pgCnt"></span></div>
@@ -271,7 +271,7 @@
       const cvs = $$('canvas[data-id]', P);
       if (cvs.length) { const io = 'IntersectionObserver' in window ? new IntersectionObserver((en) => en.forEach((x) => { if (x.isIntersecting) { io.unobserve(x.target); drawMini(x.target); } }), { root: null, rootMargin: '200px' }) : null; cvs.forEach((c) => { if (io) io.observe(c); else drawMini(c); }); }
       $('#coverAlone', P).onchange = (e) => { S.meta.coverAlone = e.target.checked; Saver.m(); renderStage(); updNav(); markStrip(); };
-      $('#pgIns', P).onclick = insertModal; $('#pgCopy', P).onclick = () => copyModal(S.cur, null);
+      $('#pgIns', P).onclick = insertModal; $('#pgCopy', P).onclick = () => copyModal(S.cur, null); if ($('#pgPdf', P)) $('#pgPdf', P).onclick = () => window.Importar && Importar.start();
       const q = $('#pgQ', P); if (q) q.oninput = () => { const t = q.value.trim().toLowerCase(); $$('.pwrap', P).forEach((w) => { const i = +w.dataset.i; w.hidden = !!t && !(`${i + 1} ${title(i)}`.toLowerCase().includes(t)); }); paint(); };
       $('#pgAll', P).onchange = (e) => { visible().forEach((w) => { if (e.target.checked) psel.add(idOf(w)); else psel.delete(idOf(w)); }); paint(); };
       $$('.pck', P).forEach((c) => { c.onclick = (e) => { e.stopPropagation(); toggle(idOf(c.closest('.pwrap')), e, c.checked); }; });

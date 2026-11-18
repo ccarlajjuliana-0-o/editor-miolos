@@ -116,3 +116,10 @@ Em qualquer campo de cor abre um seletor com quadro de cor, matiz, código HEX, 
 - A régua mostra a numeração (em cm) em cada página da dupla e em qualquer zoom.
 - Guias podem ser arrastadas da régua direto para qualquer página da dupla, sem trocar de visualização. Separadas (azuis): ficam numa página só e mudam de página se você arrastar até a outra. Contínuas (lavanda): uma guia só que atravessa as duas páginas.
 - Em "Régua, grade e guias" escolha o tipo das guias novas; Shift ao arrastar usa o outro tipo; dois cliques numa guia troca entre contínua e separada.
+
+## Importar PDF (PDF → elementos editáveis)
+- Botão "Importar PDF" na tela inicial e "Importar PDF…" no painel Páginas (também dá para arrastar um PDF para a janela).
+- Cada página vira uma página do editor no tamanho original. Textos (agrupados por linha/parágrafo, com cor, tamanho, negrito/itálico e rotação), formas, traços (com tracejado), retângulos e imagens viram elementos separados e editáveis, na mesma ordem de camadas.
+- Fontes do PDF são trocadas por uma parecida do editor (aviso no sino). Gradientes viram cor lisa; recortes de formas não são mantidos (os retangulares de imagens sim).
+- Funciona melhor com PDFs feitos por programas (Canva, Word, Illustrator, este estúdio). PDF de scanner entra como imagem.
+- Leitor: pdf.js (pasta vendor/pdfjs, licença Apache-2.0), guardado junto do app para funcionar offline.

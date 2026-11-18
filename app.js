@@ -134,7 +134,10 @@ const R={
     for(let i=0;i<n;i++){const y=i*rh,by=y+(rh-bs)/2;if(e.box==='circle'){c.beginPath();c.arc(bs/2,by+bs/2,bs/2,0,7)}else rr(c,0,by,bs,bs,bs*.22);strokeIf(c,e.color,sw);
       const lb=Array.isArray(e.items)?e.items[i]:'';let lx=bs+1.8;if(lb){font(c,Math.min(bs*.95,rh*.48),e.font||'Nunito',400);c.fillStyle=e.textColor||e.color;T(c,lb,bs+1.6,by+bs/2,'left','middle');lx=bs+1.6+M(c,lb)+1.2}
       if(e.lines&&lx<e.w){c.beginPath();c.moveTo(lx,by+bs);c.lineTo(e.w,by+bs);strokeIf(c,e.stroke,sw*.85)}}},
-  path(c,e){const P=(e.pts||[]).map(([u,v])=>[u*e.w,v*e.h]);if(P.length<2)return;tracePath(c,P,e.smooth,e.closed);c.lineJoin='round';c.lineCap='round';if(e.closed)fillIf(c,e.fill);strokeIf(c,e.stroke,e.sw);c.lineJoin='miter';c.lineCap='butt'},
+  path(c,e){const P=(e.pts||[]).map(([u,v])=>[u*e.w,v*e.h]);if(P.length<2)return;const dash=e.dash&&e.dash.length?e.dash:null;
+    if(e.more&&e.more.length){c.beginPath();[{pts:e.pts,closed:e.closed},...e.more].forEach(q=>{const Q=(q.pts||[]).map(([u,v])=>[u*e.w,v*e.h]);if(Q.length<2)return;c.moveTo(Q[0][0],Q[0][1]);for(let i=1;i<Q.length;i++)c.lineTo(Q[i][0],Q[i][1]);if(q.closed)c.closePath()});
+      if(e.fill&&e.fill!=='none'){c.fillStyle=e.fill;c.fill(e.rule==='evenodd'?'evenodd':'nonzero')}c.lineCap=e.cap||'round';c.lineJoin=e.join||'round';strokeIf(c,e.stroke,e.sw,dash);c.lineCap='butt';c.lineJoin='miter';return}
+    tracePath(c,P,e.smooth,e.closed);c.lineJoin=e.join||'round';c.lineCap=e.cap||'round';if(e.closed){if(e.rule==='evenodd'&&e.fill&&e.fill!=='none'){c.fillStyle=e.fill;c.fill('evenodd')}else fillIf(c,e.fill)}strokeIf(c,e.stroke,e.sw,dash);c.lineJoin='miter';c.lineCap='butt'},
   habit(c,e){const rows=Math.max(1,e.rows|0),days=Math.max(1,e.days|0),lw=e.w*(e.labelW||.3),rh=e.h/(rows+1),cw=(e.w-lw)/days;
     font(c,Math.min(rh*.42,cw*.62),e.font,600);c.fillStyle=e.color;for(let d=0;d<days;d++)T(c,String(d+1),lw+cw*d+cw/2,rh/2,'center','middle');
     c.beginPath();for(let r=1;r<=rows+1;r++){c.moveTo(0,r*rh);c.lineTo(e.w,r*rh)}strokeIf(c,e.stroke,.3);
