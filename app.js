@@ -370,7 +370,7 @@ function genPages(o,st){const {specs,months}=genSpecs(o);specs.forEach((sp,i)=>{
     const pgo={id:sp.id,w:W,h:H,bg:out.bg||'#FFFFFF',bgImg:null,name:nm,els:out.els};if(mg)pgo.mg=mg;return pgo})}
 
 /* ================= imposição em cadernos ================= */
-function impose(list,sheets){const per=4*sheets,L=list.slice();while(L.length%per)L.push(null);const out=[];
+function impose(list,sheets){const per=4*sheets,L=list.slice(),bk=L.length>2&&isBackCover(L[L.length-1])?L.pop():null;while((L.length+(bk?1:0))%per)L.push(null);if(bk)L.push(bk);const out=[];
   for(let s=0;s<L.length;s+=per){const g=L.slice(s,s+per);for(let k=0;k<sheets;k++){out.push({side:'frente',l:g[per-1-2*k],r:g[2*k]});out.push({side:'verso',l:g[2*k+1],r:g[per-2-2*k]})}}return out}
 
 /* ================= armazenamento (no aparelho, em IndexedDB) ================= */
@@ -520,7 +520,9 @@ async function openProject(pid,fresh){if(!fresh){const p=S.projects.find(x=>x.id
   $('#home').hidden=true;$('#editor').hidden=false;$('#pName').value=S.meta.name;setSave('Salvo neste aparelho');updUndo();renderRail();renderPanel();refreshAll();}
 function refreshAll(){renderStrip();renderStage();renderProps();updNav();if(S.tab==='paginas')renderPanel()}
 function updNav(){const sp=curSpread();$('#pgInfo').textContent=(sp.length>1?`${sp[0]+1}–${sp[sp.length-1]+1}`:S.cur+1)+'/'+S.order.length;$$('#viewSeg button').forEach(b=>b.classList.toggle('on',b.dataset.v===(S.meta.view||'single')));$('#bZfit').textContent=Math.round(S.k/MM2PX*100)+'%'}
-function spreads(){const n=S.order.length,out=[];if(S.meta.view!=='spread'){for(let i=0;i<n;i++)out.push([i]);return out}let i=0;if(S.meta.coverAlone!==false&&n){out.push([0]);i=1}for(;i<n;i+=2)out.push(i+1<n?[i,i+1]:[i]);return out}
+/* Contracapa: a ÚLTIMA página do projeto, quando chamada "Contracapa". Fica sozinha na dupla (à esquerda) e fecha o caderno na imposição. */
+function isBackCover(p){return !!p&&S.order.length>1&&S.order[S.order.length-1]===p.id&&/^\s*contra\s*-?\s*capa\b/i.test(p.name||'')}
+function spreads(){const n=S.order.length,out=[];if(S.meta.view!=='spread'){for(let i=0;i<n;i++)out.push([i]);return out}let i=0;if(S.meta.coverAlone!==false&&n){out.push([0]);i=1}const back=isBackCover(S.pages[S.order[n-1]])?1:0,m=n-back;for(;i<m;i+=2)out.push(i+1<m?[i,i+1]:[i]);if(back)out.push([n-1]);return out}
 function curSpread(){const sp=spreads();return sp.find(s=>s.includes(S.cur))||sp[0]||[0]}
 function go(delta){const sp=spreads(),i=Math.max(0,sp.findIndex(s=>s.includes(S.cur))),n=sp[cl(i+delta,0,sp.length-1)];if(!n)return;setCur(n[0])}
 function setCur(i,keepSel){if(i===S.cur&&keepSel)return;S.cur=cl(i,0,S.order.length-1);if(!keepSel)S.sel=[];renderStage();renderProps();updNav();markStrip();if(S.tab==='paginas')renderPanel()}

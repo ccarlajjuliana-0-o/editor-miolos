@@ -10,7 +10,7 @@
   // true = página da ESQUERDA da dupla no editor (o lado de dentro fica na sua borda direita, no meio da dupla)
   const autoLeft = (p) => {
     const i = S.order.indexOf(p.id), off = S.meta.coverAlone !== false ? 1 : 0;
-    const e = i < off ? false : (i - off) % 2 === 0; // capa sozinha aparece à direita
+    const e = i < off ? false : (typeof isBackCover === 'function' && isBackCover(p)) ? true : (i - off) % 2 === 0; // capa sozinha à direita; contracapa sozinha à esquerda
     return S.meta.mgFlip ? !e : e;
   };
   const isLeft = (p, m) => (m && m.side === 'e' ? true : m && m.side === 'd' ? false : autoLeft(p));
@@ -56,6 +56,7 @@
     if (len > area + 1 || (lo === 0 && hi === pageLen && len >= pageLen - 1)) return { m: 'X', v: 0 };
     if (c < a0) return { m: kind === 'x' ? 'L' : 'T', v: pos - lo };       // fora da área, na margem: acompanha a borda
     if (c > a1) return { m: kind === 'x' ? 'R' : 'B', v: pos - hi };
+    if (Math.abs(c - (a0 + a1) / 2) <= 1.2 && len < area - 2) return { m: 'C', v: c - (a0 + a1) / 2 }; // centralizado: continua centralizado na nova área
     if (Math.abs(pos - a0) <= 1.5) return { m: 'S', v: pos - a0 };           // colado no começo da área: acompanha
     if (Math.abs(a1 - (pos + len)) <= 1.5) return { m: 'E', v: pos + len - a1 }; // colado no fim: acompanha
     return { m: 'F', v: pos };                                                // livre: fica onde está e só recua se a margem invadir
@@ -67,6 +68,7 @@
     const room = b1 - b0; if (len > room + 0.05) return { v: b0, ok: false };
     // âncoras antigas (proporção 0..1 da folga, gravadas com a página inteira como área)
     if (an.m === 'M') { const v0 = an.v * Math.max(0, pageLen - len); return { v: Math.max(b0, Math.min(v0, b1 - len)), ok: true }; }
+    if (an.m === 'C') return { v: Math.max(b0, Math.min(b0 + (room - len) / 2 + an.v, b1 - len)), ok: true };
     const v = an.m === 'S' ? b0 + an.v : an.m === 'E' ? b1 + an.v - len : an.v;
     return { v: Math.max(b0, Math.min(v, b1 - len)), ok: true };
   }
@@ -77,6 +79,16 @@
       if (e.locked) return;
       const before = { x: e.x, y: e.y };
       let mu = e.mu;
+      /* moldura da página (retângulo vazado quase do tamanho da folha): acompanha a área segura, igual nos quatro lados.
+         É a única exceção à regra "só move": o tamanho original fica guardado e volta ao desligar as margens. */
+      if (mu && mu.fr && !(same(mu.x, e.x) && same(mu.y, e.y) && same(mu.w, e.w) && same(mu.h, e.h))) { delete mu.fr; e.mu = mu = { ax: mu.ax, ay: mu.ay, x: e.x, y: e.y }; }
+      const fr0 = mu && mu.fr, isFrame = fr0 || (e.type === 'rect' && (!e.fill || e.fill === 'none') && e.w >= p.w * 0.85 && e.h >= p.h * 0.85 && !e.link);
+      if (isFrame) {
+        if (b.full) { if (fr0) { e.x = fr0.x; e.y = fr0.y; e.w = fr0.w; e.h = fr0.h; delete e.mu; } moved.push({ e, before }); return; }
+        const fr = fr0 || { x: e.x, y: e.y, w: e.w, h: e.h };
+        e.x = r1(b.x0); e.y = r1(b.top); e.w = r1(b.x1 - b.x0); e.h = r1(b.bot - b.top);
+        e.mu = { fr, ax: { m: 'X', v: 0 }, ay: { m: 'X', v: 0 }, x: e.x, y: e.y, w: e.w, h: e.h }; moved.push({ e, before }); return;
+      }
       if (!mu || !same(mu.x, e.x) || !same(mu.y, e.y)) { // novo ou movido à mão: registra a âncora na área atual
         const ax = anchorAxis(e.x, e.w, a.x0, a.x1, a.x0, a.x1, p.w, 'x'), ay = anchorAxis(e.y, e.h, a.y0, a.y1, a.top, a.bot, p.h, 'y');
         mu = { ax, ay };
@@ -110,7 +122,8 @@
   const toast2 = (t, o) => { if (typeof toast === 'function') toast(t, o); };
   function partnerOf(p) { // a outra página da mesma dupla (a capa fica sozinha)
     const i = S.order.indexOf(p.id), off = S.meta.coverAlone !== false ? 1 : 0; if (i < off) return null;
-    const q = S.order[(i - off) % 2 === 0 ? i + 1 : i - 1]; return q ? S.pages[q] : null;
+    if (typeof isBackCover === 'function' && isBackCover(p)) return null;
+    const q = S.order[(i - off) % 2 === 0 ? i + 1 : i - 1]; return q && !(typeof isBackCover === 'function' && isBackCover(S.pages[q])) ? S.pages[q] : null;
   }
   const scopeOf = () => (S.meta.mgScope === 'page' ? 'page' : S.meta.mgScope === 'sel' ? 'sel' : 'all');
   const selected = () => (window.Paginas && Paginas.selected ? Paginas.selected() : []);

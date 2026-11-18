@@ -151,3 +151,7 @@ O gerador de agenda saiu do editor: na tela de projetos, o botão **Planner data
 **Regra para o futuro:** toda regra nova que precise valer nas páginas geradas se registra em `GenHooks` (app.js): `GenHooks.push((pages, opções, meta) => { ... })`. Ela roda logo depois de as páginas serem geradas e antes de o projeto ser criado. O estilo de widgets e a moldura de página já usam esse caminho.
 
 **Divisórias no planner datado:** usam as Divisórias do Layout (lateral externa, espelhadas na dupla, uma por mês, com link para o mês). Por serem iguais em todas as páginas, o destaque do mês atual não é automático; dá para escolher um destaque fixo em Layout → Divisórias.
+
+## Contracapa e moldura da capa
+- **Contracapa:** a última página do projeto, quando se chama "Contracapa". Na dupla ela fica sozinha (à esquerda, como a capa fica sozinha à direita), a margem interna dela fica do lado certo, e na exportação em caderno (imposição) as páginas em branco entram antes dela, para que feche o caderno. No tablet em dupla ela também sai sozinha.
+- **Moldura da página:** um retângulo vazado do tamanho da folha (como a borda da capa) acompanha a área segura quando as margens são ligadas e volta ao tamanho original quando são desligadas. É a única exceção à regra "margens só movem". Elementos centralizados continuam centralizados na nova área.

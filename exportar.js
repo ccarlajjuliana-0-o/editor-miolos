@@ -79,10 +79,12 @@
       let i = 0;
       const single = (p) => jobs.push({ w: p.w, h: p.h, pids: [p.id], links: () => pageLinks(p), draw: (c, k) => drawPage(c, p, k, 0, 0) });
       if (S.meta.coverAlone !== false && pgs[0] === S.pages[S.order[0]]) { single(pgs[0]); i = 1; }
-      for (; i < pgs.length; i += 2) {
-        const a = pgs[i], d = pgs[i + 1]; if (!d) { single(a); break; }
+      const bk = pgs.length > 2 && isBackCover(pgs[pgs.length - 1]) ? pgs.length - 1 : pgs.length;
+      for (; i < bk; i += 2) {
+        const a = pgs[i], d = pgs[i + 1]; if (!d || i + 1 >= bk) { single(a); break; }
         jobs.push({ w: a.w + d.w, h: Math.max(a.h, d.h), pids: [a.id, d.id], links: () => [...pageLinks(a), ...pageLinks(d).map((L) => ({ ...L, x: L.x + a.w }))], draw: (c, k) => { drawPage(c, a, k, 0, 0); drawPage(c, d, k, a.w * k, 0); } });
       }
+      if (bk < pgs.length) single(pgs[bk]);
       return R;
     }
     for (const p of pgs) {
