@@ -76,19 +76,28 @@
 
   /* ---------- IA (opcional) ---------- */
   const IAK = 'cnu-estudio-ia';
+  const parseJson = (txt) => { const a = txt.indexOf('{'), b = txt.lastIndexOf('}'); if (a < 0 || b < a) throw new Error('A IA não devolveu um formato que eu entenda.'); return JSON.parse(txt.slice(a, b + 1)); };
   const IA = {
-    cfg() { try { return Object.assign({ key: '', model: 'claude-sonnet-5-5' }, JSON.parse(localStorage.getItem(IAK) || '{}')); } catch (e) { return { key: '', model: 'claude-sonnet-5-5' }; } },
+    cfg() { try { return Object.assign({ mode: 'direct', key: '', model: 'claude-sonnet-5-5' }, JSON.parse(localStorage.getItem(IAK) || '{}')); } catch (e) { return { mode: 'direct', key: '', model: 'claude-sonnet-5-5' }; } },
     save(c) { try { localStorage.setItem(IAK, JSON.stringify(c)); } catch (e) { /* sem armazenamento */ } },
-    ok() { return !!this.cfg().key; },
+    ok() { const c = this.cfg(); return c.mode === 'proxy' ? !!(window.Cloud && Cloud.sb && Cloud.user) : !!c.key; },
+    label() { const c = this.cfg(); return this.ok() ? (c.mode === 'proxy' ? 'IA ligada (pela sua nuvem)' : 'IA ligada (chave neste aparelho)') : (c.mode === 'proxy' ? 'IA pela nuvem: entre na nuvem para usar' : 'IA desligada'); },
     async ask(system, prompt, imageUrl) {
-      const c = this.cfg(); if (!c.key) throw new Error('Sem chave de IA.');
-      const content = []; if (imageUrl) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageUrl.split(',')[1] } });
-      content.push({ type: 'text', text: prompt });
-      const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': c.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }, body: JSON.stringify({ model: c.model, max_tokens: 2500, system, messages: [{ role: 'user', content }] }) });
-      if (!r.ok) { let m = ''; try { m = (await r.json()).error.message; } catch (e) { /* sem corpo */ } throw new Error(m || 'A IA respondeu com erro ' + r.status + '.'); }
-      const j = await r.json(); const txt = (j.content || []).map((x) => x.text || '').join('');
-      const a = txt.indexOf('{'), b = txt.lastIndexOf('}'); if (a < 0 || b < a) throw new Error('A IA não devolveu um formato que eu entenda.');
-      return JSON.parse(txt.slice(a, b + 1));
+      const c = this.cfg(); let txt;
+      if (c.mode === 'proxy') {
+        if (!(window.Cloud && Cloud.sb && Cloud.user)) throw new Error('Entre na nuvem (menu Nuvem e backup) para usar a IA pela nuvem.');
+        const { data, error } = await Cloud.sb.functions.invoke('ia-modulab', { body: { system, prompt, image: imageUrl ? imageUrl.split(',')[1] : null, model: c.model } });
+        if (error) throw new Error('A função de IA da nuvem não respondeu. Confira se ela foi publicada (veja Configurar IA).');
+        if (data && data.error) throw new Error(data.error); txt = data && data.text;
+      } else {
+        if (!c.key) throw new Error('A IA está desligada. Use “Ligar IA” para configurar.');
+        const content = []; if (imageUrl) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageUrl.split(',')[1] } });
+        content.push({ type: 'text', text: prompt });
+        let r; try { r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': c.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }, body: JSON.stringify({ model: c.model, max_tokens: 3000, system, messages: [{ role: 'user', content }] }) }); } catch (e) { throw new Error('Não consegui falar com a IA (sem internet ou bloqueio do navegador).'); }
+        if (!r.ok) { let m = ''; try { m = (await r.json()).error.message; } catch (e) { /* sem corpo */ } throw new Error(m || 'A IA respondeu com erro ' + r.status + '.'); }
+        const j = await r.json(); txt = (j.content || []).map((x) => x.text || '').join('');
+      }
+      return parseJson(txt || '');
     },
   };
   const SYS = 'Você ajuda a criar componentes visuais delicados para um editor de planners e cadernos (marca "Craft Notes Unique": lavanda, azul pervinca, rosa sakura, dourado mel, sálvia; formas suaves, cantos arredondados, nada de cores neon). Responda SOMENTE com JSON válido, sem texto fora do JSON. Cores sempre em #RRGGBB, exceto onde o esquema aceitar tokens.';
@@ -331,7 +340,7 @@
     const aiOn = !ED.noAI; let props = []; let busy = '';
     const html = () => `<div class="mlx"><div class="mlh"><h2>${isNew ? ED.title : 'Editar · ' + esc(KIND[kind].n)}</h2><label class="f mlname">Nome<input type="text" data-k="name" value="${esc(s.name)}"></label></div>
       <div class="mlcols"><div class="mlleft">
-        ${aiOn ? `<div class="mlai"><div class="mlaih"><b>Sugestões</b><small>${IA.ok() ? 'IA ligada' : 'sem IA (cores de imagem e palavras)'}</small><button class="btn sm ghost" type="button" data-iacfg>Configurar IA</button></div>
+        ${aiOn ? `<div class="mlai"><div class="mlaih"><b>Sugestões</b><small class="${IA.ok() ? 'iaon' : 'iaoff'}">${esc(IA.label())}${IA.ok() ? '' : ' · uso só cores de imagem e palavras'}</small><button class="btn sm${IA.ok() ? ' ghost' : ' pri'}" type="button" data-iacfg>${IA.ok() ? 'Configurar IA' : 'Ligar IA'}</button></div>
           <textarea id="mlPrompt" rows="2" placeholder="${kind === 'colecao' ? 'Ex.: coleção de natal delicada com tons de verde e dourado' : 'Descreva o que você quer, ex.: ' + ({ wsty: 'moldura fina com título manuscrito', bdr: 'borda de flores suaves em rosa', tema: 'tema outono aconchegante', stk: 'cartela de adesivos de natal', wgt: 'lista de tarefas para o inverno' }[kind] || 'algo delicado')}">${esc(S._mlPrompt || '')}</textarea>
           <div class="row"><span class="btn sm upl">Enviar imagem de referência<input type="file" id="mlImg" accept="image/*"></span><span class="hint" id="mlImgN">${S._mlImg ? 'Imagem anexada.' : ''}</span><button class="btn sm pri" type="button" id="mlGo"${busy ? ' disabled' : ''}>${busy || 'Sugerir'}</button></div>
           <div class="mlprops" id="mlProps">${props.map((p, i) => `<button type="button" class="mlprop" data-prop="${i}"><canvas data-pp="${i}"></canvas><span>${esc((p.name || (p.tema && p.tema.name) || 'Proposta') + '')}</span></button>`).join('')}</div>
@@ -409,30 +418,159 @@
   /* ---------- configuração da IA ---------- */
   function iaModal(after) {
     const c = IA.cfg();
-    modal(`<h2>IA do ModuLab</h2><p class="hint">Opcional. Com uma chave da Anthropic, o ModuLab pede sugestões de design por texto ou imagem. A chave fica <b>só neste aparelho</b> e as perguntas vão direto do seu navegador para a Anthropic. Use uma chave com limite de gasto.</p>
-      <label class="f">Chave da API<input type="password" id="iaKey" value="${esc(c.key)}" placeholder="sk-ant-…" autocomplete="off"></label><label class="f">Modelo<input type="text" id="iaMod" value="${esc(c.model)}"></label>
-      <p class="hint">Sem chave, o ModuLab ainda sugere a partir das cores de uma imagem ou de palavras como natal, páscoa, outono…</p><p class="hint" id="iaMsg"></p>
-      <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Fechar</button><button class="btn" id="iaTest">Testar</button><button class="btn pri" id="iaSave">Salvar</button></div>`, (b, close) => {
-      const rd = () => ({ key: $('#iaKey', b).value.trim(), model: $('#iaMod', b).value.trim() || 'claude-sonnet-5-5' });
-      $('#iaSave', b).onclick = () => { IA.save(rd()); close(); toast(rd().key ? 'IA ligada. ✨' : 'IA desligada.'); if (after) after(); else ModuLab.refresh(); };
-      $('#iaTest', b).onclick = async () => { IA.save(rd()); $('#iaMsg', b).textContent = 'Testando…'; try { await IA.ask('Responda só com JSON.', 'Devolva {"ok":true}'); $('#iaMsg', b).textContent = 'Funcionou! 💜'; } catch (e) { $('#iaMsg', b).textContent = e.message || 'Não funcionou.'; } };
+    modal(`<h2>Ligar a IA do ModuLab</h2><p class="hint">A IA só <b>propõe</b> (cores, estilos, bordas, adesivos, widgets e até desenhos no editor livre). Nada entra sem você aceitar e poder mudar. Escolha como ligar:</p>
+      <label class="chk"><input type="radio" name="iaM" value="proxy"${c.mode === 'proxy' ? ' checked' : ''}> <b>Pela minha nuvem</b> (recomendado: a chave fica guardada na nuvem, não no navegador)</label>
+      <div id="iaProxy" class="mlnote"${c.mode === 'proxy' ? '' : ' hidden'}>Precisa publicar uma vez a função <code>ia-modulab</code> no seu Supabase (o arquivo já está no projeto, em <code>supabase/functions/ia-modulab/index.ts</code>):<br><code>supabase secrets set ANTHROPIC_API_KEY=sua-chave</code><br><code>supabase functions deploy ia-modulab</code><br>Depois, entre na nuvem aqui no estúdio e clique em Testar. Passo a passo no README.</div>
+      <label class="chk"><input type="radio" name="iaM" value="direct"${c.mode !== 'proxy' ? ' checked' : ''}> <b>Chave neste aparelho</b> (mais rápido de ligar)</label>
+      <div id="iaDirect" class="mlnote"${c.mode !== 'proxy' ? '' : ' hidden'}><label class="f">Chave da API da Anthropic<input type="password" id="iaKey" value="${esc(c.key)}" placeholder="sk-ant-…" autocomplete="off"></label><span class="hint">A chave fica só neste aparelho e as perguntas vão direto do navegador para a Anthropic. Use uma chave com limite de gasto (console.anthropic.com).</span></div>
+      <label class="f">Modelo<input type="text" id="iaMod" value="${esc(c.model)}"></label>
+      <p class="hint" id="iaMsg"></p><p class="hint">Sem IA, o ModuLab ainda sugere a partir das cores de uma imagem ou de palavras como natal, páscoa, outono…</p>
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Fechar</button><button class="btn" id="iaTest" type="button">Testar</button><button class="btn pri" id="iaSave" type="button">Salvar</button></div>`, (b, close) => {
+      const mode = () => ($('[name=iaM]:checked', b) || {}).value || 'direct';
+      $$('[name=iaM]', b).forEach((r) => r.onchange = () => { $('#iaProxy', b).hidden = mode() !== 'proxy'; $('#iaDirect', b).hidden = mode() === 'proxy'; });
+      const rd = () => ({ mode: mode(), key: ($('#iaKey', b).value || '').trim(), model: $('#iaMod', b).value.trim() || 'claude-sonnet-5-5' });
+      $('#iaSave', b).onclick = () => { IA.save(rd()); close(); toast(IA.ok() ? 'IA ligada. ✨' : 'Salvei, mas a IA ainda não está pronta (falta a chave ou entrar na nuvem).'); if (after) after(); else ModuLab.refresh(); };
+      $('#iaTest', b).onclick = async () => { IA.save(rd()); $('#iaMsg', b).textContent = 'Testando…'; try { await IA.ask('Responda só com JSON.', 'Devolva {"ok":true}'); $('#iaMsg', b).textContent = 'Funcionou! A IA está ligada. 💜'; } catch (e) { $('#iaMsg', b).textContent = e.message || 'Não funcionou.'; } };
     });
   }
+
+
+  /* =====================================================================
+     Editor livre: o editor completo do Estúdio numa página em branco (como um Canva).
+     Tudo o que o editor faz vale aqui: texto, formas, desenho à mão, imagens, widgets, adesivos, camadas…
+     No fim, "Salvar no ModuLab" guarda o que você montou como widget, adesivo ou borda.
+     ===================================================================== */
+  const FREE = { wgt: { n: 'Widget', w: 110, h: 80 }, stk: { n: 'Adesivo', w: 70, h: 70 }, bdr: { n: 'Borda (faixa de imagem)', w: 148, h: 30 } };
+  function freeModal() {
+    modal(`<h2>Criar no editor livre</h2><p class="hint">Uma página em branco no editor completo do Estúdio. Desenhe, escreva, coloque imagens e formas do jeito que quiser. Depois é só salvar no ModuLab.</p>
+      <label class="f">O que você vai criar<select id="frK">${Object.entries(FREE).map(([k, v]) => `<option value="${k}">${v.n}</option>`).join('')}</select></label>
+      <div class="fgrid"><label class="f">Largura da área (mm)<input type="number" id="frW" min="10" max="600" value="110"></label><label class="f">Altura da área (mm)<input type="number" id="frH" min="10" max="600" value="80"></label></div>
+      <label class="f">Nome<input type="text" id="frN" value="Meu widget"></label>
+      <p class="hint">A área é só o espaço de trabalho: o que você salvar leva o tamanho do desenho.</p>
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="frGo">Abrir o editor</button></div>`, (b, close) => {
+      $('#frK', b).onchange = () => { const f = FREE[$('#frK', b).value]; $('#frW', b).value = f.w; $('#frH', b).value = f.h; $('#frN', b).value = 'Meu ' + f.n.split(' ')[0].toLowerCase(); };
+      $('#frGo', b).onclick = () => { const k = $('#frK', b).value, o = { w: num($('#frW', b).value, 10, 600, 110), h: num($('#frH', b).value, 10, 600, 80), name: ($('#frN', b).value || '').trim() || FREE[k].n }; close(); openFree(k, null, o); };
+    });
+  }
+  async function openFree(kind, item, o) {
+    o = o || {}; let w = o.w, h = o.h, els = [];
+    if (item) { const bx = { w: item.w || 60, h: item.h || 40 }; w = Math.max(80, Math.round(bx.w * 1.5)); h = Math.max(60, Math.round(bx.h * 1.5)); els = clone(item.els || []).map((e) => Object.assign(e, { id: uid('e'), x: r1(e.x + (w - bx.w) / 2), y: r1(e.y + (h - bx.h) / 2), link: null })); }
+    const pg = blankPage(w, h); pg.els = els; pg.name = (item ? item.name : o.name) || 'Criação';
+    toast('Abrindo o editor livre…');
+    await createProject('ModuLab · ' + pg.name, { w, h }, [pg], false, { modulab: true, ml: { kind, itemId: item ? item.id : null, name: pg.name } });
+    S.tab = 'widgets'; if (typeof renderRail === 'function') { renderRail(); renderPanel(); }
+  }
+  function dockBox() { let d = document.getElementById('mlDock'); if (!d) { d = document.createElement('div'); d.id = 'mlDock'; d.hidden = true; document.body.appendChild(d); } return d; }
+  function dock() {
+    const d = dockBox(), on = S.view === 'editor' && S.meta && S.meta.ml;
+    if (!on) { d.hidden = true; return; }
+    const k = S.meta.ml.kind, f = FREE[k] || FREE.wgt;
+    d.hidden = false; d.innerHTML = `<span class="mlt"><b>ModuLab</b> · criando ${esc(f.n.toLowerCase())}</span><button class="btn sm" id="mlAiDraw" type="button">✨ Pedir à IA</button><button class="btn sm pri" id="mlFreeSave" type="button">Salvar no ModuLab</button><button class="btn sm ghost" id="mlFreeExit" type="button">Sair</button>`;
+    $('#mlAiDraw', d).onclick = aiDrawModal; $('#mlFreeSave', d).onclick = freeSaveModal; $('#mlFreeExit', d).onclick = () => { const b = $('#bBack'); if (b) b.click(); };
+  }
+  const freeEls = () => { const p = curPage(), sel = selEls(); const ids = sel.length ? gx(p, sel.map((e) => e.id)) : null; return p.els.filter((e) => !e.hidden && (!ids || ids.includes(e.id))); };
+  async function renderPng(els, bx) {
+    const k = 10, cv = document.createElement('canvas'); cv.width = Math.max(1, Math.round(bx.w * k)); cv.height = Math.max(1, Math.round(bx.h * k));
+    const c = cv.getContext('2d'); c.setTransform(k, 0, 0, k, -bx.x * k, -bx.y * k); els.forEach((e) => drawEl(c, e));
+    return await new Promise((res) => cv.toBlob(res, 'image/png'));
+  }
+  function freeSaveModal() {
+    const els = freeEls(); if (!els.length) { toast('A página está vazia. Crie algo primeiro.'); return; }
+    const ml = S.meta.ml, locked = !!ml.itemId, sel = selEls().length;
+    modal(`<h2>Salvar no ModuLab</h2><p class="hint">${sel ? 'Vai salvar só o que está selecionado.' : 'Vai salvar tudo o que está na página.'}</p>
+      <label class="f">Nome<input type="text" id="fsN" value="${esc(ml.name || 'Minha criação')}"></label>
+      ${locked ? '' : `<label class="f">Salvar como<select id="fsK"><option value="wgt"${ml.kind === 'wgt' ? ' selected' : ''}>Widget (Widgets → Salvos)</option><option value="stk"${ml.kind === 'stk' ? ' selected' : ''}>Adesivo (Adesivos → Do ModuLab)</option><option value="bdr"${ml.kind === 'bdr' ? ' selected' : ''}>Borda de imagem (Bordas → Minhas bordas)</option></select></label>`}
+      ${locked ? '<p class="hint">Atualiza o item que você abriu. Para guardar como novo, use “Salvar como cópia”.</p>' : ''}
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Cancelar</button>${locked ? '<button class="btn" id="fsCopy" type="button">Salvar como cópia</button>' : ''}<button class="btn pri" id="fsGo" type="button">${locked ? 'Atualizar' : 'Salvar'}</button></div>`, (b, close) => {
+      const go = async (asCopy) => {
+        const name = ($('#fsN', b).value || '').trim() || 'Minha criação', kind = locked ? ml.kind : $('#fsK', b).value;
+        const src = freeEls(), bx = WX.boxOf(src); if (!(bx.w > 0 && bx.h > 0)) { toast('Não consegui medir o desenho.'); return; }
+        const id = locked && !asCopy ? ml.itemId : uid('l'), old = S.lib.find((x) => x.id === id);
+        const base = { id, kind, name, createdAt: old ? old.createdAt : Date.now(), updatedAt: Date.now() };
+        try {
+          let it;
+          if (kind === 'bdr') {
+            const blob = await renderPng(src, bx); const asset = await Store.upload(blob, 'image/png');
+            it = Object.assign(base, { src: asset, border: { preset: 'moldura', kind: 'imagem', color: '#C398C8', width: r1(Math.max(2, bx.h)), inset: 6, style: 'solid', radius: 0, opacity: 1, src: asset } });
+          } else {
+            const els = clone(src).map((e) => Object.assign(e, { x: r1(e.x - bx.x), y: r1(e.y - bx.y), locked: false, link: null, hidden: false }));
+            it = Object.assign(base, { els, w: r1(bx.w), h: r1(bx.h) });
+          }
+          await put(it); sync(); close(); ml.itemId = id; ml.kind = kind; ml.name = name; S.meta.ml = ml; Saver.m(); dock();
+          toast(`${(KIND[kind] || {}).n} salvo no ModuLab. 💜`);
+        } catch (e) { console.error(e); toast('Não consegui salvar. Talvez haja imagens grandes demais.'); }
+      };
+      $('#fsGo', b).onclick = () => go(false); const cp = $('#fsCopy', b); if (cp) cp.onclick = () => go(true);
+    });
+  }
+
+  /* ---------- IA que desenha direto na página ---------- */
+  const DRAW_SCHEMA = '{"elementos":[{"tipo":"rect|ellipse|line|text|shape","x":mm,"y":mm,"w":mm,"h":mm,"fill":"#RRGGBB ou none","stroke":"#RRGGBB ou none","sw":0.1-3,"radius":0-30,"rot":-180..180,"texto":"(só text)","fonte":"@title|@script|@body","tamanho":4-60,"cor":"#RRGGBB","align":"left|center|right","forma":"coracao|brilho|estrela|flor|folha|gota|livros|faixa|etiqueta|balao|circulo|hexagono|nuvem|seta|carimbo (só shape)"}]} (até 25 elementos)';
+  function cleanDraw(list, pw, ph) {
+    const st = styleOf(), out = [], col = (v, d) => (v === 'none' ? 'none' : hex(v, d)), fnt = (f) => (f === '@script' ? st.script : f === '@body' ? st.body : st.title);
+    (Array.isArray(list) ? list : []).slice(0, 25).forEach((o) => {
+      const x = num(o.x, -20, pw, 0), y = num(o.y, -20, ph, 0), w = num(o.w, 0.5, pw * 1.5, 20), h = num(o.h, 0.5, ph * 1.5, 12); let e = null;
+      if (o.tipo === 'rect') e = E('rect', x, y, w, h, { fill: col(o.fill, 'none'), stroke: col(o.stroke, '#4A4E79'), sw: num(o.sw, 0, 5, 0.4), radius: num(o.radius, 0, 30, 0) });
+      else if (o.tipo === 'ellipse') e = E('ellipse', x, y, w, h, { fill: col(o.fill, 'none'), stroke: col(o.stroke, '#4A4E79'), sw: num(o.sw, 0, 5, 0.4) });
+      else if (o.tipo === 'line') e = E('line', x, y, w, num(o.h, 0.5, 4, 2), { stroke: col(o.stroke, '#4A4E79'), sw: num(o.sw, 0.1, 3, 0.35), dash: 'solid' });
+      else if (o.tipo === 'text' && o.texto) e = tx(x, y, w, h, String(o.texto).slice(0, 140), { font: fnt(o.fonte), size: num(o.tamanho, 4, 60, 10), color: hex(o.cor, '#3E3550'), align: ['left', 'center', 'right'].includes(o.align) ? o.align : 'left' });
+      else if (o.tipo === 'shape') e = E('shape', x, y, w, h, { kind: SHAPES[o.forma] ? o.forma : 'coracao', fill: col(o.fill, '#F1CDD9'), fill2: 'none', stroke: col(o.stroke, '#4A4E79'), sw: num(o.sw, 0, 3, 0.35) });
+      if (e) { e.rot = num(o.rot, -180, 180, 0); out.push(e); }
+    });
+    return out;
+  }
+  function aiDrawModal() {
+    if (!IA.ok()) { iaModal(); return; }
+    const p = curPage(); let img = null;
+    modal(`<h2>✨ Pedir à IA</h2><p class="hint">Descreva o que quer na página (ou envie uma imagem de referência). A IA desenha com formas, linhas e textos editáveis, e você muda tudo depois. Ctrl+Z desfaz.</p>
+      <textarea id="adT" rows="3" style="width:100%" placeholder="Ex.: um bloco de anotações de natal com moldura de azevinho, título manuscrito e linhas pautadas"></textarea>
+      <div class="row"><span class="btn sm upl">Imagem de referência<input type="file" id="adI" accept="image/*"></span><span class="hint" id="adIn"></span></div><p class="hint" id="adM"></p>
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="adGo" type="button">Desenhar</button></div>`, (b, close) => {
+      $('#adI', b).onchange = async (e) => { const f = e.target.files[0]; if (!f) return; img = await imgData(f, 1024); $('#adIn', b).textContent = img ? 'Imagem anexada.' : 'Não consegui ler.'; };
+      $('#adGo', b).onclick = async () => {
+        const t = ($('#adT', b).value || '').trim(); if (!t && !img) { $('#adM', b).textContent = 'Escreva um pedido ou envie uma imagem.'; return; }
+        const btn = $('#adGo', b); btn.disabled = true; btn.textContent = 'Desenhando…'; $('#adM', b).textContent = '';
+        try {
+          const j = await IA.ask(SYS + ' Você desenha componentes de planner com formas simples em milímetros. Use poucas cores harmoniosas.', `A página de trabalho tem ${p.w} x ${p.h} mm (origem no canto superior esquerdo). Desenhe: ${t || '(veja a imagem anexa)'}.\nPosicione tudo dentro da página, com margem de uns 5 mm. Formato:\n${DRAW_SCHEMA}`, img && img.url);
+          const els = cleanDraw(j.elementos || j.elements, p.w, p.h); if (!els.length) throw new Error('A IA não trouxe elementos que eu possa desenhar. Tente descrever de outro jeito.');
+          change([p.id], () => p.els.push(...els)); S.sel = els.map((e) => e.id); close(); redraw(); renderProps(); thumbRefresh(p.id); toast(`${els.length} elementos desenhados. Mude o que quiser. ✨`);
+        } catch (e) { $('#adM', b).textContent = e.message || 'Não consegui desenhar agora.'; btn.disabled = false; btn.textContent = 'Desenhar'; }
+      };
+    });
+  }
+
+  function chooseModal(k) {
+    const f = FREE[k];
+    modal(`<h2>Novo ${esc(KIND[k].n.toLowerCase())}</h2><p class="hint">Como você quer criar?</p>
+      <button class="btn pri" id="chFree" type="button" style="width:100%;margin-bottom:8px">Editor livre (como um Canva)</button><p class="hint" style="margin:0 0 12px">Página em branco no editor completo: faça o ${esc(f.n.split(' ')[0].toLowerCase())} do jeito que quiser.</p>
+      <button class="btn" id="chAss" type="button" style="width:100%;margin-bottom:8px">Assistente rápido</button><p class="hint" style="margin:0 0 12px">${k === 'wgt' ? 'Parte de um widget pronto e de um estilo.' : k === 'stk' ? 'Formas da marca em cartela.' : 'Desenho, cor, traço e medidas.'} Com sugestões${IA.ok() ? ' da IA' : ''}.</p>
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Cancelar</button></div>`, (b, close) => {
+      $('#chFree', b).onclick = () => { close(); freeModalFor(k); };
+      $('#chAss', b).onclick = () => { close(); openEditor(k, null); };
+    });
+  }
+  function freeModalFor(k) { freeModal(); setTimeout(() => { const sel = $('#frK'); if (sel) { sel.value = k; sel.onchange(); } }, 0); }
 
   /* ---------- tela do ModuLab (menu lateral) ---------- */
   const filt = { k: 'todos' };
   function mount(box) {
     if (!box) return; sync();
     const all = S.lib.filter((x) => LISTK.includes(x.kind) && (filt.k === 'todos' || x.kind === filt.k)).sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
-    box.innerHTML = `<p class="suave" style="max-width:70ch">O laboratório dos seus componentes: tudo o que você criar aqui passa a aparecer no editor, pronto para usar em qualquer projeto. ${IA.ok() ? 'A IA está ligada ✨' : 'A IA é opcional.'} <button class="btn sm ghost" id="mlIa">Configurar IA</button></p>
+    box.innerHTML = `<p class="suave" style="max-width:70ch">O laboratório dos seus componentes: tudo o que você criar aqui passa a aparecer no editor, pronto para usar em qualquer projeto.</p>
+      <div class="mlbanner ${IA.ok() ? 'on' : 'off'}"><span>${IA.ok() ? '✨' : '○'} <b>${esc(IA.label())}</b>${IA.ok() ? '' : ' — sem IA eu só sugiro a partir de cores de imagens e palavras.'}</span><button class="btn sm${IA.ok() ? '' : ' pri'}" id="mlIa">${IA.ok() ? 'Configurar IA' : 'Ligar IA'}</button></div>
+      <div class="mlfreeb"><div><b>Editor livre</b><small>Uma página em branco no editor completo, como um Canva: desenhe, escreva, use imagens e formas e salve como widget, adesivo ou borda.</small></div><button class="btn pri" id="mlFree">Criar no editor livre</button></div>
       <h2 class="mlh2">Criar</h2><div class="mlnew">${ORDER.map((k) => `<button class="mlnewc" data-new="${k}"><span class="mli">${KIND[k].ic}</span><b>${KIND[k].n}</b><small>${KIND[k].where}</small></button>`).join('')}</div>
+      ${(S.drafts || []).length ? `<h2 class="mlh2">Rascunhos do editor livre</h2><div class="mlgrid">${S.drafts.map((d) => `<div class="mlcard"><div class="mlb"><span class="mlbadge">Rascunho</span><b>${esc(d.name || 'Sem nome')}</b><div class="ac"><button class="btn sm" data-od="${d.id}">Continuar</button><button class="btn sm ghost danger" data-dd="${d.id}">Excluir</button></div></div></div>`).join('')}</div>` : ''}
       <h2 class="mlh2">Minhas criações</h2><div class="chips mlf">${[['todos', 'Tudo']].concat(LISTK.filter((k) => k !== 'sticker').map((k) => [k, KIND[k].pl])).map(([k, n]) => `<button class="chip${filt.k === k ? ' on' : ''}" data-f="${k}">${n}</button>`).join('')}</div>
       ${all.length ? `<div class="mlgrid">${all.map((it) => `<div class="mlcard" data-id="${it.id}"><div class="mlpv"><canvas data-pc="${it.id}"></canvas></div><div class="mlb"><span class="mlbadge">${(KIND[it.kind] || { n: 'Adesivo (imagem)' }).n}</span><b>${esc(it.name || 'Sem nome')}</b>${it.kind === 'colecao' ? `<small>${(it.items || []).length} itens</small>` : ''}<div class="ac">${it.kind === 'sticker' ? '' : `<button class="btn sm" data-ed="${it.id}">Editar</button><button class="btn sm ghost" data-dp="${it.id}">Duplicar</button>`}<button class="btn sm ghost danger" data-rm="${it.id}">Excluir</button></div></div></div>`).join('')}</div>` : '<p class="hint">Nada por aqui ainda. Escolha um tipo acima para criar o primeiro. 🌸</p>'}`;
     $('#mlIa', box).onclick = () => iaModal();
-    $$('[data-new]', box).forEach((b) => b.onclick = () => openEditor(b.dataset.new, null));
+    $$('[data-new]', box).forEach((b) => b.onclick = () => { const k = b.dataset.new; if (['wgt', 'stk', 'bdr'].includes(k)) chooseModal(k); else openEditor(k, null); });
+    const fb = $('#mlFree', box); if (fb) fb.onclick = freeModal;
+    $$('[data-od]', box).forEach((b) => b.onclick = () => { const d = S.drafts.find((x) => x.id === b.dataset.od); if (d && !S.projects.some((x) => x.id === d.id)) S.projects.push(d); openProject(b.dataset.od); });
+    $$('[data-dd]', box).forEach((b) => b.onclick = async () => { if (!b.dataset.cf) { b.dataset.cf = 1; b.textContent = 'Confirmar'; setTimeout(() => { if (b.isConnected) { delete b.dataset.cf; b.textContent = 'Excluir'; } }, 4000); return; } const d = S.drafts.find((x) => x.id === b.dataset.dd); try { await Store.delProject(b.dataset.dd, d ? d.order || [] : []); S.drafts = S.drafts.filter((x) => x.id !== b.dataset.dd); mount(box); } catch (e) { toast('Não consegui excluir.'); } });
     $$('[data-f]', box).forEach((b) => b.onclick = () => { filt.k = b.dataset.f; mount(box); });
     $$('canvas[data-pc]', box).forEach((cv) => { const it = S.lib.find((x) => x.id === cv.dataset.pc); if (it) itemPrev(cv, it, 190, 120); });
-    $$('[data-ed]', box).forEach((b) => b.onclick = () => { const it = S.lib.find((x) => x.id === b.dataset.ed); if (it) openEditor(it.kind, it); });
+    $$('[data-ed]', box).forEach((b) => b.onclick = () => { const it = S.lib.find((x) => x.id === b.dataset.ed); if (!it) return; if (it.kind === 'wgt' || it.kind === 'stk') openFree(it.kind, it); else openEditor(it.kind, it); });
     $$('[data-dp]', box).forEach((b) => b.onclick = async () => { const it = S.lib.find((x) => x.id === b.dataset.dp); if (!it) return; const c = clone(it); c.id = uid('l'); c.name = (it.name || '') + ' (cópia)'; c.createdAt = c.updatedAt = Date.now(); await put(c); sync(); mount(box); });
     $$('[data-rm]', box).forEach((b) => b.onclick = async () => { if (!b.dataset.cf) { b.dataset.cf = 1; b.textContent = 'Confirmar exclusão'; setTimeout(() => { if (b.isConnected) { delete b.dataset.cf; b.textContent = 'Excluir'; } }, 4000); return; }
       const it = S.lib.find((x) => x.id === b.dataset.rm); if (!it) return; try { await Store.delLib(it); S.lib = S.lib.filter((x) => x !== it); S.lib.forEach((c) => { if (c.kind === 'colecao' && (c.items || []).includes(it.id)) { c.items = c.items.filter((y) => y !== it.id); Store.saveLib(c); } }); sync(); mount(box); toast('Excluído.'); } catch (e) { toast('Não consegui excluir.'); } });
@@ -483,8 +621,8 @@
     const cols = mine('colecao'), ths = mine('tema');
     const byId = (id) => S.lib.find((x) => x.id === id);
     const colH = cols.length ? macc('col', 'Coleções', cols.map((c) => { const its = (c.items || []).map(byId).filter(Boolean); return `<div class="mlcol"><div class="mlch"><b>${esc(c.name)}</b><small>${its.length} itens</small></div><div class="ta"><button class="btn sm pri" data-cap="${c.id}">Aplicar coleção</button></div><div class="mlits">${its.map((x) => `<button type="button" class="mlit" data-use="${x.id}" title="Usar ${esc(x.name)}"><canvas data-uc="${x.id}"></canvas><span>${esc(x.name)}</span></button>`).join('')}</div></div>`; }).join('')) : '';
-    const thH = ths.length ? macc('tem', 'Temas', `<div class="chips">${ths.map((t) => `<button type="button" class="chip" data-tap="${t.id}" title="Aplicar ${esc(t.name)}"><i style="background:linear-gradient(135deg,${t.pal.a} 50%,${t.pal.b} 50%)"></i>${esc(t.name)}</button>`).join('')}</div>`) : '';
-    return `<div class="row mlmini"><button class="btn sm" id="mlTema" type="button">Tema do projeto…</button></div>${colH}${thH}${!cols.length && !ths.length ? '<p class="hint">Crie temas e coleções no <b>ModuLab</b> (menu da tela de projetos). Eles aparecem aqui.</p>' : ''}`;
+    const thH = '';
+    return `${colH}${!cols.length ? '<p class="hint">Coleções que você criar no <b>ModuLab</b> aparecem aqui.</p>' : ''}`;
   }
   function useItem(x) {
     if (x.kind === 'wgt' || x.kind === 'stk') { const els = clone(x.els).map((e) => Object.assign(e, { id: uid('e'), link: null, locked: false })); regroup(els); WX.insertEls(els, false); }
@@ -495,7 +633,6 @@
   function themeFrom(t) { modal(`<h2>Aplicar tema “${esc(t.name)}”</h2><label class="f">Aplicar em<select id="atS"><option value="all">Todas as páginas</option><option value="one">Só esta página</option></select></label><label class="chk"><input type="checkbox" id="atR" checked> Trocar também o estilo dos widgets que já estão no projeto</label><div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="atGo">Aplicar</button></div>`, (b, close) => { $('#atGo', b).onclick = () => { applyTheme(t, { scope: $('#atS', b).value, restyle: $('#atR', b).checked }); close(); renderPanel(); renderProps(); toast('Tema aplicado. 🌸'); }; }); }
   function modelosMount(P) {
     $$('[data-macc] .wah', P).forEach((b) => b.onclick = () => { const a = b.parentNode, o = !a.classList.contains('open'); a.classList.toggle('open', o); b.setAttribute('aria-expanded', o); Pref.macc = Object.assign({}, Pref.macc, { [a.dataset.macc]: o }); savePref(); });
-    const tb = $('#mlTema', P); if (tb) tb.onclick = themeModal;
     $$('canvas[data-uc]', P).forEach((cv) => { const it = S.lib.find((x) => x.id === cv.dataset.uc); if (it) itemPrev(cv, it, 54, 40); });
     $$('[data-use]', P).forEach((b) => b.onclick = () => { const it = S.lib.find((x) => x.id === b.dataset.use); if (it) useItem(it); });
     $$('[data-tap]', P).forEach((b) => b.onclick = () => { const t = S.lib.find((x) => x.id === b.dataset.tap); if (t) themeFrom(t); });
@@ -523,8 +660,10 @@
     wrapPanel('adesivos', [['stk', 'Do ModuLab']], (h, x) => h.replace(/(<h3>DA MARCA<\/h3>)/, x + '$1'));
     // estilos e paletas próprios entram assim que a biblioteca carrega
     const lh = window.loadHome; if (typeof lh === 'function' && !lh._ml) { const w = async function () { sync(); return lh.apply(this, arguments); }; w._ml = 1; window.loadHome = w; }
+    const op = window.openProject; if (typeof op === 'function' && !op._ml) { const w = async function () { const r = await op.apply(this, arguments); dock(); return r; }; w._ml = 1; window.openProject = w; }
+    const lh2 = window.loadHome; if (typeof lh2 === 'function' && !lh2._ml2) { const w = async function () { const r = await lh2.apply(this, arguments); dock(); return r; }; w._ml = 1; w._ml2 = 1; window.loadHome = w; }
     sync();
   }
-  window.ModuLab = { mount, sync, openEditor, themeModal, IA, refresh() { const b = $('#mlBox'); if (b && $('#vModulab') && !$('#vModulab').hidden) mount(b); }, applyTheme, colorsFromText, dominant, palFrom };
+  window.ModuLab = { openFree, freeModal, dock, mount, sync, openEditor, themeModal, IA, refresh() { const b = $('#mlBox'); if (b && $('#vModulab') && !$('#vModulab').hidden) mount(b); }, applyTheme, colorsFromText, dominant, palFrom };
   boot();
 })();

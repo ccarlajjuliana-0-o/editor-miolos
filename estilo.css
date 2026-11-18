@@ -829,3 +829,19 @@ input[type=color]::-moz-color-swatch{border:1.5px solid rgba(62,53,80,.25);borde
 .mlits,.mlitems{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;margin-top:6px}
 .mlit{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:4px;display:flex;flex-direction:column;align-items:center;gap:2px;font:600 10px var(--f-title);color:var(--text);cursor:pointer}.mlit:hover{border-color:var(--accent)}.mlit canvas{width:54px;height:40px}.mlit span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mlleft h3{margin:16px 0 8px}.mlleft h3:first-child{margin-top:2px}
+
+/* Tema */
+.tmprev{border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px;margin:8px 0 6px}
+.tmsw{display:flex;gap:4px;margin-bottom:4px}.tmsw i{width:22px;height:22px;border-radius:50%;border:1px solid rgba(0,0,0,.08)}
+#panel .mlrow .pfield{flex:1 1 44%;min-width:96px}#panel .mlrow input[type=color]{width:100%;height:34px;padding:0;border:1px solid var(--line);border-radius:8px;background:none}
+
+/* ModuLab: editor livre, banner de IA, barra do editor */
+.mlbanner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin:10px 0;background:var(--surface)}
+.mlbanner.off{border-style:dashed;border-color:var(--lav)}.mlbanner.on{border-color:var(--accent)}
+.mlfreeb{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-radius:16px;padding:14px 16px;margin:10px 0;background:linear-gradient(135deg,rgba(195,152,200,.18),rgba(146,168,209,.18));border:1px solid var(--line)}
+.mlfreeb small{display:block;color:var(--muted);max-width:56ch;margin-top:2px}
+.iaon{color:var(--accent)!important;font-weight:700}.iaoff{color:var(--danger)!important}
+.mlnote{background:var(--surface2);border-radius:10px;padding:8px 10px;margin:4px 0 10px;font-size:12.5px;line-height:1.6;overflow-wrap:anywhere}.mlnote code{font-size:11.5px}
+#mlDock{position:fixed;left:50%;transform:translateX(-50%);bottom:132px;z-index:60;display:flex;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--accent);border-radius:999px;padding:6px 8px 6px 14px;box-shadow:0 8px 24px var(--shadow)}
+#mlDock[hidden]{display:none}#mlDock .mlt{font-size:12.5px;color:var(--text);white-space:nowrap}
+@media(max-width:700px){#mlDock{bottom:100px;max-width:calc(100vw - 16px);flex-wrap:wrap;border-radius:18px}}

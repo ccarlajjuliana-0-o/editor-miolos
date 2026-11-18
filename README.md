@@ -175,3 +175,12 @@ Item **ModuLab** no menu da tela de projetos. Aqui se cria, edita, duplica e exc
 - **Modelos → Tema do projeto…**: ajusta paleta, fontes, estilo dos widgets, moldura e borda de uma vez (só esta página ou todas, trocando ou não os widgets que já existem) e permite salvar o resultado como tema no ModuLab.
 - Seções novas na barra lateral do editor seguem a regra de ocultar/expandir com título.
 - Para criar um tipo novo: adicionar em `KIND`/`EDIT` no `modulab.js` (formulário, prévia, como salvar) e onde ele entra no editor.
+
+### Editor livre, Tema e IA (ModuLab v2)
+- **Tema** é um botão principal na lateral do editor (depois de Páginas): paleta livre (qualquer cor), fontes, estilo dos widgets, moldura e borda, com escolha de onde aplicar. Dá para salvar o resultado no ModuLab.
+- **Modelos** mostra só coleções do ModuLab e modelos prontos. Ao usar um modelo, o app pergunta onde aplicar (esta página, todas, ímpares/pares, intervalo ou páginas escolhidas) ou onde inserir.
+- **Editor livre**: ModuLab → "Criar no editor livre" (ou "Novo widget/adesivo/borda" → Editor livre). Abre o editor completo numa página em branco; a barra flutuante tem **Pedir à IA**, **Salvar no ModuLab** e **Sair**. Salva o que estiver selecionado (ou tudo). Widget e adesivo guardam elementos editáveis; borda vira faixa de imagem. Editar um item salvo reabre no editor livre. Rascunhos ficam listados no ModuLab.
+- **IA**: ModuLab → Ligar IA. Dois modos: chave neste aparelho, ou **pela nuvem** (recomendado):
+  1. `supabase secrets set ANTHROPIC_API_KEY=sua-chave`
+  2. `supabase functions deploy ia-modulab` (arquivo em `supabase/functions/ia-modulab/index.ts`)
+  3. No estúdio, entre na nuvem e escolha "Pela minha nuvem".

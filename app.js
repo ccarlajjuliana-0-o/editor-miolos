@@ -422,7 +422,7 @@ function metaDoc(){const m=Object.assign({},S.meta,{kind:'project',order:S.order
 /* ================= estado ================= */
 const S={view:'home',projects:[],pid:null,meta:null,pages:{},order:[],cur:0,sel:[],zoom:0,k:1,hist:[],fut:[],tab:'modelos',lib:[],editing:null,clip:null,guides:true,tplRef:null,genOpt:null,stripKey:''};
 const curId=()=>S.order[S.cur],curPage=()=>S.pages[curId()];
-const styleOf=()=>{const st=S.meta&&S.meta.style||{};const pr=PAIRS[st.pair]||PAIRS.assinatura;return{pal:PALS[st.pal]||(st.palC?Object.assign({nome:'Tema'},st.palC):PALS.lavanda),script:pr.script,title:pr.title,body:pr.body,ws:S.meta?S.meta.weekStart||0:0}};
+const styleOf=()=>{const st=S.meta&&S.meta.style||{};const pr=PAIRS[st.pair]||PAIRS.assinatura;return{pal:PALS[st.pal]||(st.palC?Object.assign({nome:'Tema'},st.palC):PALS.lavanda),script:(st.fontsC&&st.fontsC.script)||pr.script,title:(st.fontsC&&st.fontsC.title)||pr.title,body:(st.fontsC&&st.fontsC.body)||pr.body,ws:S.meta?S.meta.weekStart||0:0}};
 const blankPage=(w,h)=>({id:uid('pg'),w,h,bg:'#FFFFFF',bgImg:null,name:'Página em branco',els:[]});
 
 /* histórico */
@@ -474,7 +474,7 @@ function renderBrand(){const lg=S.lib.find(x=>x.kind==='logo');$('#brand').inner
 async function loadHome(){S.view='home';$('#home').hidden=false;$('#editor').hidden=true;renderBrand();
   const hs=$('#hstatus');hs.className='status ok';hs.querySelector('span').textContent='Projetos guardados neste aparelho'+(Cloud.user?' · conectada à nuvem':(Cloud.sb?'':' · nuvem desligada'));
   $('#plist').innerHTML='<p class="hint">Carregando projetos…</p>';
-  try{S.projects=(await Store.listProjects()).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))}catch(e){S.projects=[];toast('Não consegui ler seus projetos agora.')}
+  try{S.projects=(await Store.listProjects()).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));S.drafts=S.projects.filter(p=>p.modulab);S.projects=S.projects.filter(p=>!p.modulab)}catch(e){S.projects=[];toast('Não consegui ler seus projetos agora.')}
   renderHome()}
 function renderHome(){const L=$('#plist');
   if(!S.projects.length){L.innerHTML=`<div class="empty"><div class="tag">— ♡ comece por aqui ♡ —</div><h2>Nenhum projeto ainda</h2><p>Crie um miolo do zero ou gere um planner de exemplo: capa em A6, miolo em A5, calendários de janeiro a março com links nas abas laterais.</p><div class="row"><button class="btn pri" id="hNew">Novo projeto</button><button class="btn" id="hDated">Planner datado</button><button class="btn" id="hSample">Criar planner de exemplo</button></div></div>`;
@@ -687,6 +687,11 @@ const fontList=()=>[...FONTS.map(f=>f[0]),...S.lib.filter(x=>x.kind==='font').ma
 function tplRef(){if(!S.tplRef){const n=new Date();S.tplRef={y:n.getFullYear(),m:n.getMonth()}}return S.tplRef}
 function tplData(){const r=tplRef(),ws=styleOf().ws,d=new Date(r.y,r.m,1);const now=new Date();const day=(now.getFullYear()===r.y&&now.getMonth()===r.m)?now:d;return{y:r.y,m:r.m,date:day,start:weekStartOf(day,ws),holidays:true}}
 function previewCanvas(cv,out,W,H,bw,bh){const k=Math.min(bw/W,bh/H),d=window.devicePixelRatio||1;cv.width=Math.round(W*k*d);cv.height=Math.round(H*k*d);cv.style.width=W*k+'px';cv.style.height=H*k+'px';drawPage(cv.getContext('2d'),{w:W,h:H,bg:out.bg||'#FFFFFF',els:out.els},k*d)}
+function tplAsk(gen,mode,label){
+  if(mode==='replace'){modal(`<h2>Substituir por “${esc(label)}”</h2><p class="hint">O conteúdo das páginas escolhidas é trocado pelo modelo, no tamanho de cada página. Ctrl+Z desfaz.</p>${scopeHTML('tq',true)}<div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="tqGo">Substituir</button></div>`,(b,close)=>{mountScope(b,'tq');$('#tqGo',b).onclick=()=>{const ids=readScope(b,'tq');if(!ids.length){toast('Escolha pelo menos uma página.');return}close();
+    change(ids,()=>ids.forEach(id=>{const pg=S.pages[id],[out,nm]=gen(pg);pg.els=out.els;pg.bg=out.bg||'#FFFFFF';pg.name=nm}));S.sel=[];redraw();renderProps();ids.forEach(id=>thumbRefresh(id));if(typeof refreshThumbs==='function')refreshThumbs();closeMob();toast(`Modelo aplicado em ${ids.length} página${ids.length===1?'':'s'}.`)}});return}
+  modal(`<h2>Adicionar “${esc(label)}”</h2><p class="hint">Uma página nova, no tamanho da página atual.</p><label class="chk"><input type="radio" name="tqW" value="after" checked> Depois desta página</label><label class="chk"><input type="radio" name="tqW" value="before"> Antes desta página</label><label class="chk"><input type="radio" name="tqW" value="end"> No fim do projeto</label><div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="tqGo">Adicionar</button></div>`,(b,close)=>{$('#tqGo',b).onclick=()=>{const w=($('[name=tqW]:checked',b)||{}).value||'after',cur=curPage(),pg=blankPage(cur.w,cur.h),[out,nm]=gen(pg);pg.els=out.els;pg.bg=out.bg||'#FFFFFF';pg.name=nm;close();
+    const at=w==='end'?S.order.length:w==='before'?S.cur:S.cur+1;change([],()=>{S.pages[pg.id]=pg;S.order.splice(at,0,pg.id)});S.cur=at;S.sel=[];refreshAll();closeMob()}})}
 function applyTpl(out,name,mode){const p=curPage();if(mode==='replace'){change([p.id],()=>{p.els=out.els;p.bg=out.bg||'#FFFFFF';p.name=name});S.sel=[];redraw();renderProps();thumbRefresh(p.id)}
   else{const pg=blankPage(p.w,p.h);pg.els=out.els;pg.bg=out.bg||'#FFFFFF';pg.name=name;change([],()=>{S.pages[pg.id]=pg;S.order.splice(S.cur+1,0,pg.id)});S.cur++;S.sel=[];refreshAll()}closeMob()}
 function styleControls(){const st=S.meta.style||{};return `<div class="pfield"><span>Paleta</span><div class="chips">${Object.entries(PALS).map(([k,p])=>`<button class="chip${(st.pal||'lavanda')===k?' on':''}" data-pal="${k}"><i style="background:linear-gradient(135deg,${p.a} 50%,${p.b} 50%)"></i>${p.nome}</button>`).join('')}</div></div>
@@ -694,7 +699,7 @@ function styleControls(){const st=S.meta.style||{};return `<div class="pfield"><
   <div class="pfield"><span>Estilo dos widgets e molduras</span><button class="btn sm" id="wstBtn" type="button">${window.WX?esc(WX.globalName()):'Escolher'} · trocar…</button></div>`}
 function mountStyle(P,after){$$('[data-pal]',P).forEach(b=>b.onclick=()=>{S.meta.style=Object.assign({},S.meta.style,{pal:b.dataset.pal});if(/^u_/.test(b.dataset.pal)&&PALS[b.dataset.pal])S.meta.style.palC=Object.assign({},PALS[b.dataset.pal]);else delete S.meta.style.palC;Saver.m();after()});const wb=$('#wstBtn',P);if(wb&&window.WX)wb.onclick=()=>WX.openGlobal(after);const ps=$('#pairSel',P);if(ps)ps.onchange=()=>{S.meta.style=Object.assign({},S.meta.style,{pair:ps.value});Saver.m();after()}}
 const PANELS={
- modelos:{html(){const r=tplRef(),user=S.lib.filter(x=>x.kind==='template');return `<h2>Modelos de miolo</h2>${styleControls()}
+ modelos:{html(){const r=tplRef(),user=S.lib.filter(x=>x.kind==='template');return `<h2>Modelos de miolo</h2><p class="hint">Modelos prontos: escolha, diga onde aplicar e depois personalize. Eles usam o tema do projeto.</p><div class="row" style="margin-bottom:8px"><button class="btn sm" id="goTema" type="button">Mudar o tema…</button></div>
    <div class="fgrid"><label class="f">Mês de referência<select id="tRefM">${MESES.map((m,i)=>`<option value="${i}"${i===r.m?' selected':''}>${cap(m)}</option>`).join('')}</select></label><label class="f">Ano<input type="number" id="tRefY" value="${r.y}" min="1900" max="2200"></label></div>
    <p class="hint">Os modelos se ajustam ao tamanho da página atual (${esc(sizeName(curPage().w,curPage().h))}).</p>
    ${user.length?`<h3>MEUS MODELOS</h3><div class="tgrid">${user.map(t=>`<div class="tcard"><div class="pv"><canvas data-ut="${t.id}"></canvas></div><div class="tn">${esc(t.name)}</div><div class="ta"><button data-uadd="${t.id}">+ página</button><button data-urep="${t.id}">substituir</button></div></div>`).join('')}</div>`:''}
@@ -702,11 +707,11 @@ const PANELS={
   mount(P){const p=curPage(),st=styleOf(),d=tplData();
    const paint=()=>{$$('[data-tp]',P).forEach(cv=>{const out=TPL[cv.dataset.tp].fn(p.w,p.h,st,d);previewCanvas(cv,out,p.w,p.h,120,104)});
    $$('[data-ut]',P).forEach(cv=>{const t=S.lib.find(x=>x.id===cv.dataset.ut);if(t){const o=userTplOut(t,p);previewCanvas(cv,o,p.w,p.h,120,104)}})};paint();S.panelRepaint=paint;
-   const mk=k=>{const out=TPL[k].fn(p.w,p.h,st,tplData());const dd=tplData();let nm=TPL[k].nome;if(['mensal','habitos','separador','metas','financas'].includes(k))nm+=' · '+MES3[dd.m]+' '+dd.y;return[out,nm]};
-   $$('[data-add]',P).forEach(b=>b.onclick=()=>{const [o,n]=mk(b.dataset.add);applyTpl(o,n,'add')});$$('[data-rep]',P).forEach(b=>b.onclick=()=>{const [o,n]=mk(b.dataset.rep);applyTpl(o,n,'replace')});
-   $$('[data-uadd]',P).forEach(b=>b.onclick=()=>{const t=S.lib.find(x=>x.id===b.dataset.uadd);applyTpl(userTplOut(t,curPage()),t.name,'add')});$$('[data-urep]',P).forEach(b=>b.onclick=()=>{const t=S.lib.find(x=>x.id===b.dataset.urep);applyTpl(userTplOut(t,curPage()),t.name,'replace')});
+   const mk=(k,pp)=>{pp=pp||curPage();const out=TPL[k].fn(pp.w,pp.h,styleOf(),tplData());const dd=tplData();let nm=TPL[k].nome;if(['mensal','habitos','separador','metas','financas'].includes(k))nm+=' · '+MES3[dd.m]+' '+dd.y;return[out,nm]};
+   $$('[data-add]',P).forEach(b=>b.onclick=()=>tplAsk(pp=>mk(b.dataset.add,pp),'add',TPL[b.dataset.add].nome));$$('[data-rep]',P).forEach(b=>b.onclick=()=>tplAsk(pp=>mk(b.dataset.rep,pp),'replace',TPL[b.dataset.rep].nome));
+   $$('[data-uadd]',P).forEach(b=>b.onclick=()=>{const t=S.lib.find(x=>x.id===b.dataset.uadd);tplAsk(pp=>[userTplOut(t,pp),t.name],'add',t.name)});$$('[data-urep]',P).forEach(b=>b.onclick=()=>{const t=S.lib.find(x=>x.id===b.dataset.urep);tplAsk(pp=>[userTplOut(t,pp),t.name],'replace',t.name)});
    $('#tRefM',P).onchange=e=>{tplRef().m=+e.target.value;renderPanel()};$('#tRefY',P).onchange=e=>{tplRef().y=+e.target.value||new Date().getFullYear();renderPanel()};
-   mountStyle(P,renderPanel)}},
+   const gt=$('#goTema',P);if(gt)gt.onclick=()=>{S.tab='tema';renderRail();renderPanel()}}},
  widgets:{html(){const uw=S.lib.filter(x=>x.kind==='widget');return `<h2>Widgets</h2><p class="hint">Clique para colocar no centro da página. Arraste, redimensione e troque as cores no painel à direita.</p>
    <h3>FORMAS LIVRES</h3><div class="wgrid"><button class="wbtn" data-tool="free">${ico('pen','ico" style="width:40px;height:40px')}À mão livre</button><button class="wbtn" data-tool="poly">${ico('poly','ico" style="width:40px;height:40px')}Polígono</button><button class="wbtn" data-tool="curve">${ico('curve','ico" style="width:40px;height:40px')}Curva por pontos</button></div>
    <p class="hint">Depois de desenhar, use “Editar pontos” no painel à direita para ajustar o contorno.</p>
