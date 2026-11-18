@@ -143,3 +143,9 @@ Em qualquer campo de cor abre um seletor com quadro de cor, matiz, código HEX, 
 ## Menu rápido de datas e cores recolhidas
 - Ao selecionar calendário do mês, calendário anual ou caixa de data, a barra rápida mostra: mês/ano com ‹ ›, início da semana, feriados e título (calendário); ano e feriados (anual); dia anterior/próximo, data e formato (caixa de data).
 - Campos de cor mostram só a cor em uso; o ▾ abre a paleta e o seletor completo.
+
+## Planner datado (agora na tela inicial)
+
+O gerador de agenda saiu do editor: na tela de projetos, o botão **Planner datado** (ao lado de "Novo projeto") abre a janela com mês/ano de início, quantidade de meses, início da semana, tamanho e orientação do miolo, capa, tipos de página, navegação (abas, links, feriados), paleta, fontes, **estilo dos widgets** e moldura opcional nas páginas. Ao criar, vira um projeto comum: tudo o que existe no editor (widgets, estilos, molduras, divisórias, camadas, margens, desfazer) vale nele.
+
+**Regra para o futuro:** toda regra nova que precise valer nas páginas geradas se registra em `GenHooks` (app.js): `GenHooks.push((pages, opções, meta) => { ... })`. Ela roda logo depois de as páginas serem geradas e antes de o projeto ser criado. O estilo de widgets e a moldura de página já usam esse caminho.

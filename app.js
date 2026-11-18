@@ -470,11 +470,11 @@ async function loadHome(){S.view='home';$('#home').hidden=false;$('#editor').hid
   try{S.projects=(await Store.listProjects()).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))}catch(e){S.projects=[];toast('Não consegui ler seus projetos agora.')}
   renderHome()}
 function renderHome(){const L=$('#plist');
-  if(!S.projects.length){L.innerHTML=`<div class="empty"><div class="tag">— ♡ comece por aqui ♡ —</div><h2>Nenhum projeto ainda</h2><p>Crie um miolo do zero ou gere um planner de exemplo: capa em A6, miolo em A5, calendários de janeiro a março com links nas abas laterais.</p><div class="row"><button class="btn pri" id="hNew">Novo projeto</button><button class="btn" id="hSample">Criar planner de exemplo</button></div></div>`;
-    $('#hNew').onclick=newProjectModal;$('#hSample').onclick=createSample;return}
-  L.innerHTML=`<div class="grid"><div class="card new"><div class="th" id="hNew" role="button" tabindex="0"><span class="plus">+</span>Novo projeto</div><div class="bd"><span class="mt">ou</span><button class="btn sm" id="hSample">Criar planner de exemplo</button></div></div>${S.projects.map(p=>{const sz=p.sizes?Object.keys(p.sizes).join(' + '):'';
+  if(!S.projects.length){L.innerHTML=`<div class="empty"><div class="tag">— ♡ comece por aqui ♡ —</div><h2>Nenhum projeto ainda</h2><p>Crie um miolo do zero ou gere um planner de exemplo: capa em A6, miolo em A5, calendários de janeiro a março com links nas abas laterais.</p><div class="row"><button class="btn pri" id="hNew">Novo projeto</button><button class="btn" id="hDated">Planner datado</button><button class="btn" id="hSample">Criar planner de exemplo</button></div></div>`;
+    $('#hNew').onclick=newProjectModal;$('#hDated').onclick=datadoModal;$('#hSample').onclick=createSample;return}
+  L.innerHTML=`<div class="grid"><div class="card new"><div class="th" id="hNew" role="button" tabindex="0"><span class="plus">+</span>Novo projeto</div><div class="bd"><span class="mt">ou</span><button class="btn sm pri" id="hDated">Planner datado</button><button class="btn sm" id="hSample">Criar planner de exemplo</button></div></div>${S.projects.map(p=>{const sz=p.sizes?Object.keys(p.sizes).join(' + '):'';
     return `<div class="card" data-pid="${p.id}"><div class="th" data-open="${p.id}" role="button" tabindex="0" aria-label="Abrir ${esc(p.name)}"><canvas width="10" height="10"></canvas></div><div class="bd"><div class="nm">${esc(p.name)}</div><div class="mt">${p.count||0} página${p.count===1?'':'s'}${sz?' · '+esc(sz):''}</div><div class="mt">editado em ${new Date(p.updatedAt||p.createdAt||Date.now()).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})}</div><div class="ac"><button class="btn sm" data-open="${p.id}">Abrir</button><button class="btn sm ghost" data-dup="${p.id}">Duplicar</button><button class="btn sm ghost danger" data-del="${p.id}">Excluir</button></div></div></div>`}).join('')}</div>`;
-  $('#hNew').onclick=newProjectModal;$('#hNew').onkeydown=e=>{if(e.key==='Enter')newProjectModal()};$('#hSample').onclick=createSample;
+  $('#hNew').onclick=newProjectModal;$('#hNew').onkeydown=e=>{if(e.key==='Enter')newProjectModal()};$('#hDated').onclick=datadoModal;$('#hSample').onclick=createSample;
   $$('[data-open]',L).forEach(b=>{b.onclick=()=>openProject(b.dataset.open);b.onkeydown=e=>{if(e.key==='Enter')openProject(b.dataset.open)}});
   $$('[data-dup]',L).forEach(b=>b.onclick=()=>dupProject(b.dataset.dup));
   $$('[data-del]',L).forEach(b=>b.onclick=()=>{if(b.dataset.cf){delProject(b.dataset.del)}else{b.dataset.cf=1;b.textContent='Confirmar exclusão';setTimeout(()=>{if(b.isConnected){delete b.dataset.cf;b.textContent='Excluir'}},4000)}});
@@ -491,7 +491,7 @@ function newProjectModal(){modal(`<h2>Novo projeto</h2><label class="f">Nome<inp
     $('#npGo',b).onclick=async()=>{let [w,h]=$('#npSize',b).value==='custom'?[+$('#npW',b).value||148,+$('#npH',b).value||210]:SIZES[$('#npSize',b).value];if($('#npOr',b).value==='l')[w,h]=[Math.max(w,h),Math.min(w,h)];
       const nome=$('#npName',b).value.trim()||'Projeto sem nome';
       close();const pg=blankPage(w,h);await createProject(nome,{w,h},[pg])}})}
-async function createProject(name,size,pages,coverAlone){const pid=uid('p'),meta={kind:'project',name,size,view:'single',coverAlone:!!coverAlone,weekStart:0,style:{pal:'lavanda',pair:'assinatura'},createdAt:Date.now(),updatedAt:Date.now(),order:pages.map(p=>p.id)};
+async function createProject(name,size,pages,coverAlone,extra){const pid=uid('p'),meta=Object.assign({kind:'project',name,size,view:'single',coverAlone:!!coverAlone,weekStart:0,style:{pal:'lavanda',pair:'assinatura'},createdAt:Date.now(),updatedAt:Date.now(),order:pages.map(p=>p.id)},extra||{});
   S.pid=pid;S.meta=meta;S.order=meta.order.slice();S.pages=Object.fromEntries(pages.map(p=>[p.id,p]));
   setSave('Salvando…');await pool(pages.map(p=>()=>Store.savePage(pid,p.id,p)),4);await Store.saveMeta(pid,metaDoc());await openProject(pid,true)}
 async function createSample(){const y=new Date().getMonth()>=8?new Date().getFullYear()+1:new Date().getFullYear();const st={pal:PALS.lavanda,...PAIRS.assinatura};toast('Montando o planner de exemplo…');
@@ -669,7 +669,7 @@ function alignSel(a){const p=curPage(),els=selEls();if(!els.length)return;const 
   change([p.id],()=>els.forEach(e=>{if(e.locked)return;if(a==='al')e.x=r1(ref.x);if(a==='ac')e.x=r1(ref.x+ref.w/2-e.w/2);if(a==='ar')e.x=r1(ref.x+ref.w-e.w);if(a==='at')e.y=r1(ref.y);if(a==='am')e.y=r1(ref.y+ref.h/2-e.h/2);if(a==='ab')e.y=r1(ref.y+ref.h-e.h)}));redraw();renderProps();thumbRefresh(p.id)}
 
 /* ================= trilho e painéis ================= */
-const TABS=[['paginas','Páginas'],['modelos','Modelos'],['datado','Datado'],['widgets','Widgets'],['adesivos','Adesivos'],['bordas','Bordas'],['texto','Texto'],['biblioteca','Uploads'],['app','App']];
+const TABS=[['paginas','Páginas'],['modelos','Modelos'],['widgets','Widgets'],['adesivos','Adesivos'],['bordas','Bordas'],['texto','Texto'],['biblioteca','Uploads'],['app','App']];
 function renderRail(){$('#rail').innerHTML=TABS.map(([k,n])=>`<button data-tab="${k}" class="${S.tab===k?'on':''}" aria-label="${n}">${ico(k)}${n}</button>`).join('');
   $$('#rail button').forEach(b=>b.onclick=()=>{const ed=$('#editor');if(S.tab===b.dataset.tab&&(innerWidth<=980||ed.classList.contains('compact'))){ed.classList.toggle('showpanel')}else{S.tab=b.dataset.tab;ed.classList.add('showpanel');renderRail();renderPanel()}})}
 function closeMob(){if(innerWidth<=980||$('#editor').classList.contains('compact')){$('#editor').classList.remove('showpanel')}}
@@ -698,38 +698,6 @@ const PANELS={
    $$('[data-uadd]',P).forEach(b=>b.onclick=()=>{const t=S.lib.find(x=>x.id===b.dataset.uadd);applyTpl(userTplOut(t,curPage()),t.name,'add')});$$('[data-urep]',P).forEach(b=>b.onclick=()=>{const t=S.lib.find(x=>x.id===b.dataset.urep);applyTpl(userTplOut(t,curPage()),t.name,'replace')});
    $('#tRefM',P).onchange=e=>{tplRef().m=+e.target.value;renderPanel()};$('#tRefY',P).onchange=e=>{tplRef().y=+e.target.value||new Date().getFullYear();renderPanel()};
    mountStyle(P,renderPanel)}},
- datado:{html(){const o=genOpt();return `<h2>Planner datado</h2><p class="hint">Gera todas as páginas com datas, feriados nacionais e links entre calendário, semanas e dias, prontos para imprimir ou usar no GoodNotes.</p>
-   <div class="fgrid"><label class="f">Começa em<select data-g="m">${MESES.map((m,i)=>`<option value="${i}"${i===o.m?' selected':''}>${cap(m)}</option>`).join('')}</select></label><label class="f">Ano<input type="number" data-g="y" value="${o.y}" min="1900" max="2200"></label>
-   <label class="f">Quantos meses<input type="number" data-g="months" value="${o.months}" min="1" max="24"></label><label class="f">Semana começa<select data-g="ws"><option value="0"${o.ws===0?' selected':''}>Domingo</option><option value="1"${o.ws===1?' selected':''}>Segunda</option></select></label>
-   <label class="f full">Tamanho do miolo<select data-g="sizeName">${sizeOptions(o.sizeName)}</select></label>
-   <label class="f full">Título da capa<input type="text" data-g="title" value="${esc(o.title)}"></label></div>
-   <div class="pgrp"><h3>PÁGINAS</h3>
-   <label class="chk"><input type="checkbox" data-g="cover"${o.cover?' checked':''}> Capa</label>
-   ${o.cover?`<label class="f">Tamanho da capa<select data-g="coverName">${sizeOptions(o.coverName).replace('<option value="custom"','<option disabled value="x"')}</select></label>`:''}
-   <label class="chk"><input type="checkbox" data-g="annual"${o.annual?' checked':''}> Calendário anual</label>
-   <label class="chk"><input type="checkbox" data-g="sep"${o.sep?' checked':''}> Separador de cada mês</label>
-   <label class="chk"><input type="checkbox" data-g="monthly"${o.monthly?' checked':''}> Mensal</label>
-   <label class="chk"><input type="checkbox" data-g="weekly"${o.weekly?' checked':''}> Semanal</label>
-   ${o.weekly?`<label class="f">Estilo do semanal<select data-g="weeklyStyle"><option value="semanal"${o.weeklyStyle==='semanal'?' selected':''}>Blocos</option><option value="semanalLista"${o.weeklyStyle==='semanalLista'?' selected':''}>Lista</option></select></label>`:''}
-   <label class="chk"><input type="checkbox" data-g="daily"${o.daily?' checked':''}> Diário (uma página por dia)</label>
-   <label class="chk"><input type="checkbox" data-g="habits"${o.habits?' checked':''}> Hábitos do mês</label>
-   <label class="chk"><input type="checkbox" data-g="goals"${o.goals?' checked':''}> Metas do mês</label>
-   <label class="chk"><input type="checkbox" data-g="fin"${o.fin?' checked':''}> Finanças do mês</label>
-   <div class="fgrid"><label class="f">Notas por mês<input type="number" data-g="notes" value="${o.notes}" min="0" max="8"></label><label class="f">Tipo de nota<select data-g="notesKind"><option value="pautada"${o.notesKind==='pautada'?' selected':''}>Pautada</option><option value="pontilhada"${o.notesKind==='pontilhada'?' selected':''}>Pontilhada</option><option value="quadriculada"${o.notesKind==='quadriculada'?' selected':''}>Quadriculada</option></select></label></div></div>
-   <div class="pgrp"><h3>NAVEGAÇÃO</h3>
-   <label class="chk"><input type="checkbox" data-g="tabs"${o.tabs?' checked':''}> Abas laterais com os meses</label>
-   <label class="chk"><input type="checkbox" data-g="links"${o.links?' checked':''}> Links entre páginas (para PDF digital)</label>
-   <label class="chk"><input type="checkbox" data-g="holidays"${o.holidays?' checked':''}> Marcar feriados nacionais</label></div>
-   <div class="pgrp">${styleControls()}</div>
-   <div class="pgrp"><label class="chk"><input type="radio" name="gplace" value="end"${o.place!=='replace'?' checked':''}> Adicionar depois das páginas atuais</label><label class="chk"><input type="radio" name="gplace" value="replace"${o.place==='replace'?' checked':''}> Substituir todas as páginas</label></div>
-   <div class="sum" id="gSum"></div><button class="btn pri" id="gGo">Gerar planner</button>`},
-  mount(P){const o=genOpt();const sum=()=>{const n=genSpecs(genArgs()).specs.length;$('#gSum',P).innerHTML=`Vai criar <b>${n}</b> página${n===1?'':'s'}${n>200?'. Com tantas páginas, a exportação em PDF pode demorar alguns minutos.':'.'}`};
-   $$('[data-g]',P).forEach(i=>i.onchange=()=>{const k=i.dataset.g;o[k]=i.type==='checkbox'?i.checked:i.type==='number'?(+i.value||0):(k==='ws'||k==='m')?+i.value:i.value;
-     if(k==='ws'){S.meta.weekStart=o.ws;Saver.m()}if(['cover','weekly'].includes(k))renderPanel();else sum()});
-   $$('[name=gplace]',P).forEach(r=>r.onchange=()=>o.place=r.value);mountStyle(P,renderPanel);sum();
-   $('#gGo',P).onclick=()=>{const a=genArgs();const pages=genPages(a,styleOf());if(!pages.length){toast('Escolha pelo menos um tipo de página.');return}
-     change([...S.order],()=>{pages.forEach(p=>S.pages[p.id]=p);if(o.place==='replace'){S.order=pages.map(p=>p.id)}else S.order.push(...pages.map(p=>p.id))});
-     S.cur=o.place==='replace'?0:S.order.length-pages.length;S.sel=[];refreshAll();toast(`${pages.length} páginas criadas. Use Desfazer se quiser voltar.`);closeMob()}}},
  widgets:{html(){const uw=S.lib.filter(x=>x.kind==='widget');return `<h2>Widgets</h2><p class="hint">Clique para colocar no centro da página. Arraste, redimensione e troque as cores no painel à direita.</p>
    <h3>FORMAS LIVRES</h3><div class="wgrid"><button class="wbtn" data-tool="free">${ico('pen','ico" style="width:40px;height:40px')}À mão livre</button><button class="wbtn" data-tool="poly">${ico('poly','ico" style="width:40px;height:40px')}Polígono</button><button class="wbtn" data-tool="curve">${ico('curve','ico" style="width:40px;height:40px')}Curva por pontos</button></div>
    <p class="hint">Depois de desenhar, use “Editar pontos” no painel à direita para ajustar o contorno.</p>
@@ -768,9 +736,54 @@ const PANELS={
    $$('[data-dp]',P).forEach(b=>b.onclick=()=>dupPage(+b.dataset.dp));$$('[data-rm]',P).forEach(b=>b.onclick=()=>{if(b.dataset.cf)delPage(+b.dataset.rm);else{b.dataset.cf=1;b.style.color='var(--danger)';b.title='Clique de novo para excluir';toast('Clique de novo para excluir a página.')}});
    const on=$('.prow.on',P);if(on)on.scrollIntoView({block:'nearest'})}}
 };
-function genOpt(){if(!S.genOpt){const n=new Date(),p=curPage();S.genOpt={y:n.getMonth()>=8?n.getFullYear()+1:n.getFullYear(),m:n.getMonth()>=8?0:n.getMonth(),months:12,ws:S.meta.weekStart||0,sizeName:sizeName(p.w,p.h).replace(' deitado','')in SIZES?sizeName(p.w,p.h).replace(' deitado',''):'A5',coverName:'A5',title:'Meu Planner',cover:true,annual:true,sep:false,monthly:true,weekly:true,weeklyStyle:'semanal',daily:false,habits:true,goals:false,fin:false,notes:1,notesKind:'pontilhada',tabs:true,links:true,holidays:true,place:'end'}}return S.genOpt}
-function genArgs(){const o=genOpt(),p=curPage(),land=p.w>p.h;const sz=n=>{const s=SIZES[n]||[p.w,p.h];return land?{w:Math.max(...s),h:Math.min(...s)}:{w:s[0],h:s[1]}};
-  return Object.assign({},o,{size:o.sizeName==='custom'?{w:p.w,h:p.h}:sz(o.sizeName),coverSize:sz(o.coverName)})}
+function genOpt(){if(!S.genOpt){const n=new Date(),nx=n.getMonth()>=8;S.genOpt={y:nx?n.getFullYear()+1:n.getFullYear(),m:nx?0:n.getMonth(),months:12,ws:0,sizeName:'A5',coverName:'A6',title:'Meu Planner',cover:true,annual:true,sep:false,monthly:true,weekly:true,weeklyStyle:'semanal',daily:false,habits:true,goals:false,fin:false,notes:1,notesKind:'pontilhada',tabs:true,links:true,holidays:true,pal:'lavanda',pair:'assinatura',wst:'',frameP:false,land:false}}return S.genOpt}
+function genArgs(){const o=genOpt();const sz=n=>{const s=SIZES[n]||SIZES.A5;return o.land?{w:Math.max(...s),h:Math.min(...s)}:{w:s[0],h:s[1]}};
+  return Object.assign({},o,{size:sz(o.sizeName),coverSize:sz(o.coverName)})}
+/* Ganchos: qualquer regra nova de página/widget pode se registrar aqui e passa a valer também no planner datado.
+   Cada gancho recebe (pages, opções, meta) logo depois de as páginas serem geradas. */
+window.GenHooks=window.GenHooks||[];
+GenHooks.push((pages,o)=>{if(!o.wst||!window.WX||!WX.STY||!WX.STY[o.wst])return;
+  pages.forEach(pg=>{pg.els.forEach(e=>{if(e.type!=='text'&&e.type!=='rect'&&WX.ACCEPT.has(e.type))WX.applyId(e,o.wst,{nohd:true})});if(o.frameP)WX.applyPage(pg,o.wst)})});
+function datadoModal(){const o=genOpt();
+  const html=()=>`<h2>Planner datado</h2><p class="hint">Um projeto de agenda pronto: capa, calendários, semanas e dias com datas, feriados e links entre as páginas. Depois de criado, é um projeto como qualquer outro: widgets, estilos, molduras e divisórias funcionam normalmente.</p>
+   <div class="fgrid"><label class="f">Começa em<select data-g="m">${MESES.map((m,i)=>`<option value="${i}"${i===o.m?' selected':''}>${cap(m)}</option>`).join('')}</select></label><label class="f">Ano<input type="number" data-g="y" value="${o.y}" min="1900" max="2200"></label>
+   <label class="f">Quantos meses<input type="number" data-g="months" value="${o.months}" min="1" max="24"></label><label class="f">Semana começa<select data-g="ws"><option value="0"${o.ws===0?' selected':''}>Domingo</option><option value="1"${o.ws===1?' selected':''}>Segunda</option></select></label>
+   <label class="f">Tamanho do miolo<select data-g="sizeName">${sizeOptions(o.sizeName).replace(/<option value="custom".*?<\/option>/,'')}</select></label><label class="f">Orientação<select data-g="land"><option value=""${!o.land?' selected':''}>Retrato</option><option value="1"${o.land?' selected':''}>Paisagem</option></select></label>
+   <label class="f full">Título da capa<input type="text" data-g="title" value="${esc(o.title)}"></label></div>
+   <div class="pgrp"><h3>PÁGINAS</h3>
+   <label class="chk"><input type="checkbox" data-g="cover"${o.cover?' checked':''}> Capa</label>
+   ${o.cover?`<label class="f">Tamanho da capa<select data-g="coverName">${sizeOptions(o.coverName).replace(/<option value="custom".*?<\/option>/,'')}</select></label>`:''}
+   <label class="chk"><input type="checkbox" data-g="annual"${o.annual?' checked':''}> Calendário anual</label>
+   <label class="chk"><input type="checkbox" data-g="sep"${o.sep?' checked':''}> Separador de cada mês</label>
+   <label class="chk"><input type="checkbox" data-g="monthly"${o.monthly?' checked':''}> Mensal</label>
+   <label class="chk"><input type="checkbox" data-g="weekly"${o.weekly?' checked':''}> Semanal</label>
+   ${o.weekly?`<label class="f">Estilo do semanal<select data-g="weeklyStyle"><option value="semanal"${o.weeklyStyle==='semanal'?' selected':''}>Blocos</option><option value="semanalLista"${o.weeklyStyle==='semanalLista'?' selected':''}>Lista</option></select></label>`:''}
+   <label class="chk"><input type="checkbox" data-g="daily"${o.daily?' checked':''}> Diário (uma página por dia)</label>
+   <label class="chk"><input type="checkbox" data-g="habits"${o.habits?' checked':''}> Hábitos do mês</label>
+   <label class="chk"><input type="checkbox" data-g="goals"${o.goals?' checked':''}> Metas do mês</label>
+   <label class="chk"><input type="checkbox" data-g="fin"${o.fin?' checked':''}> Finanças do mês</label>
+   <div class="fgrid"><label class="f">Notas por mês<input type="number" data-g="notes" value="${o.notes}" min="0" max="8"></label><label class="f">Tipo de nota<select data-g="notesKind"><option value="pautada"${o.notesKind==='pautada'?' selected':''}>Pautada</option><option value="pontilhada"${o.notesKind==='pontilhada'?' selected':''}>Pontilhada</option><option value="quadriculada"${o.notesKind==='quadriculada'?' selected':''}>Quadriculada</option></select></label></div></div>
+   <div class="pgrp"><h3>NAVEGAÇÃO</h3>
+   <label class="chk"><input type="checkbox" data-g="tabs"${o.tabs?' checked':''}> Abas laterais com os meses</label>
+   <label class="chk"><input type="checkbox" data-g="links"${o.links?' checked':''}> Links entre páginas (para PDF digital)</label>
+   <label class="chk"><input type="checkbox" data-g="holidays"${o.holidays?' checked':''}> Marcar feriados nacionais</label></div>
+   <div class="pgrp"><h3>APARÊNCIA</h3><div class="pfield"><span>Paleta</span><div class="chips">${Object.entries(PALS).map(([k,p])=>`<button class="chip${o.pal===k?' on':''}" data-pal="${k}" type="button"><i style="background:linear-gradient(135deg,${p.a} 50%,${p.b} 50%)"></i>${p.nome}</button>`).join('')}</div></div>
+   <label class="f">Fontes dos modelos<select data-g="pair">${Object.entries(PAIRS).map(([k,p])=>`<option value="${k}"${o.pair===k?' selected':''}>${p.nome} · ${p.script} + ${p.title}</option>`).join('')}</select></label>
+   ${window.WX&&WX.COLS?`<label class="f">Estilo dos widgets<select data-g="wst"><option value="">Padrão (sem moldura nos widgets)</option>${WX.COLS.map(c=>`<optgroup label="${esc(c.n)}">${c.s.map(([id,n])=>`<option value="${c.id}/${id}"${o.wst===c.id+'/'+id?' selected':''}>${esc(n)}</option>`).join('')}</optgroup>`).join('')}</select></label>
+   <label class="chk"><input type="checkbox" data-g="frameP"${o.frameP?' checked':''}${o.wst?'':' disabled'}> Moldura do mesmo estilo nas páginas</label>`:''}</div>
+   <div class="sum" id="gSum"></div><div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="gGo">Criar planner</button></div>`;
+  modal(html(),(b,close)=>{const paint=()=>{b.innerHTML=html();$$('[data-close]',b).forEach(x=>x.onclick=close);wire()};
+    const sum=()=>{const n=genSpecs(genArgs()).specs.length;$('#gSum',b).innerHTML=`Vai criar <b>${n}</b> página${n===1?'':'s'}${n>200?'. Com tantas páginas, a exportação em PDF pode demorar alguns minutos.':'.'}`};
+    const wire=()=>{$$('[data-g]',b).forEach(i=>i.onchange=()=>{const k=i.dataset.g;o[k]=i.type==='checkbox'?i.checked:i.type==='number'?(+i.value||0):(k==='ws'||k==='m')?+i.value:k==='land'?!!i.value:i.value;
+        if(['cover','weekly','wst'].includes(k)){if(k==='wst'&&!o.wst)o.frameP=false;paint()}else sum()});
+      $$('[data-pal]',b).forEach(x=>x.onclick=()=>{o.pal=x.dataset.pal;paint()});sum();
+      $('#gGo',b).onclick=async()=>{const a=genArgs(),meta={style:{pal:o.pal,pair:o.pair,wst:o.wst||undefined},weekStart:o.ws};
+        const st={pal:PALS[o.pal]||PALS.lavanda,...(PAIRS[o.pair]||PAIRS.assinatura)};
+        const pages=genPages(a,st);if(!pages.length){toast('Escolha pelo menos um tipo de página.');return}
+        GenHooks.forEach(h=>{try{h(pages,a,meta)}catch(e){console.warn('gancho do planner',e)}});
+        close();toast('Montando o planner…');
+        await createProject(`${o.title||'Planner'} ${a.y}`,a.size,pages,a.cover,meta)}};
+    wire()},true)}
 const STICKERS=[['coracao','#F1CDD9','#E7A6BE'],['coracao','#E7A6BE','none'],['brilho','#D8A776','none'],['brilho','#C398C8','none'],['estrela','#D8A776','none'],['flor','#F1CDD9','#D8A776'],['folha','#98B1C2','#6E8AB5'],['gota','#92A8D1','none'],['livros','#C398C8','#92A8D1'],['faixa','#C398C8','none'],['etiqueta','#F7E5E7','#C398C8'],['balao','#FBF7F4','#9168A0'],['circulo','#F1CDD9','none'],['hexagono','#EEF1F8','#92A8D1'],['nuvem','#FFFFFF','#92A8D1'],['seta','#C398C8','none'],['carimbo','#F7E5E7','#C398C8']];
 function stickerEl(i){const [k,f1,f2]=STICKERS[i];const twoFill=k==='flor'||k==='livros';const w=k==='faixa'?34:k==='etiqueta'?30:k==='balao'?30:k==='livros'?30:k==='nuvem'?30:k==='seta'?28:18,h=k==='faixa'?14:k==='etiqueta'?14:k==='balao'?24:k==='livros'?22:k==='nuvem'?20:k==='seta'?14:18;
   return E('shape',0,0,w,h,{kind:k,fill:f1,fill2:twoFill?f2:'none',stroke:twoFill?(k==='flor'?'#E7A6BE':'#4A4E79'):(f2||'none'),sw:f2&&f2!=='none'?.35:0})}
