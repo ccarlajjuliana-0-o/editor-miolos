@@ -28,7 +28,27 @@
         btn('ta:left', 'Alinhar o texto à esquerda', svg(AL.l), (e.align || 'left') === 'left') + btn('ta:center', 'Centralizar o texto', svg(AL.c), e.align === 'center') + btn('ta:right', 'Alinhar o texto à direita', svg(AL.r), e.align === 'right') + sep +
         common + sep + alignBtns(' (na página)');
     }
+    const dt = dateBar(e); if (dt) return dt + sep + common + sep + alignBtns(' (na página)');
     return common + sep + alignBtns(' (na página)');
+  }
+
+  /* menu rápido dos widgets de data */
+  const opt = (v, t, cur) => `<option value="${v}"${String(v) === String(cur) ? ' selected' : ''}>${t}</option>`;
+  const yearOpts = (y) => { let s = ''; for (let i = y - 4; i <= y + 6; i++) s += opt(i, i, y); return s; };
+  function dateBar(e) {
+    const ws = `<select data-q="ws" title="A semana começa em" aria-label="A semana começa em">${opt(0, 'Dom', e.weekStart || 0)}${opt(1, 'Seg', e.weekStart || 0)}</select>`;
+    if (e.type === 'calendar') {
+      const ms = (typeof MESES !== 'undefined' ? MESES : []).map((m, i) => opt(i, m.charAt(0).toUpperCase() + m.slice(1, 3), e.month)).join('');
+      return btn('m-', 'Mês anterior', '‹') + `<select data-q="month" title="Mês" aria-label="Mês">${ms}</select>` + btn('m+', 'Próximo mês', '›') + `<select data-q="year" title="Ano" aria-label="Ano">${yearOpts(e.year)}</select>` + sep + ws +
+        btn('hol', 'Marcar feriados nacionais', 'Feriados', e.holidays) + btn('ttl', 'Mostrar o nome do mês', 'Título', e.showTitle);
+    }
+    if (e.type === 'yearcal') return btn('y-', 'Ano anterior', '‹') + `<select data-q="year" title="Ano" aria-label="Ano">${yearOpts(e.year)}</select>` + btn('y+', 'Próximo ano', '›') + sep + ws + btn('hol', 'Marcar feriados nacionais', 'Feriados', e.holidays);
+    if (e.type === 'datebox') {
+      const f = (typeof FIELDS !== 'undefined' && FIELDS.datebox) ? FIELDS.datebox[0][3] : [];
+      return btn('d-', 'Dia anterior', '‹') + `<input class="qd" type="date" data-q="date" value="${e.date || ''}" title="Data" aria-label="Data">` + btn('d+', 'Próximo dia', '›') + sep +
+        `<select data-q="fmt" title="Como mostrar a data" aria-label="Como mostrar a data">${f.map(([v, t]) => opt(v, t, e.fmt)).join('')}</select>`;
+    }
+    return '';
   }
 
   function place(els) {
@@ -51,7 +71,7 @@
     if (!els.length || busy || (els.length === 1 && S.ptEdit === els[0].id)) { bar.hidden = true; sig = ''; return; }
     if (window.ColorPicker && ColorPicker.isOpen()) { place(els); return; }
     if (bar.contains(document.activeElement) && document.activeElement.matches('input,select')) { place(els); return; }
-    const key = JSON.stringify(els.map((e) => [e.id, e.type, e.font, e.weight, e.italic, e.align, e.color, e.size, e.locked, e.g]));
+    const key = JSON.stringify(els.map((e) => [e.id, e.type, e.font, e.weight, e.italic, e.align, e.color, e.size, e.locked, e.g, e.month, e.year, e.weekStart, e.holidays, e.showTitle, e.date, e.fmt]));
     if (key !== sig) { bar.innerHTML = html(els); sig = key; }
     if (!place(els)) bar.hidden = true;
   }
@@ -74,11 +94,21 @@
     else if (a === 'bold') edit((e) => { e.weight = (e.weight || 400) >= 600 ? 400 : 700; });
     else if (a === 'italic') edit((e) => { e.italic = !e.italic; });
     else if (a.startsWith('ta:')) edit((e) => { e.align = a.slice(3); });
+    else if (a === 'm-' || a === 'm+') edit((e) => { if (e.type !== 'calendar') return; let m = e.month + (a === 'm+' ? 1 : -1), y = e.year; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } e.month = m; e.year = y; });
+    else if (a === 'y-' || a === 'y+') edit((e) => { e.year += a === 'y+' ? 1 : -1; });
+    else if (a === 'hol') edit((e) => { e.holidays = !e.holidays; });
+    else if (a === 'ttl') edit((e) => { e.showTitle = !e.showTitle; });
+    else if (a === 'd-' || a === 'd+') edit((e) => { if (e.type !== 'datebox' || !e.date) return; const s = a === 'd+' ? 1 : -1; e.date = addUnit(e.date, e.fmt === 'mes' ? 'mes' : e.fmt === 'semana' ? 'semana' : 'dia', s); });
   });
   bar.addEventListener('change', (ev) => {
     const t = ev.target, a = t.dataset.q, p = curPage(); if (!a || !p) return;
     if (a === 'font') edit((e) => { e.font = t.value; });
     else if (a === 'size') { const v = parseFloat(t.value); if (v > 0) edit((e) => { e.size = Math.round(v * 10) / 10; }); }
+    else if (a === 'month') edit((e) => { e.month = +t.value; });
+    else if (a === 'year') edit((e) => { e.year = +t.value; });
+    else if (a === 'ws') edit((e) => { e.weekStart = +t.value; });
+    else if (a === 'date') { if (t.value) edit((e) => { e.date = t.value; }); }
+    else if (a === 'fmt') edit((e) => { e.fmt = t.value; });
     else if (a === 'color') { if (hist) { pushHist(hist, snapOf([p.id])); hist = null; thumbRefresh(p.id); } renderProps(); }
   });
   bar.addEventListener('input', (ev) => {

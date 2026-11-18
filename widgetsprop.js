@@ -29,8 +29,8 @@
     return fld(l, `<select ${A(path)} data-t="sel">${[['@title', 'Fonte de títulos do projeto'], ['@script', 'Fonte caligráfica do projeto'], ['@body', 'Fonte de texto do projeto']].map(([k, n]) => `<option value="${k}"${v === k ? ' selected' : ''}>${n}</option>`).join('')}${L.map((n) => `<option${n === v ? ' selected' : ''} style="font-family:'${esc(n)}'">${esc(n)}</option>`).join('')}</select>`);
   };
   function wc(path, v, none) {
-    const val = tok(v), hex = /^#[0-9a-f]{6}$/i.test(val || '') ? val : '#ffffff';
-    return `<div class="cfield">${none ? `<button type="button" class="sw none" data-wxc="${path}" data-r="${RT}" data-v="none" title="Sem cor" aria-label="Sem cor"></button>` : ''}<input type="color" ${A(path)} data-t="color" value="${hex}" aria-label="Escolher cor">${['@a', '@b', '@ink', '@soft', '@line'].map((t) => `<button type="button" class="sw tk${v === t ? ' on' : ''}" data-wxc="${path}" data-r="${RT}" data-v="${t}" style="background:${tok(t)}" title="Cor da paleta" aria-label="Cor da paleta"></button>`).join('')}${BRAND.map((c) => `<button type="button" class="sw${v === c ? ' on' : ''}" data-wxc="${path}" data-r="${RT}" data-v="${c}" style="background:${c}" title="${c}" aria-label="${c}"></button>`).join('')}</div>`;
+    const val = tok(v), hex = /^#[0-9a-f]{6}$/i.test(val || '') ? val : '#ffffff', isNone = !!none && (v === 'none' || !v);
+    return `<div class="cfield cc${isNone ? ' isnone' : ''}">${none ? `<button type="button" class="sw none${isNone ? ' cur' : ''}" data-wxc="${path}" data-r="${RT}" data-v="none" title="Sem cor" aria-label="Sem cor"></button>` : ''}<input type="color" ${A(path)} data-t="color" value="${hex}" aria-label="Cor atual. Clique para escolher qualquer cor"><button type="button" class="cct" title="Mostrar ou ocultar as cores da paleta" aria-label="Paleta de cores">▾</button>${['@a', '@b', '@ink', '@soft', '@line'].map((t) => `<button type="button" class="sw tk${v === t ? ' on' : ''}" data-wxc="${path}" data-r="${RT}" data-v="${t}" style="background:${tok(t)}" title="Cor da paleta" aria-label="Cor da paleta"></button>`).join('')}${BRAND.map((c) => `<button type="button" class="sw${v === c ? ' on' : ''}" data-wxc="${path}" data-r="${RT}" data-v="${c}" style="background:${c}" title="${c}" aria-label="${c}"></button>`).join('')}</div>`;
   }
   const inCol = (o, path, l, none) => fld(l, wc(path, get(o, path), none));
   const openAcc = (id) => { Pref.acc = Pref.acc || { cont: true }; return !!Pref.acc[id]; };
@@ -260,6 +260,8 @@
     if (d.wxfk) { commitSet('wx.fr.k', d.wxfk, 'e', (o) => { if (o.wx.pad == null) o.wx.pad = 1.8; if (d.wxfk !== 'none' && !o.wx.fr.w) o.wx.fr.w = 0.4; delete o.wx.st; }); return; }
     if (d.wxi) { const e = selEls()[0], p = curPage(); if (!e) return; change([p.id], () => { e.wx = e.wx || {}; e.wx.bg = { t: 'img', src: d.wxi, fit: 'cover', op: 1 }; delete e.wx.st; }); redraw(); renderProps(); thumbRefresh(p.id); }
   });
+
+  document.addEventListener('click', (ev) => { const ct = ev.target.closest('.cct'); if (ct) ct.parentNode.classList.toggle('open'); });
 
   /* ---------- ligar na renderProps ---------- */
   const rp0 = window.renderProps;

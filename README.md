@@ -139,3 +139,7 @@ Em qualquer campo de cor abre um seletor com quadro de cor, matiz, código HEX, 
 - **Salvar widget**: `S.lib` item `kind:'wgt'` com `els`.
 - Tipos novos: `progress`, `numgrid`, `rate`.
 - Todas as seções do painel da direita têm título e Ocultar/Expandir (regra do painel da direita).
+
+## Menu rápido de datas e cores recolhidas
+- Ao selecionar calendário do mês, calendário anual ou caixa de data, a barra rápida mostra: mês/ano com ‹ ›, início da semana, feriados e título (calendário); ano e feriados (anual); dia anterior/próximo, data e formato (caixa de data).
+- Campos de cor mostram só a cor em uso; o ▾ abre a paleta e o seletor completo.

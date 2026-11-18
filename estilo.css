@@ -767,3 +767,11 @@ input[type=color]::-moz-color-swatch{border:1.5px solid rgba(62,53,80,.25);borde
 .mbox .wgbody{max-height:52vh;overflow:auto;padding-right:4px}
 .mbox .wgfoot{position:static}
 .mbox .stgrid,.mbox .stcols{grid-template-columns:repeat(3,1fr)}
+
+/* cores: só a que está em uso; a paleta abre no ▾ */
+.cfield.cc:not(.open) .sw{display:none}
+.cfield.cc:not(.open) .sw.none.cur{display:inline-block}
+.cfield.cc.isnone:not(.open) input[type=color]{display:none}
+.cct{width:26px;height:26px;border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--muted);font-size:12px;line-height:1;padding:0;cursor:pointer;display:inline-grid;place-items:center}
+.cfield.cc.open .cct{background:var(--surface2);color:var(--accent);transform:rotate(180deg)}
+#qbar .qd{height:32px;border:0;border-radius:10px;background:var(--surface2);font:600 12px var(--f-body);color:var(--ink);padding:0 6px}
