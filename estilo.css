@@ -695,3 +695,21 @@ input[type=color]::-moz-color-swatch{border:1.5px solid rgba(62,53,80,.25);borde
 #gSpan{display:flex}#gSpan button{flex:1;padding:6px 8px;border:1px solid var(--line);background:var(--surface);font:600 12px var(--f-title);color:var(--ink);cursor:pointer}#gSpan button:first-child{border-radius:10px 0 0 10px}#gSpan button:last-child{border-radius:0 10px 10px 0}#gSpan button.on{background:var(--surface2);color:var(--accent);border-color:var(--accent)}
 
 .imp .impbar{height:8px;border-radius:6px;background:var(--surface2);overflow:hidden;margin:10px 0 4px}.imp .impbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#C398C8,#92A8D1);transition:width .2s}
+
+/* camadas */
+.lytools{display:flex;flex-direction:column;gap:6px;margin:6px 0 8px}
+.lyflt{display:flex}.lyflt button{flex:1;padding:6px 8px;border:1px solid var(--line);background:var(--surface);font:600 12px var(--f-title);color:var(--ink);cursor:pointer}.lyflt button:first-child{border-radius:10px 0 0 10px}.lyflt button:last-child{border-radius:0 10px 10px 0}.lyflt button.on{background:var(--surface2);color:var(--accent);border-color:var(--accent)}
+.lybulk{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}.lybulk .btn{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;font-size:11.5px;border:1px solid var(--line)}
+.lysel{display:flex;align-items:center;gap:2px;flex-wrap:wrap;padding:6px 8px;margin-bottom:8px;border:1px solid var(--accent);border-radius:12px;background:var(--surface2)}.lysel b{font:700 12px var(--f-title);margin-right:auto}.lysel .ib{width:30px;height:30px;display:grid;place-items:center;border:0;background:transparent;border-radius:8px;cursor:pointer;color:var(--ink);font-size:15px}.lysel .ib:hover{background:var(--surface)}
+#lyList{flex:none;position:relative;overflow-y:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface);outline:0;touch-action:pan-y}#lyIn{position:relative}
+.lyr{position:absolute;left:0;right:0;height:38px;display:flex;align-items:center;gap:6px;padding:0 6px;border-bottom:1px solid var(--line);cursor:pointer;box-sizing:border-box;background:var(--surface)}
+.lyr:hover{background:var(--surface2)}.lyr.sel{background:var(--surface2);box-shadow:inset 3px 0 0 var(--accent)}.lyr.ind{padding-left:26px}.lyr.hid .lyn,.lyr.hid .lyc{opacity:.4}.lyr.lk .lyn{font-style:italic}.lyr.drag{opacity:.5}
+.lyh{display:grid;place-items:center;width:20px;height:30px;color:var(--muted);cursor:grab;touch-action:none;flex:none}
+.lyc{flex:none;width:22px;height:22px;border-radius:7px;border:1px solid var(--line);background:var(--surface2);display:grid;place-items:center;overflow:hidden;font:700 12px var(--f-title);color:var(--ink)}.lyc img{width:100%;height:100%;object-fit:cover}.lyc.grp{color:var(--accent)}
+.lyn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 13px var(--f-title);color:var(--ink)}.lyn small{font:500 11px var(--f-body);color:var(--muted);margin-left:4px}
+.lyren{flex:1;min-width:0;height:28px;padding:0 8px;border:1px solid var(--accent);border-radius:8px;font:600 13px var(--f-title)}
+.lyb,.lyt{flex:none;width:28px;height:28px;display:grid;place-items:center;border:0;background:transparent;border-radius:8px;color:var(--muted);cursor:pointer;padding:0}.lyb:hover,.lyt:hover{background:var(--surface)}.lyb.on{color:var(--accent)}
+.lyt{width:20px;transition:transform .15s}.lyt:not(.open){transform:rotate(-90deg)}
+.lydrop{position:absolute;left:0;right:0;height:3px;margin-top:-1px;background:var(--accent);border-radius:2px;pointer-events:none;z-index:2}
+.lyopt{margin-top:10px;align-items:flex-start;font-size:12.5px}
+.lyhov{position:absolute;border:2px solid #E7A6BE;background:rgba(231,166,190,.18);pointer-events:none;transform-origin:50% 50%;border-radius:2px}

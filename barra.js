@@ -67,7 +67,7 @@
   bar.addEventListener('click', (ev) => {
     const b = ev.target.closest('button[data-q]'); if (!b) return; const a = b.dataset.q, p = curPage();
     if (a === 'dup') dupSel(); else if (a === 'del') delSel(); else if (a === 'group') groupSel(); else if (a === 'ungroup') ungroupSel();
-    else if (a === 'lock') { change([p.id], () => selEls().forEach((e) => { e.locked = !e.locked; })); redraw(); renderProps(); }
+    else if (a === 'lock') { const was = selEls().every((e) => e.locked); change([p.id], () => selEls().forEach((e) => { e.locked = !e.locked; })); redraw(); renderProps(); if (!was && Pref.lockClick !== false) toast('Posição travada. Para selecionar de novo: aba Camadas ou Alt + clique.'); }
     else if (a === 'front' || a === 'back') orderSel(a);
     else if (a.startsWith('al:')) alignSel(a.slice(3));
     else if (a === 'size+' || a === 'size-') edit((e) => { e.size = Math.max(1, Math.round(((e.size || 10) + (a === 'size+' ? 1 : -1)) * 10) / 10); });

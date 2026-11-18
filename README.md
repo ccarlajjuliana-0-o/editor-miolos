@@ -123,3 +123,8 @@ Em qualquer campo de cor abre um seletor com quadro de cor, matiz, código HEX, 
 - Fontes do PDF são trocadas por uma parecida do editor (aviso no sino). Gradientes viram cor lisa; recortes de formas não são mantidos (os retangulares de imagens sim).
 - Funciona melhor com PDFs feitos por programas (Canva, Word, Illustrator, este estúdio). PDF de scanner entra como imagem.
 - Leitor: pdf.js (pasta vendor/pdfjs, licença Apache-2.0), guardado junto do app para funcionar offline.
+
+## Camadas
+- Aba "Camadas": lista todos os elementos da página (o topo é o que fica na frente). Clique seleciona (Ctrl soma, Shift seleciona o intervalo); arraste pelas bolinhas ⋮⋮ para mudar a ordem (também com vários selecionados ou um grupo inteiro).
+- Olho: oculta o elemento (não aparece na página nem na exportação). Cadeado: trava a posição (não move, não redimensiona e, por padrão, não é selecionado ao clicar na página; Alt + clique seleciona). Dois cliques no nome renomeiam. Grupos aparecem recolhíveis.
+- Filtros (Todas / Travadas / Ocultas), busca, "Travar tudo", "Destravar tudo" e "Mostrar tudo". Tudo entra no histórico (Ctrl+Z).
