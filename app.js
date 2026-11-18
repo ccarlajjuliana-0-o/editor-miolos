@@ -130,10 +130,6 @@ const R={
     const fs=Math.min((e.size||8)*PT,rh*.5);c.fillStyle=e.color;
     if(hasH){font(c,fs,e.font,600);x=0;for(let i=0;i<e.cols;i++){T(c,fitText(c,String(e.header[i]??''),cw[i]-1.6),x+cw[i]/2,rh/2,'center','middle');x+=cw[i]}}
     if(Array.isArray(e.side)){font(c,fs,e.font,600);for(let r=0;r<e.rows;r++){const s=e.side[r];if(s)T(c,fitText(c,String(s),cw[0]-2),1.4,(r+(hasH?1:0))*rh+rh/2,'left','middle')}}},
-  checklist(c,e){const n=Math.max(1,e.n|0),rh=e.h/n,bs=Math.min(rh*.55,4.2),sw=e.sw||.3;
-    for(let i=0;i<n;i++){const y=i*rh,by=y+(rh-bs)/2;if(e.box==='circle'){c.beginPath();c.arc(bs/2,by+bs/2,bs/2,0,7)}else rr(c,0,by,bs,bs,bs*.22);strokeIf(c,e.color,sw);
-      const lb=Array.isArray(e.items)?e.items[i]:'';let lx=bs+1.8;if(lb){font(c,Math.min(bs*.95,rh*.48),e.font||'Nunito',400);c.fillStyle=e.textColor||e.color;T(c,lb,bs+1.6,by+bs/2,'left','middle');lx=bs+1.6+M(c,lb)+1.2}
-      if(e.lines&&lx<e.w){c.beginPath();c.moveTo(lx,by+bs);c.lineTo(e.w,by+bs);strokeIf(c,e.stroke,sw*.85)}}},
   path(c,e){const P=(e.pts||[]).map(([u,v])=>[u*e.w,v*e.h]);if(P.length<2)return;const dash=e.dash&&e.dash.length?e.dash:null;
     if(e.more&&e.more.length){c.beginPath();[{pts:e.pts,closed:e.closed},...e.more].forEach(q=>{const Q=(q.pts||[]).map(([u,v])=>[u*e.w,v*e.h]);if(Q.length<2)return;c.moveTo(Q[0][0],Q[0][1]);for(let i=1;i<Q.length;i++)c.lineTo(Q[i][0],Q[i][1]);if(q.closed)c.closePath()});
       if(e.fill&&e.fill!=='none'){c.fillStyle=e.fill;c.fill(e.rule==='evenodd'?'evenodd':'nonzero')}c.lineCap=e.cap||'round';c.lineJoin=e.join||'round';strokeIf(c,e.stroke,e.sw,dash);c.lineCap='butt';c.lineJoin='miter';return}
@@ -142,7 +138,7 @@ const R={
     font(c,Math.min(rh*.42,cw*.62),e.font,600);c.fillStyle=e.color;for(let d=0;d<days;d++)T(c,String(d+1),lw+cw*d+cw/2,rh/2,'center','middle');
     c.beginPath();for(let r=1;r<=rows+1;r++){c.moveTo(0,r*rh);c.lineTo(e.w,r*rh)}strokeIf(c,e.stroke,.3);
     font(c,Math.min(rh*.42,3.6),e.font,400);c.fillStyle=e.color;const L=e.labels||[];for(let r=0;r<rows;r++)if(L[r])T(c,fitText(c,L[r],lw-2),1,rh*(r+1)+rh/2,'left','middle');
-    const rad=Math.min(cw,rh)*.32;for(let r=0;r<rows;r++)for(let d=0;d<days;d++){c.beginPath();c.arc(lw+cw*d+cw/2,rh*(r+1)+rh/2,rad,0,7);strokeIf(c,e.accent,.25)}},
+    const rad=Math.min(cw,rh)*.32;for(let r=0;r<rows;r++)for(let d=0;d<days;d++)mark(c,e.mk||'circle',lw+cw*d+cw/2,rh*(r+1)+rh/2,rad*2,{stroke:e.accent,fill:e.mfc||e.accent,mode:e.mfill||'none',sw:.25})},
   hours(c,e){const a=e.from|0,b=Math.max(a,e.to|0),n=b-a+1,rh=e.h/n,lw=Math.min(11,e.w*.16),fs=Math.min(rh*.42,3.4);
     c.beginPath();for(let i=0;i<=n;i++){c.moveTo(lw,i*rh);c.lineTo(e.w,i*rh)}strokeIf(c,e.stroke,.3);
     if(e.half){c.beginPath();for(let i=0;i<n;i++){c.moveTo(lw,i*rh+rh/2);c.lineTo(e.w,i*rh+rh/2)}strokeIf(c,e.stroke,.22,[.01,.9])}
@@ -179,11 +175,11 @@ function tracePath(c,P,smooth,closed){c.beginPath();const n=P.length,mid=(a,b)=>
   if(closed){const m=mid(P[n-1],P[0]);c.moveTo(m[0],m[1]);for(let i=0;i<n;i++){const p=P[i],q=mid(p,P[(i+1)%n]);c.quadraticCurveTo(p[0],p[1],q[0],q[1])}c.closePath()}
   else{c.moveTo(P[0][0],P[0][1]);for(let i=1;i<n-1;i++){const q=mid(P[i],P[i+1]);c.quadraticCurveTo(P[i][0],P[i][1],q[0],q[1])}c.lineTo(P[n-1][0],P[n-1][1])}}
 function drawEl(c,e,o){if(o&&o.skip===e.id)return;if(e.hidden)return;c.save();c.globalAlpha=e.opacity??1;c.translate(e.x+e.w/2,e.y+e.h/2);if(e.rot)c.rotate(e.rot*Math.PI/180);c.translate(-e.w/2,-e.h/2);
-  const fn=R[e.type];if(fn){try{fn(c,e)}catch(err){console.warn(err)}}c.restore()}
+  const fn=R[e.type];if(fn){try{if(e.wx&&window.WX)WX.draw(c,e,fn);else fn(c,e)}catch(err){console.warn(err)}}c.restore()}
 function drawPage(c,pg,k,ox=0,oy=0,o={}){const b=o.bleed||0;c.save();c.setTransform(k,0,0,k,ox,oy);
   c.beginPath();c.rect(-b,-b,pg.w+2*b,pg.h+2*b);c.clip();c.fillStyle=pg.bg||'#FFFFFF';c.fillRect(-b,-b,pg.w+2*b,pg.h+2*b);
   if(pg.bgImg&&pg.bgImg.src){const im=getImg(pg.bgImg.src);if(im){c.globalAlpha=pg.bgImg.opacity??1;drawImgFit(c,im,-b,-b,pg.w+2*b,pg.h+2*b,pg.bgImg.fit||'cover');c.globalAlpha=1}}
-  drawBorder(c,pg);
+  drawBorder(c,pg);if(pg.frame&&window.WX)WX.pageFrame(c,pg);
   for(const e of pg.els)drawEl(c,e,o);
   if(window.Margens&&Margens.tabEl){const t=Margens.tabEl(pg);if(t)drawEl(c,t,o)}c.restore()}
 function bbox(e){if(!e.rot)return{x:e.x,y:e.y,w:e.w,h:e.h};const a=e.rot*Math.PI/180,cs=Math.abs(Math.cos(a)),sn=Math.abs(Math.sin(a)),w=e.w*cs+e.h*sn,h=e.w*sn+e.h*cs;return{x:e.x+e.w/2-w/2,y:e.y+e.h/2-h/2,w,h}}
@@ -624,7 +620,7 @@ $('#stage').addEventListener('pointermove',ev=>{if(S.tool){const w=ev.target.clo
   scheduleRedraw();updGeom()});
 const bb=a=>{const x=Math.min(...a.map(e=>e.x)),y=Math.min(...a.map(e=>e.y));return{x,y,w:Math.max(...a.map(e=>e.x+e.w))-x,h:Math.max(...a.map(e=>e.y+e.h))-y}};
 function endDrag(){if(S.tool&&S.tool.kind==='free'&&S.tool.drawing){S.tool.drawing=false;finishTool(undefined);return}
-  if(!D)return;const d=D;D=null;if(d.mode==='vtx'&&d.moved)renorm(d.e);if(d.moved&&d.mode!=='marq'){pushHist(d.b,snapOf([d.p.id]));thumbRefresh(d.p.id)}redraw();renderProps()}
+  if(!D)return;const d=D;D=null;if(d.mode==='vtx'&&d.moved)renorm(d.e);if(d.moved&&d.mode!=='marq'){if(window.WX&&WX.guard)WX.guard(d);pushHist(d.b,snapOf([d.p.id]));thumbRefresh(d.p.id)}redraw();renderProps()}
 $('#stage').addEventListener('pointerup',endDrag);$('#stage').addEventListener('pointercancel',endDrag);
 $('#stage').addEventListener('dblclick',ev=>{const w=ev.target.closest('.pg');if(!w)return;
   if(S.tool){if(S.tool.kind!=='free'){S.tool.pts=S.tool.pts.filter((q,i,a)=>i===0||Math.hypot(q[0]-a[i-1][0],q[1]-a[i-1][1])>1);finishTool(false)}return}
@@ -685,8 +681,9 @@ function previewCanvas(cv,out,W,H,bw,bh){const k=Math.min(bw/W,bh/H),d=window.de
 function applyTpl(out,name,mode){const p=curPage();if(mode==='replace'){change([p.id],()=>{p.els=out.els;p.bg=out.bg||'#FFFFFF';p.name=name});S.sel=[];redraw();renderProps();thumbRefresh(p.id)}
   else{const pg=blankPage(p.w,p.h);pg.els=out.els;pg.bg=out.bg||'#FFFFFF';pg.name=name;change([],()=>{S.pages[pg.id]=pg;S.order.splice(S.cur+1,0,pg.id)});S.cur++;S.sel=[];refreshAll()}closeMob()}
 function styleControls(){const st=S.meta.style||{};return `<div class="pfield"><span>Paleta</span><div class="chips">${Object.entries(PALS).map(([k,p])=>`<button class="chip${(st.pal||'lavanda')===k?' on':''}" data-pal="${k}"><i style="background:linear-gradient(135deg,${p.a} 50%,${p.b} 50%)"></i>${p.nome}</button>`).join('')}</div></div>
-  <label class="f">Fontes dos modelos<select id="pairSel">${Object.entries(PAIRS).map(([k,p])=>`<option value="${k}"${(st.pair||'assinatura')===k?' selected':''}>${p.nome} · ${p.script} + ${p.title}</option>`).join('')}</select></label>`}
-function mountStyle(P,after){$$('[data-pal]',P).forEach(b=>b.onclick=()=>{S.meta.style=Object.assign({},S.meta.style,{pal:b.dataset.pal});Saver.m();after()});const ps=$('#pairSel',P);if(ps)ps.onchange=()=>{S.meta.style=Object.assign({},S.meta.style,{pair:ps.value});Saver.m();after()}}
+  <label class="f">Fontes dos modelos<select id="pairSel">${Object.entries(PAIRS).map(([k,p])=>`<option value="${k}"${(st.pair||'assinatura')===k?' selected':''}>${p.nome} · ${p.script} + ${p.title}</option>`).join('')}</select></label>
+  <div class="pfield"><span>Estilo dos widgets e molduras</span><button class="btn sm" id="wstBtn" type="button">${window.WX?esc(WX.globalName()):'Escolher'} · trocar…</button></div>`}
+function mountStyle(P,after){$$('[data-pal]',P).forEach(b=>b.onclick=()=>{S.meta.style=Object.assign({},S.meta.style,{pal:b.dataset.pal});Saver.m();after()});const wb=$('#wstBtn',P);if(wb&&window.WX)wb.onclick=()=>WX.openGlobal(after);const ps=$('#pairSel',P);if(ps)ps.onchange=()=>{S.meta.style=Object.assign({},S.meta.style,{pair:ps.value});Saver.m();after()}}
 const PANELS={
  modelos:{html(){const r=tplRef(),user=S.lib.filter(x=>x.kind==='template');return `<h2>Modelos de miolo</h2>${styleControls()}
    <div class="fgrid"><label class="f">Mês de referência<select id="tRefM">${MESES.map((m,i)=>`<option value="${i}"${i===r.m?' selected':''}>${cap(m)}</option>`).join('')}</select></label><label class="f">Ano<input type="number" id="tRefY" value="${r.y}" min="1900" max="2200"></label></div>
@@ -1026,7 +1023,7 @@ function renderProps(){const P=$('#props');if(!P||!S.meta)return;if(P.contains(d
     ${e.type==='path'?`<button class="btn sm${S.ptEdit===e.id?' pri':''}" data-a="pts">${S.ptEdit===e.id?'Concluir edição de pontos':'Editar pontos'}</button>${S.ptEdit===e.id?'<p class="hint">Arraste os pontos rosa. Dois cliques num ponto removem; dois cliques sobre o contorno criam um ponto novo.</p>':''}`:''}
     <button class="btn sm" data-a="rep">Repetir em outras páginas…</button>
     ${e.type==='image'?`<button class="btn sm" data-a="mksticker">Tirar fundo e virar adesivo</button>`:''}
-    <div class="pgrp">${(FIELDS[e.type]||[]).map(f=>fieldHTML(f,e)).join('')}</div>
+    <div class="pgrp" id="fldGrp">${(FIELDS[e.type]||[]).map(f=>fieldHTML(f,e)).join('')}</div>
     <div class="pgrp"><label class="pfield"><span>Link para página (PDF digital)</span><select data-k="link" data-t="sel">${pageOptions(e.link)}</select></label></div>`}
   else if(els.length>1){P.innerHTML=`<h2>${els.length} elementos</h2><div class="pact"><button class="ib" data-a="dup" title="Duplicar" aria-label="Duplicar">${ico('dup')}</button><button class="ib" data-a="del" title="Excluir" aria-label="Excluir">${ico('del')}</button><button class="ib" data-a="front" title="Frente" aria-label="Frente">${ico('front')}</button><button class="ib" data-a="back" title="Trás" aria-label="Trás">${ico('back')}</button></div><div class="row"><button class="btn sm pri" data-a="group" title="Agrupar (Ctrl+G)">Agrupar</button><button class="btn sm" data-a="ungroup" title="Desagrupar (Ctrl+Shift+G)"${els.some(e=>e.g)?'':' disabled'}>Desagrupar</button></div><button class="btn sm" data-a="rep">Repetir em outras páginas…</button><h3 style="font-size:12px;color:var(--muted)">ALINHAR ENTRE SI</h3><div class="pact">${['al','ac','ar','at','am','ab'].map(a=>`<button class="ib" data-al="${a}" title="${ALN[a]} (entre si)" aria-label="${ALN[a]}">${ico(a)}</button>`).join('')}</div><p class="hint">Shift + clique adiciona ou tira da seleção; arraste no vazio para selecionar vários; Ctrl+A seleciona tudo. Arraste um canto da caixa para mudar o tamanho de todos juntos, na mesma proporção.</p>`}
   else{const sn=sizeName(p.w,p.h).replace(' deitado','');P.innerHTML=`<h2>Página ${S.cur+1}</h2>

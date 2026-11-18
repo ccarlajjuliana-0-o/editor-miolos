@@ -128,3 +128,14 @@ Em qualquer campo de cor abre um seletor com quadro de cor, matiz, código HEX, 
 - Aba "Camadas": lista todos os elementos da página (o topo é o que fica na frente). Clique seleciona (Ctrl soma, Shift seleciona o intervalo); arraste pelas bolinhas ⋮⋮ para mudar a ordem (também com vários selecionados ou um grupo inteiro).
 - Olho: oculta o elemento (não aparece na página nem na exportação). Cadeado: trava a posição (não move, não redimensiona e, por padrão, não é selecionado ao clicar na página; Alt + clique seleciona). Dois cliques no nome renomeiam. Grupos aparecem recolhíveis.
 - Filtros (Todas / Travadas / Ocultas), busca, "Travar tudo", "Destravar tudo" e "Mostrar tudo". Tudo entra no histórico (Ctrl+Z).
+
+## Widgets: biblioteca, estilos e personalização
+- **Biblioteca** (aba Widgets): busca, categorias (Mensal, Semanal, Diário, Tarefas, Anotações, Finanças, Cartões, Trackers, Citações, Extras) e abas **Widgets / Salvos / Populares**. Arquivos: `widgetsbib.js` (catálogo e painel), `widgets.js` (motor de desenho), `estilos.js` (coleções de estilos), `widgetsprop.js` (painel da direita).
+- **Todo elemento pode ter `wx`**: título (`hd`), fundo (`bg`: cor ou imagem), moldura (`fr`), margem interna (`pad`) e sombra (`sh`). Sem `wx` nada muda no desenho. As cores com `@` (`@a`, `@ink`, `@soft`…) seguem a paleta do projeto.
+- **Estilos** são dados em `estilos.js` (9 coleções). O estilo padrão do projeto fica em `S.meta.style.wst` e vale para os próximos widgets; cada widget e cada página pode ter o seu.
+- **Moldura da página**: `p.frame` (desenhada em `drawPage`, por cima do fundo; não mexe nas margens).
+- **Marcadores** (lista, tarefas, hábitos, grade numerada, sequência de símbolos): `box`/`mk` + `mfill` + `mfc` + `msize`.
+- **Camadas e sobreposição**: `pin` ('top' | 'back') e `noOver`. Widgets com `noOver` não ficam sobre outros widgets; se já estavam sobrepostos antes de mexer, não são bloqueados.
+- **Salvar widget**: `S.lib` item `kind:'wgt'` com `els`.
+- Tipos novos: `progress`, `numgrid`, `rate`.
+- Todas as seções do painel da direita têm título e Ocultar/Expandir (regra do painel da direita).
