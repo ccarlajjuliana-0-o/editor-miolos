@@ -546,6 +546,8 @@
       if (o.text !== undefined) {
         const sz = o.size / F_MM, h = o.size * 1.25, w = Math.max(2, o.w + 1.2), ax = o.align === 'center' ? o.at[0] - w / 2 : o.align === 'right' || o.align === 'end' ? o.at[0] - w : o.at[0];
         const t = tx(mm(x0 + ax), mm(y0 + o.at[1] - h / 2), mm(w), mm(h), o.text, { font: o.fam, size: r1(sz), weight: o.weight, italic: o.italic, color: hexOf(o.color), align: o.align === 'end' ? 'right' : o.align === 'start' ? 'left' : (['left', 'center', 'right'].includes(o.align) ? o.align : 'left'), valign: 'middle', lh: 1.25 });
+        const wxT = e.wx && e.wx.hd && e.wx.hd.text;
+        t.role = wxT && String(wxT).trim() === String(o.text).trim() ? 'h1' : (/^\d+$/.test(o.text) ? 'h3' : (/^(dom|seg|ter|qua|qui|sex|s[áa]b|[dstq])$/i.test(o.text) || /^(janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/i.test(o.text) ? 'h2' : 'h4'));
         if (o.a < 1) t.opacity = r1(o.a); els.push(t); return;
       }
       const fillC = o.fill ? hexOf(o.fill.c) : 'none', strC = o.stroke ? hexOf(o.stroke.c) : 'none', sw = o.stroke ? Math.max(0.05, r1(o.stroke.w)) : 0.3, al = Math.min(o.fill ? o.fill.a : 1, o.stroke ? o.stroke.a : 1);
@@ -594,7 +596,8 @@
     const d = dockBox(), on = S.view === 'editor' && S.meta && S.meta.ml;
     if (!on) { d.hidden = true; return; }
     const k = S.meta.ml.kind, f = FREE[k] || FREE.wgt;
-    d.hidden = false; d.innerHTML = `<span class="mlt"><b>ModuLab</b> · criando ${esc(f.n.toLowerCase())}</span><button class="btn sm" id="mlAiDraw" type="button">✨ Pedir à IA</button><button class="btn sm" id="mlSoltar" type="button" title="Transforma o widget selecionado em linhas, caixas e textos soltos para editar tudo">Soltar em peças</button><button class="btn sm pri" id="mlFreeSave" type="button">Salvar no ModuLab</button><button class="btn sm ghost" id="mlFreeExit" type="button">Sair</button>`;
+    d.hidden = false; d.innerHTML = `<span class="mlt"><b>ModuLab</b> · criando ${esc(f.n.toLowerCase())}</span><button class="btn sm" id="mlAiDraw" type="button">✨ Pedir à IA</button><button class="btn sm" id="mlSoltar" type="button" title="Transforma o widget selecionado em linhas, caixas e textos soltos para editar tudo">Soltar em peças</button><button class="btn sm pri" id="mlFreeSave" type="button">Salvar no ModuLab</button><button class="btn sm ghost" id="mlFreeExit" type="button">Sair</button><button class="btn sm ghost" id="mlDockMin" type="button" title="Recolher a barra" aria-label="Recolher a barra">–</button>`;
+    d.classList.toggle('min', !!S._dockMin); $('#mlDockMin', d).onclick = () => { S._dockMin = !S._dockMin; dock(); };
     $('#mlAiDraw', d).onclick = aiDrawModal; $('#mlSoltar', d).onclick = soltar; $('#mlFreeSave', d).onclick = freeSaveModal; $('#mlFreeExit', d).onclick = () => { const b = $('#bBack'); if (b) b.click(); };
   }
   const freeEls = () => { const p = curPage(), sel = selEls(); const ids = sel.length ? gx(p, sel.map((e) => e.id)) : null; return p.els.filter((e) => !e.hidden && (!ids || ids.includes(e.id))); };

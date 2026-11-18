@@ -190,3 +190,9 @@ Qualquer widget (calendário, tabela, hábitos, horários…) pode ser transform
 
 ### Assistente rápido de widget (ajustes e paletas livres)
 No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo e título, há **Ajustes** do widget escolhido (quantidade de linhas, colunas, itens, dias, tamanhos, cores e opções), **Símbolo** (quadrado, coração, estrela, flor, visto… para listas, hábitos etc.) e **cores livres**: "Escolher cores livres / criar paleta" abre 7 seletores de cor; "Guardar como nova paleta" grava no ModuLab e a paleta passa a aparecer em todo o estúdio.
+
+### Textos por nível (H1–H6) e Fontes
+- Todo texto pode ter um **nível**: H1 título do widget, H2 cabeçalho do widget, H3 corpo, H4 textos de apoio, H5 cabeçalho da página, H6 rodapé da página. "Soltar em peças" já classifica sozinho.
+- Ao selecionar um texto, uma peça solta ou um grupo, a seção **Textos por nível** do painel direito mostra um bloco por nível (fonte, tamanho, cor, espaço entre letras, negrito, itálico, sublinhado, tachado, alinhamento na caixa, posição vertical, opacidade). "Mudar vale para": mesmo nível no grupo (padrão), só os selecionados, na página ou no projeto. Linhas e caixas do grupo têm blocos próprios (cor, espessura, estilo, cantos).
+- **Texto → Fontes e níveis de texto**: combinações de fontes (as prontas, novas combinações e as suas fontes enviadas), a lista H1–H6 (clique num nível para configurar; vale para o projeto todo), "Guardar esta configuração como padrão" (lista em Minhas configurações, vale também no ModuLab) e envio de fontes TTF/OTF ("Minhas fontes").
+- H5/H6: botão para inserir cabeçalho/rodapé na página ou em todas.
