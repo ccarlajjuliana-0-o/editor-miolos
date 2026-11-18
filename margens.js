@@ -224,8 +224,8 @@
       for (let i = 0; i < n; i++) h += `<i class="mgdot" style="left:${(hx + g.holes / 2) * k}px;top:${((i + 0.5) * p.h / n) * k}px;width:${Math.max(4, dia * k)}px;height:${Math.max(4, dia * k)}px"></i>`;
     }
     h += `<div class="mgl h" style="top:${g.lt * k}px"></div><div class="mgl h" style="top:${g.lb * k}px"></div><div class="mgl v" style="left:${g.lx0 * k}px"></div><div class="mgl v" style="left:${g.lx1 * k}px"></div>`;
-    if (g.hasH) h += `<div class="mgl h sub" style="top:${g.y0 * k}px"></div><span class="mgtag" style="top:${g.top * k + 2}px;left:${g.x0 * k + 4}px">cabeçalho</span>`;
-    if (g.hasF) h += `<div class="mgl h sub" style="top:${g.y1 * k}px"></div><span class="mgtag" style="top:${g.bot * k - 15}px;left:${g.x0 * k + 4}px">rodapé</span>`;
+    if (g.hasH) h += `<div class="mgl h sub" style="top:${g.y0 * k}px"></div>${S.meta.hf && S.meta.hf.hdr && S.meta.hf.hdr.on ? '' : `<span class="mgtag" style="top:${g.top * k + 2}px;left:${g.x0 * k + 4}px">cabeçalho</span>`}`;
+    if (g.hasF) h += `<div class="mgl h sub" style="top:${g.y1 * k}px"></div>${S.meta.hf && S.meta.hf.ftr && S.meta.hf.ftr.on ? '' : `<span class="mgtag" style="top:${g.bot * k - 15}px;left:${g.x0 * k + 4}px">rodapé</span>`}`;
     if (!lock) {
       const hd = (line, st) => `<i class="mgh ${line === 'top' || line === 'bottom' || line === 'hdr' || line === 'ftr' ? 'h' : 'v'}" data-line="${line}" style="${st}" title="Arraste para ajustar"></i>`;
       h += hd('top', `left:50%;top:${g.lt * k}px`) + hd('bottom', `left:50%;top:${g.lb * k}px`) + hd('left', `left:${g.lx0 * k}px;top:50%`) + hd('right', `left:${g.lx1 * k}px;top:50%`);

@@ -13,10 +13,11 @@
     wsty: { n: 'Estilo', pl: 'Estilos', ic: '✦', where: 'Estilo dos widgets → Meus estilos' },
     stk: { f: 'o', n: 'Adesivo', pl: 'Adesivos', ic: '♡', where: 'Adesivos → Do ModuLab' },
     colecao: { n: 'Coleção', pl: 'Coleções', ic: '❀', where: 'Modelos → Coleções' },
+    tipos: { f: 'a', n: 'Configuração de texto', pl: 'Textos', ic: 'Aa', where: 'Texto → Fontes → Minhas configurações' },
     outro: { n: 'Outro', pl: 'Outros', ic: '＋', where: 'a definir' },
   };
-  const ORDER = ['wgt', 'bdr', 'tema', 'wsty', 'stk', 'colecao', 'outro'];
-  const LISTK = ['wgt', 'bdr', 'tema', 'wsty', 'stk', 'sticker', 'colecao', 'outro'];
+  const ORDER = ['wgt', 'bdr', 'tema', 'wsty', 'stk', 'tipos', 'colecao', 'outro'];
+  const LISTK = ['wgt', 'bdr', 'tema', 'wsty', 'stk', 'sticker', 'tipos', 'colecao', 'outro'];
   const mine = (k) => S.lib.filter((x) => x.kind === k);
   const TOK = [['@a', 'Cor A do tema'], ['@b', 'Cor B do tema'], ['@ink', 'Tinta'], ['@soft', 'Suave'], ['@soft2', 'Suave 2'], ['@line', 'Linha'], ['@text', 'Texto'], ['none', 'Sem cor']];
   const isHex = (v) => /^#[0-9a-f]{6}$/i.test(v || '');
@@ -221,6 +222,7 @@
       else if (it.kind === 'bdr') bdrPrev(cv, it.border, bw, bh);
       else if (it.kind === 'wsty') wstyPrev(cv, it.spec, null, bw, bh);
       else if (it.kind === 'tema') temaPrev(cv, it, bw, bh);
+      else if (it.kind === 'tipos' && window.Textos) Textos.prev(cv, it, bw, bh);
       else if (it.kind === 'sticker' && it.src) { const im = getImg(it.src); const d = window.devicePixelRatio || 1; cv.width = bw * d; cv.height = bh * d; const draw = () => { const c = cv.getContext('2d'); c.clearRect(0, 0, cv.width, cv.height); const r = im && im.im; if (r && r.naturalWidth) { const k = Math.min(cv.width / r.naturalWidth, cv.height / r.naturalHeight); c.drawImage(r, (cv.width - r.naturalWidth * k) / 2, (cv.height - r.naturalHeight * k) / 2, r.naturalWidth * k, r.naturalHeight * k); } }; draw(); if (im && im.im) im.im.addEventListener('load', draw, { once: true }); }
       else if (it.kind === 'colecao') { const d = window.devicePixelRatio || 1; cv.width = bw * d; cv.height = bh * d; const c = cv.getContext('2d'); c.scale(d, d); c.fillStyle = '#F7E5E7'; c.fillRect(0, 0, bw, bh); c.fillStyle = '#9168A0'; c.font = '700 22px Quicksand, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('❀ ' + (it.items || []).length, bw / 2, bh / 2); }
     } catch (e) { /* sem prévia */ }
@@ -576,7 +578,7 @@
   const hexOf = (c) => { c = String(c || ''); if (isHex(c)) return c; if (c === 'none' || c === 'transparent') return 'none'; const m = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c); return m ? '#' + [1, 2, 3].map((i) => (+m[i]).toString(16).padStart(2, '0')).join('') : (/^#[0-9a-f]{3}$/i.test(c) ? '#' + c.slice(1).split('').map((x) => x + x).join('') : '#3E3550'); };
   function soltar() {
     const p = curPage(); if (!p) return;
-    let alvos = selEls().filter((e) => WX.ACCEPT && WX.ACCEPT.has(e.type)); if (!alvos.length) alvos = p.els.filter((e) => WX.ACCEPT && WX.ACCEPT.has(e.type) && !e.hidden);
+    let alvos = selEls().filter((e) => WX.ACCEPT && WX.ACCEPT.has(e.type) && e.type !== 'text'); if (!alvos.length) alvos = p.els.filter((e) => WX.ACCEPT && WX.ACCEPT.has(e.type) && e.type !== 'text' && !e.hidden);
     if (!alvos.length) { toast('Não achei widgets para soltar. Selecione um widget na página.'); return; }
     const novos = [];
     change([p.id], () => {
@@ -697,13 +699,13 @@
       <h2 class="mlh2">Minhas criações</h2><div class="chips mlf">${[['todos', 'Tudo']].concat(LISTK.filter((k) => k !== 'sticker').map((k) => [k, KIND[k].pl])).map(([k, n]) => `<button class="chip${filt.k === k ? ' on' : ''}" data-f="${k}">${n}</button>`).join('')}</div>
       ${all.length ? `<div class="mlgrid">${all.map((it) => `<div class="mlcard" data-id="${it.id}"><div class="mlpv"><canvas data-pc="${it.id}"></canvas></div><div class="mlb"><span class="mlbadge">${(KIND[it.kind] || { n: 'Adesivo (imagem)' }).n}</span><b>${esc(it.name || 'Sem nome')}</b>${it.kind === 'colecao' ? `<small>${(it.items || []).length} itens</small>` : ''}<div class="ac">${it.kind === 'sticker' ? '' : `<button class="btn sm" data-ed="${it.id}">Editar</button><button class="btn sm ghost" data-dp="${it.id}">Duplicar</button>`}<button class="btn sm ghost danger" data-rm="${it.id}">Excluir</button></div></div></div>`).join('')}</div>` : '<p class="hint">Nada por aqui ainda. Escolha um tipo acima para criar o primeiro. 🌸</p>'}`;
     $('#mlIa', box).onclick = () => iaModal();
-    $$('[data-new]', box).forEach((b) => b.onclick = () => { const k = b.dataset.new; if (['wgt', 'stk', 'bdr'].includes(k)) chooseModal(k); else openEditor(k, null); });
+    $$('[data-new]', box).forEach((b) => b.onclick = () => { const k = b.dataset.new; if (['wgt', 'stk', 'bdr'].includes(k)) chooseModal(k); else if (k === 'tipos') Textos.openTipos(null); else openEditor(k, null); });
     const fb = $('#mlFree', box); if (fb) fb.onclick = freeModal;
     $$('[data-od]', box).forEach((b) => b.onclick = () => { const d = S.drafts.find((x) => x.id === b.dataset.od); if (d && !S.projects.some((x) => x.id === d.id)) S.projects.push(d); openProject(b.dataset.od); });
     $$('[data-dd]', box).forEach((b) => b.onclick = async () => { if (!b.dataset.cf) { b.dataset.cf = 1; b.textContent = 'Confirmar'; setTimeout(() => { if (b.isConnected) { delete b.dataset.cf; b.textContent = 'Excluir'; } }, 4000); return; } const d = S.drafts.find((x) => x.id === b.dataset.dd); try { await Store.delProject(b.dataset.dd, d ? d.order || [] : []); S.drafts = S.drafts.filter((x) => x.id !== b.dataset.dd); mount(box); } catch (e) { toast('Não consegui excluir.'); } });
     $$('[data-f]', box).forEach((b) => b.onclick = () => { filt.k = b.dataset.f; mount(box); });
     $$('canvas[data-pc]', box).forEach((cv) => { const it = S.lib.find((x) => x.id === cv.dataset.pc); if (it) itemPrev(cv, it, 190, 120); });
-    $$('[data-ed]', box).forEach((b) => b.onclick = () => { const it = S.lib.find((x) => x.id === b.dataset.ed); if (!it) return; if (it.kind === 'wgt' || it.kind === 'stk') openFree(it.kind, it); else openEditor(it.kind, it); });
+    $$('[data-ed]', box).forEach((b) => b.onclick = () => { const it = S.lib.find((x) => x.id === b.dataset.ed); if (!it) return; if (it.kind === 'wgt' || it.kind === 'stk') openFree(it.kind, it); else if (it.kind === 'tipos') Textos.openTipos(it); else openEditor(it.kind, it); });
     $$('[data-dp]', box).forEach((b) => b.onclick = async () => { const it = S.lib.find((x) => x.id === b.dataset.dp); if (!it) return; const c = clone(it); c.id = uid('l'); c.name = (it.name || '') + ' (cópia)'; c.createdAt = c.updatedAt = Date.now(); await put(c); sync(); mount(box); });
     $$('[data-rm]', box).forEach((b) => b.onclick = async () => { if (!b.dataset.cf) { b.dataset.cf = 1; b.textContent = 'Confirmar exclusão'; setTimeout(() => { if (b.isConnected) { delete b.dataset.cf; b.textContent = 'Excluir'; } }, 4000); return; }
       const it = S.lib.find((x) => x.id === b.dataset.rm); if (!it) return; try { await Store.delLib(it); S.lib = S.lib.filter((x) => x !== it); S.lib.forEach((c) => { if (c.kind === 'colecao' && (c.items || []).includes(it.id)) { c.items = c.items.filter((y) => y !== it.id); Store.saveLib(c); } }); sync(); mount(box); toast('Excluído.'); } catch (e) { toast('Não consegui excluir.'); } });
