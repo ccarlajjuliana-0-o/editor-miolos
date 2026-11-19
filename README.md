@@ -203,3 +203,9 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - **Cabeçalho, rodapé e numeração** (painel direito, com nada selecionado): liga cada um, escreve o texto (igual em todas as páginas), estilo completo e **numeração automática** (formatos 3, - 3 -, ♡ 3 ♡, · 3 ·, Página 3, 3 / 20; posição esquerda/centro/direita/lado de fora/lado de dentro; fonte, tamanho, cor própria, negrito, itálico, sombra; começar em N; sem número na capa e contracapa). Dá para ter só o número ou só o texto.
 - **Widgets só de texto**: aba Widgets → Textos (título e subtítulo, citação, caixa com título, frase do dia, tópicos, etiqueta, recado com símbolos, duas colunas, destaque misto). Caixas de texto aceitam título, fundo e moldura como qualquer widget.
 - **ModuLab → Configuração de texto**: crie e edite níveis H1–H6 e a combinação de fontes, com prévia; ficam em Texto → Fontes → Minhas configurações.
+
+## Ajuste 39 — Elementos, edição rápida e conjunto de widgets
+- **Widgets › Elementos**: retângulos, quadrados, círculos, elipse, pílula, molduras, linhas e formas (coração, estrela, flor…), usando as cores do tema.
+- **Duplo clique dentro do widget** (checklist, hábitos, abas, tabela, divisor e título do widget) abre o menu rápido: texto, fonte, tamanho, cor, alinhamento, incluir/excluir item, linha ou coluna.
+- **Conjunto de widgets**: ao agrupar widgets, a seção "Conjunto de widgets" cria um fundo comum (fundo, borda, estilo e título valem para o todo); os textos continuam individuais.
+- Arquivo novo: `rapido.js` (já listado no index, sw.js v45 e publicar.yml).
