@@ -293,3 +293,6 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Novos layouts: **Contorno** (linhas fina/grossa/duplas, afastadas do extremo), **Lados**, **Destaque**, **Cantos**; "Completo" com esmaecido nas laterais e de dentro para fora / fora para dentro.
 - **Inverter o recorte** para Ondulado, Renda e demais (imagem onde era branco). Ondulado = cortes em "C" (abertura para a borda); Renda = cortes em "U" (abertura para o interior).
 - Estilos de borda das imagens (Lado, Topo + destaque, Canto arredondado) na galeria de miniaturas.
+
+## Ajuste 59 — Novos estilos em "Moldura"
+- 13 novos estilos na categoria Moldura: cantos diagonais, oval, meia página + contorno, linhas no extremo, dupla no extremo, contorno com canto grosso, moldura dupla interna, moldura grossa (reta e arredondada), barra grossa lateral, barra grossa + linhas, meia página + linha, borda lateral.

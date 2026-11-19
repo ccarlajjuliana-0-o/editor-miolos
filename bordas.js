@@ -4,7 +4,7 @@
   'use strict';
   const LAY = [
     ['completo', 'Completo', [['full', 'Página toda'], ['fadeT', 'Esmaecido em cima'], ['fadeB', 'Esmaecido embaixo'], ['fadeL', 'Esmaecido à esquerda'], ['fadeR', 'Esmaecido à direita'], ['fadeTB', 'Esmaecido em cima e embaixo'], ['fadeLR', 'Esmaecido nas laterais'], ['fadeC', 'De dentro para fora'], ['fadeE', 'De fora para dentro']]],
-    ['moldura', 'Moldura', [['ring', 'Moldura inteira'], ['ringR', 'Moldura arredondada'], ['thin', 'Moldura fina'], ['sq', 'Moldura de cantos']]],
+    ['moldura', 'Moldura', [['ring', 'Moldura inteira'], ['ringR', 'Moldura arredondada'], ['thin', 'Moldura fina'], ['sq', 'Moldura de cantos'], ['kDiag', 'Cantos diagonais'], ['kOval', 'Moldura oval'], ['kSplit', 'Meia página + contorno'], ['kEdge', 'Linhas no extremo'], ['kDbl', 'Dupla no extremo'], ['kLarge', 'Contorno com canto grosso'], ['kIns', 'Moldura dupla interna'], ['kB3', 'Moldura grossa arredondada'], ['kB2', 'Moldura grossa'], ['kB4', 'Barra grossa lateral'], ['kB5', 'Barra grossa + linhas'], ['kOE', 'Meia página + linha'], ['kBd', 'Borda lateral']]],
     ['contorno', 'Contorno', [['o1', 'Linha fina'], ['o2', 'Linha grossa'], ['o12', 'Fina + grossa'], ['o21', 'Grossa + fina'], ['o11', 'Duas finas'], ['o3', 'Fina, grossa, fina'], ['oR', 'Fina arredondada'], ['oR2', 'Fina + grossa arredondada']]],
     ['faixas', 'Faixas', [['t', 'Em cima'], ['b', 'Embaixo'], ['tb', 'Em cima e embaixo'], ['lr', 'Laterais'], ['l', 'Só esquerda'], ['r', 'Só direita'], ['out', 'Lateral de fora'], ['in', 'Lateral da encadernação'], ['mh', 'Faixa no meio (deitada)'], ['mv', 'Faixa no meio (em pé)']]],
     ['lados', 'Lados', [['sTB2', 'Em cima e embaixo (fina)'], ['sL', 'Metade esquerda + contorno'], ['sR', 'Metade direita + contorno'], ['sT', 'Metade de cima + contorno'], ['sB', 'Metade de baixo + contorno']]],
@@ -100,6 +100,24 @@
       const win = rrPoly(wx, m, ww, h, left ? [R, 0, 0, R] : [0, R, R, 0]), out = [rect(0, 0, W, H), hole(win)];
       if (base === 'sc2') { const o = Math.max(2, avg * 0.5), thn = 0.5; ringOf(wx + o, m + o, ww - o, h - 2 * o, Math.max(0, R - o), thn).forEach((q) => out.push(q)); }
       return out;
+    }
+    if (/^k(Diag|Oval|Split|Edge|Dbl|Large|Ins|B3|B2|B4|B5|OE|Bd)$/.test(base)) {
+      const th = Math.max(avg * 0.7, 2.2), thin = 0.5, o = b.ofs != null ? b.ofs : Math.max(2, avg * 0.5), hw = W / 2, m = Math.max(avg, 4);
+      const rings = (spec, o0, gap, R0) => { let q = o0; spec.forEach((t) => { ringOf(q, q, W - 2 * q, H - 2 * q, Math.max(0, R0 - (q - o0)), t).forEach((p) => polys.push(p)); q += t + gap; }); };
+      if (base === 'kDiag') { const R = Math.min(W, H) * 0.35; polys.push(pos([[0, 0], [R, 0], [0, R]]), pos([[W, H], [W - R, H], [W, H - R]])); }
+      else if (base === 'kOval') { const w = W - 2 * m * 1.2, h = H - 2 * m * 1.2; polys.push(pos([[0, 0], [W, 0], [W, H], [0, H]]), hole(rrPoly(m * 1.2, m * 1.2, w, h, [w / 2, w / 2, w / 2, w / 2]))); }
+      else if (base === 'kSplit') { polys.push(rect(hw, 0, hw, H)); rings([thin], o, 0, 5); }
+      else if (base === 'kEdge') rings([thin, thin, thin], 1.2, 0.7, 0);
+      else if (base === 'kDbl') rings([thin, th], 1.2, th * 0.5, 0);
+      else if (base === 'kLarge') { polys.push(pos([[0, 0], [W, 0], [W, th], [th, th], [th, H], [0, H]])); rings([thin], th + o * 0.5, 0, 0); }
+      else if (base === 'kIns') rings([th * 0.6, th * 0.6], o, th * 0.5, 0);
+      else if (base === 'kB3') rings([Math.max(avg, 3)], o, 0, 8);
+      else if (base === 'kB2') rings([Math.max(avg, 3)], o, 0, 2);
+      else if (base === 'kB4') polys.push(rect(o, 0, th, H));
+      else if (base === 'kB5') { rings([thin, thin], 1.2, 0.7, 0); polys.push(rect(o + 2, 0, th, H)); }
+      else if (base === 'kOE') { polys.push(rect(0, 0, hw - o, H), rect(hw - o + o * 1.5, 0, thin, H)); }
+      else polys.push(rect(W - th * 1.2, 0, th * 1.2, H));
+      return polys;
     }
     if (base === 'ring' || base === 'ringR' || base === 'thin' || base === 'sq') {
       const TT = base === 'thin' ? { l: Math.max(1, T.l / 3), t: Math.max(1, T.t / 3), r: Math.max(1, T.r / 3), b: Math.max(1, T.b / 3) } : T;
