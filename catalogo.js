@@ -32,7 +32,7 @@
       await IDB.put('lib', h.id, (({ id, ...r }) => r)(h)); S.lib.push(h);
       const hs = S.lib.filter((x) => x.kind === 'hist').sort((a, b) => a.at - b.at);
       while (hs.length > 1000) { const o = hs.shift(); await IDB.del('lib', o.id); S.lib.splice(S.lib.indexOf(o), 1); }
-    }).catch((e) => console.error(e)).then(() => { if (S.tab === 'catalogo' && st.view === 'hist') try { renderPanel(); } catch (e) { /* */ } });
+    }).catch((e) => console.error(e)).then(() => { if (st.view === 'hist') try { refresh(); } catch (e) { /* */ } });
   }
   const _save = Store.saveLib.bind(Store), _del = Store.delLib.bind(Store);
   let forceCat = false;
@@ -43,7 +43,7 @@
   const readDims = (f) => new Promise((res) => { const u = URL.createObjectURL(f), im = new Image(); im.onload = () => { res({ w: im.naturalWidth, h: im.naturalHeight }); URL.revokeObjectURL(u); }; im.onerror = () => res(null); im.src = u; });
   function minFor(kind) {
     if (kind === 'sticker' || kind === 'widget') return { w: 300, h: 300, any: true, why: 'o lado maior precisa ter ao menos 300 px para não ficar pixelado' };
-    const p = curPage() || { w: 148, h: 210 }; return { w: Math.round(p.w / 25.4 * 150), h: Math.round(p.h / 25.4 * 150), why: 'cobrir uma página do tamanho da atual a 150 dpi' };
+    const p = demoPg(); return { w: Math.round(p.w / 25.4 * 150), h: Math.round(p.h / 25.4 * 150), why: 'cobrir uma página do tamanho da atual a 150 dpi' };
   }
   async function upload(files, kind) {
     const ok = [], rule = minFor(kind);
@@ -59,12 +59,12 @@
     const before = new Set(S.lib.map((x) => x.id));
     forceCat = true; try { await uploadFiles(ok, kind); } finally { forceCat = false; }
     const added = S.lib.filter((x) => !before.has(x.id) && x.kind === kind);
-    if (added.length) { toast(`${added.length} item${added.length > 1 ? 's' : ''} no catálogo. 🌸`); renderPanel(); }
+    if (added.length) { toast(`${added.length} item${added.length > 1 ? 's' : ''} no catálogo. 🌸`); refresh(); }
   }
-  async function move(it, toCat) { const u = Object.assign({}, it, { cat: !!toCat, updatedAt: Date.now() }); await _save(u); Object.assign(it, u); log(toCat ? 'enviado ao catálogo' : 'movido para Minhas coisas', it); renderPanel(); }
+  async function move(it, toCat) { const u = Object.assign({}, it, { cat: !!toCat, updatedAt: Date.now() }); await _save(u); Object.assign(it, u); log(toCat ? 'enviado ao catálogo' : 'movido para Minhas coisas', it); refresh(); }
   async function rename(it) {
     modal(`<h2>Renomear</h2><label class="f">Nome<input type="text" id="cgNm" value="${esc(it.name || it.family || '')}" maxlength="60"></label><div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="cgOk">Salvar</button></div>`, (b, close) => {
-      $('#cgOk', b).onclick = async () => { const v = $('#cgNm', b).value.trim(); if (!v) return; const old = it.name; const u = Object.assign({}, it, { name: v, updatedAt: Date.now() }); await Store.saveLib(u); Object.assign(it, u); close(); renderPanel(); };
+      $('#cgOk', b).onclick = async () => { const v = $('#cgNm', b).value.trim(); if (!v) return; const old = it.name; const u = Object.assign({}, it, { name: v, updatedAt: Date.now() }); await Store.saveLib(u); Object.assign(it, u); close(); refresh(); };
     });
   }
 
@@ -74,7 +74,7 @@
   const synced = () => S.lib.filter((x) => isCat(x) || x.kind === 'hist');
   async function syncNow() {
     if (!window.Cloud || !Cloud.sb || !Cloud.user) { toast('Entre na nuvem primeiro (botão “Entrar na nuvem”).'); return; }
-    if (sync.busy) return; sync.busy = true; sync.msg = 'Sincronizando…'; renderPanel();
+    if (sync.busy) return; sync.busy = true; sync.msg = 'Sincronizando…'; refresh();
     const sb = Cloud.sb, uid0 = Cloud.user.id; let up = 0, down = 0;
     try {
       const r = await sb.from('estudio_catalogo').select('id,tipo,dados,arquivo,excluido,atualizado_em').eq('user_id', uid0);
@@ -101,7 +101,12 @@
       }
       sync.msg = `Pronto: ${up} enviado${up === 1 ? '' : 's'}, ${down} recebido${down === 1 ? '' : 's'} · ${fmt(Date.now())}`;
     } catch (e) { console.error(e); sync.msg = 'Não consegui sincronizar. Confira se rodou o arquivo supabase/catalogo.sql no Supabase.'; }
-    sync.busy = false; renderPanel();
+    sync.busy = false; refresh();
+  }
+
+  function info(it) {
+    const pv = it.src && it.kind !== 'font' ? `<div class="cinfo"><img src="${esc(srcUrl(it.src))}" alt=""></div>` : it.kind === 'font' ? `<div class="cinfo" style="font-family:'${esc(it.family || '')}';font-size:26px">Aa Bb Cc 123</div>` : '';
+    modal(`<h2>${esc(it.name || it.family || KN[it.kind] || 'Item')}</h2>${pv}<p class="hint">${esc(KN[it.kind] || it.kind)} · ${isCat(it) ? 'no catálogo' : 'minhas coisas'}<br>Criado em ${esc(fmt(it.createdAt || 0) || '—')}${it.updatedAt ? '<br>Alterado em ' + esc(fmt(it.updatedAt)) : ''}</p><div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Fechar</button></div>`, () => {});
   }
 
   /* ---------- miniaturas ---------- */
@@ -115,8 +120,8 @@
       <div class="cact"><button type="button" class="btn sm ghost" data-cren="${it.id}" title="Renomear">✎</button>${mirror ? '<span class="cbadge" title="Criado no ModuLab e espelhado aqui">ModuLab</span>' : `<button type="button" class="btn sm ghost" data-cmv="${it.id}" title="${it.cat ? 'Mover para Minhas coisas' : 'Enviar ao catálogo'}">${it.cat ? '↧' : '↥'}</button>`}<button type="button" class="btn sm ghost danger" data-cdl="${it.id}" title="Excluir">×</button></div></div>`;
   }
   const builtin = (key) => {
-    if (key === 'widgets' && typeof WIDGETS !== 'undefined') return WIDGETS.map(([k, n]) => `<button type="button" class="ctile bi" data-cbw="${k}"><div class="cim"><canvas data-cbp="${k}"></canvas></div><div class="cnm">${esc(n)}</div></button>`).join('');
-    if (key === 'adesivos' && typeof STICKERS !== 'undefined') return STICKERS.map((s, i) => `<button type="button" class="ctile bi" data-cbs="${i}"><div class="cim"><canvas data-cbq="${i}"></canvas></div><div class="cnm">${esc(SHAPES[s[0]] || 'Adesivo')}</div></button>`).join('');
+    if (key === 'widgets' && typeof WIDGETS !== 'undefined') return WIDGETS.map(([k, n]) => `<div class="ctile bi" data-cbw="${k}"><div class="cim"><canvas data-cbp="${k}"></canvas></div><div class="cnm">${esc(n)}</div></div>`).join('');
+    if (key === 'adesivos' && typeof STICKERS !== 'undefined') return STICKERS.map((s, i) => `<div class="ctile bi" data-cbs="${i}"><div class="cim"><canvas data-cbq="${i}"></canvas></div><div class="cnm">${esc(SHAPES[s[0]] || 'Adesivo')}</div></div>`).join('');
     if (key === 'fontes' && typeof FONTS !== 'undefined') return `<div class="cfonts">${FONTS.map((f) => `<div class="cfont" style="font-family:'${esc(f[0])}'">${esc(f[0])}<small>${esc(f[1] || '')}</small></div>`).join('')}</div>`;
     if (key === 'modelos' && typeof TPL !== 'undefined') return `<div class="cfonts">${Object.keys(TPL).map((k) => `<div class="cfont">${esc(TPL[k].nome || k)}<small>modelo do app</small></div>`).join('')}</div>`;
     return '';
@@ -138,42 +143,39 @@
     }).join('') || '<p class="hint">Nada por aqui ainda.</p>';
   }
 
-  PANELS.catalogo = {
+  const View = {
     html() {
       const tab = (k, n) => `<button type="button" data-cv="${k}" class="${st.view === k ? 'on' : ''}">${n}</button>`;
       const chips = st.view === 'hist' ? '' : `<div class="bdchips cgchips">${[['todos', 'Tudo'], ...CATS.map((c) => [c[0], c[1]])].map(([k, n]) => `<button type="button" class="chip${st.cat === k ? ' on' : ''}" data-cc="${k}">${n}</button>`).join('')}</div>`;
       const up = st.view === 'cat' ? section('up', 'Enviar ao catálogo', `<div class="fgrid"><label class="pfield"><span>Tipo</span><select id="cgUk">${UPK.map(([k, n]) => `<option value="${k}"${st.up === k ? ' selected' : ''}>${n}</option>`).join('')}</select></label></div><span class="btn sm upl">Escolher arquivos<input type="file" id="cgUf" multiple accept="${st.up === 'font' ? '.ttf,.otf' : '.png,.jpg,.jpeg,image/png,image/jpeg'}" aria-label="Enviar ao catálogo"></span><p class="hint">${st.up === 'font' ? 'Fontes ficam disponíveis em todos os textos.' : 'Tamanho mínimo: ' + (st.up === 'sticker' || st.up === 'widget' ? '300 px no lado maior' : 'o suficiente para cobrir uma página a 150 dpi') + '. Se for menor, aviso antes de guardar.'}</p>`, true) : '';
-      return `<h2>Catálogo</h2><p class="hint">Os itens padrão do app e tudo que você guardar aqui são lidos pelo editor e pelo ModuLab. O que você envia pelas outras abas fica em “Minhas coisas”.</p>
+      return `<p class="hint">Os itens padrão do app e tudo que você guardar aqui são lidos pelo editor e pelo ModuLab. O que você envia pelas outras abas fica em “Minhas coisas”.</p>
         <div class="segf bdtabs cgtabs">${tab('cat', 'Catálogo')}${tab('mine', 'Minhas coisas')}${tab('hist', 'Histórico')}</div>${chips}${up}
         ${st.view === 'hist' ? histHTML() : listHTML(st.view === 'mine')}
         ${section('cloud', 'Nuvem', `<p class="hint">Guarda o catálogo e o histórico na sua conta (além deste aparelho) e traz o que estiver só lá.</p><button type="button" class="btn sm" id="cgSync"${sync.busy ? ' disabled' : ''}>Sincronizar agora</button><p class="hint">${esc(sync.msg || (window.Cloud && Cloud.user ? '' : 'Entre na nuvem para sincronizar.'))}</p>`, false)}`;
     },
     mount(P) {
-      $$('[data-cv]', P).forEach((b) => b.onclick = () => { st.view = b.dataset.cv; renderPanel(); });
-      $$('[data-cc]', P).forEach((b) => b.onclick = () => { st.cat = b.dataset.cc; renderPanel(); });
+      $$('[data-cv]', P).forEach((b) => b.onclick = () => { st.view = b.dataset.cv; refresh(); });
+      $$('[data-cc]', P).forEach((b) => b.onclick = () => { st.cat = b.dataset.cc; refresh(); });
       $$('[data-cacc]', P).forEach((a) => { $('.wah', a).onclick = () => { const o = !a.classList.contains('open'); a.classList.toggle('open', o); Pref.acc = Pref.acc || {}; Pref.acc[a.dataset.cacc] = o; savePref(); }; });
       const sy = $('#cgSync', P); if (sy) sy.onclick = syncNow;
-      const hf = $('#cgHf', P); if (hf) hf.onchange = () => { st.hf = hf.value; renderPanel(); };
-      const uk = $('#cgUk', P); if (uk) uk.onchange = () => { st.up = uk.value; renderPanel(); };
+      const hf = $('#cgHf', P); if (hf) hf.onchange = () => { st.hf = hf.value; refresh(); };
+      const uk = $('#cgUk', P); if (uk) uk.onchange = () => { st.up = uk.value; refresh(); };
       const uf = $('#cgUf', P); if (uf) uf.onchange = async () => { const fs = [...uf.files]; uf.value = ''; if (fs.length) await upload(fs, st.up); };
       const paint = () => {
-        $$('[data-cbp]', P).forEach((cv) => { const w = WIDGETS.find((x) => x[0] === cv.dataset.cbp); if (w) { const e = w[2](curPage(), styleOf()); e.x = 0; e.y = 0; elPreview(cv, e, 64, 44); } });
-        $$('[data-cbq]', P).forEach((cv) => { const e = stickerEl(+cv.dataset.cbq); e.x = 0; e.y = 0; elPreview(cv, e, 64, 44); });
+        $$('[data-cbp]', P).forEach((cv) => { const w = WIDGETS.find((x) => x[0] === cv.dataset.cbp); if (w) { try { const e = w[2](demoPg(), styleOf()); e.x = 0; e.y = 0; elPreview(cv, e, 64, 44); } catch (er) { /* */ } } });
+        $$('[data-cbq]', P).forEach((cv) => { try { const e = stickerEl(+cv.dataset.cbq); e.x = 0; e.y = 0; elPreview(cv, e, 64, 44); } catch (er) { /* */ } });
         $$('canvas[data-cpv]', P).forEach((cv) => { const it = S.lib.find((x) => x.id === cv.dataset.cpv); if (it && window.ModuLab && ModuLab.itemPrev) try { ModuLab.itemPrev(cv, it, 190, 120); } catch (e) { /* */ } });
       };
-      paint(); S.panelRepaint = paint;
-      $$('[data-cbw]', P).forEach((b) => b.onclick = () => { const w = WIDGETS.find((x) => x[0] === b.dataset.cbw); addEl(w[2](curPage(), styleOf()), w[3]); });
-      $$('[data-cbs]', P).forEach((b) => b.onclick = () => addEl(stickerEl(+b.dataset.cbs)));
+      paint(); S.homeRepaint = paint;
       const get = (id) => S.lib.find((x) => x.id === id);
-      $$('[data-cuse]', P).forEach((b) => { const act = () => { const it = get(b.dataset.cuse); if (!it) return; if (it.src && it.kind !== 'font') useLib(it); else if (MLK.includes(it.kind) && window.ModuLab && ModuLab.openEditor && !['pat', 'colecao', 'outro', 'tipos'].includes(it.kind)) ModuLab.openEditor(it.kind, it); else if (it.kind === 'pat' && ModuLab.openPat) ModuLab.openPat(it); else toast('Este item é usado pelo ModuLab e pelas abas correspondentes.'); }; b.onclick = act; b.onkeydown = (e) => { if (e.key === 'Enter') act(); }; });
+      $$('[data-cuse]', P).forEach((b) => { const act = () => { const it = get(b.dataset.cuse); if (!it) return; if (['wgt', 'stk', 'bdr', 'tema', 'wsty'].includes(it.kind) && window.ModuLab && ModuLab.openEditor) ModuLab.openEditor(it.kind, it); else if (it.kind === 'pat' && window.ModuLab && ModuLab.openPat) ModuLab.openPat(it); else info(it); }; b.onclick = act; b.onkeydown = (e) => { if (e.key === 'Enter') act(); }; });
       $$('[data-cren]', P).forEach((b) => b.onclick = () => { const it = get(b.dataset.cren); if (it) rename(it); });
       $$('[data-cmv]', P).forEach((b) => b.onclick = () => { const it = get(b.dataset.cmv); if (it) move(it, !it.cat); });
-      $$('[data-cdl]', P).forEach((b) => b.onclick = async () => { if (!b.dataset.cf) { b.dataset.cf = 1; b.classList.add('cf'); b.textContent = 'confirmar'; return; } const it = get(b.dataset.cdl); if (!it) return; try { await Store.delLib(it); S.lib = S.lib.filter((x) => x.id !== it.id); renderPanel(); } catch (e) { toast('Não consegui excluir.'); } });
+      $$('[data-cdl]', P).forEach((b) => b.onclick = async () => { if (!b.dataset.cf) { b.dataset.cf = 1; b.classList.add('cf'); b.textContent = 'confirmar'; return; } const it = get(b.dataset.cdl); if (!it) return; try { await Store.delLib(it); S.lib = S.lib.filter((x) => x.id !== it.id); refresh(); } catch (e) { toast('Não consegui excluir.'); } });
     },
   };
-  TABS.splice(TABS.findIndex((t) => t[0] === 'biblioteca'), 0, ['catalogo', 'Catálogo']);
-  ICON.catalogo = '<path d="M4 4h5a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z"/><path d="M20 4h-5a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h6z"/>';
-  try { renderRail(); } catch (e) { /* */ }
+  function refresh() { const b = document.getElementById('catBox'); if (b && !b.closest('[hidden]')) { b.innerHTML = View.html(); View.mount(b); } }
+  const demoPg = () => { let p = null; try { p = curPage(); } catch (e) { /* */ } return p || { id: '_c', w: 148, h: 210, els: [], bg: '#fff' }; };
 
   /* itens do catálogo também aparecem nas abas Widgets e Adesivos */
   [['widgets', 'widget', 'DO CATÁLOGO'], ['adesivos', 'sticker', 'DO CATÁLOGO']].forEach(([tab, kind, t]) => {
@@ -181,5 +183,5 @@
     PANELS[tab].html = function () { const its = S.lib.filter((x) => x.kind === kind && x.cat); return old.call(this) + (its.length ? `<div class="libsec"><div class="lhd"><h3>${t}</h3></div><div class="litems">${its.map(libItem).join('')}</div></div>` : ''); };
   });
 
-  window.Catalogo = { log, move, st, isCat };
+  window.Catalogo = { log, move, st, isCat, mount: refresh };
 })();

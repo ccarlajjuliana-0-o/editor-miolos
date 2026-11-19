@@ -6,13 +6,14 @@
   let ui = {};
   try { ui = JSON.parse(localStorage.getItem(LSK) || '{}') || {}; } catch (e) { ui = {}; }
   const save = () => { try { localStorage.setItem(LSK, JSON.stringify(ui)); } catch (e) { /* sem armazenamento */ } };
-  const VIEWS = { projetos: '#vProjetos', modulab: '#vModulab', aparencia: '#vAparencia', nuvem: '#vNuvem' };
+  const VIEWS = { projetos: '#vProjetos', modulab: '#vModulab', catalogo: '#vCatalogo', aparencia: '#vAparencia', nuvem: '#vNuvem' };
 
   function view(n) {
     for (const [k, sel] of Object.entries(VIEWS)) { const el = $(sel); if (el) el.hidden = k !== n; }
     $$('.menu [data-view]').forEach((b) => (b.dataset.view === n ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
     if (n === 'aparencia') Apar.montar($('#aparBox')); else Apar.fechar();
     if (n === 'modulab' && window.ModuLab) ModuLab.mount($('#mlBox'));
+    if (n === 'catalogo' && window.Catalogo) Catalogo.mount();
     const c = $('#home .conteudo'); if (c) c.scrollTop = 0;
   }
   $$('.menu [data-view]').forEach((b) => { b.onclick = () => view(b.dataset.view); });

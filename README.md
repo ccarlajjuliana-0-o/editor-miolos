@@ -309,3 +309,7 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Envio ao catálogo de widgets, adesivos, bordas, fundos e fontes, com aviso de resolução mínima (300 px nos adesivos/widgets; página a 150 dpi nos fundos/bordas).
 - O que é enviado pelas outras abas continua em "Minhas coisas"; itens do catálogo aparecem também nas abas Widgets/Adesivos e são lidos pelo ModuLab e pelas Bordas. Mover entre catálogo e Minhas coisas com ↥/↧.
 - Nuvem opcional: rode `supabase/catalogo.sql` uma vez e use "Sincronizar agora" (catálogo e histórico vão para a pasta privada `estudio`).
+
+## Ajuste 62 — Catálogo no menu da página principal
+- O Catálogo saiu do menu do editor e agora fica no menu da esquerda da página principal (Projetos · ModuLab · **Catálogo** · Aparência · Lixeira · Nuvem e backup).
+- Na página principal, clicar num item do catálogo abre os detalhes (ou o editor do ModuLab, para itens do ModuLab). As abas Widgets/Adesivos do editor continuam mostrando "Do catálogo".
