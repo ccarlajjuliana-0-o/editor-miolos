@@ -249,3 +249,6 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 ## Ajuste 48
 - Moldura com cantos arredondados: o conteúdo recua e é recortado pela curva (vale para qualquer objeto com moldura).
 - Textos: nova seção "Texto em curva" (arco/taça, raio, abertura em graus, ângulo inicial, espaço entre letras).
+
+## Ajuste 49
+- As molduras "Só cantos" e "Vintage" agora acompanham o arredondamento dos cantos (antes só algumas molduras acompanhavam).

@@ -114,18 +114,25 @@
       case 'double': box(t / 2, r, t); box(t / 2 + g, r - g, t); break;
       case 'bold': box(t / 2, r, t); box(t + g * 0.7, r - g * 0.7, Math.max(0.15, t * 0.28)); break;
       case 'corners': {
-        const L = Math.min(w, h) * 0.16, i = t / 2; c.lineCap = 'square';
+        const L = Math.max(Math.min(w, h) * 0.16, r + 1), i = t / 2, q = Math.min(r, L, w / 2 - i, h / 2 - i); c.lineCap = r > 0 ? 'round' : 'square';
         c.beginPath();
-        c.moveTo(x + i, y + i + L); c.lineTo(x + i, y + i); c.lineTo(x + i + L, y + i);
-        c.moveTo(x + w - i - L, y + i); c.lineTo(x + w - i, y + i); c.lineTo(x + w - i, y + i + L);
-        c.moveTo(x + w - i, y + h - i - L); c.lineTo(x + w - i, y + h - i); c.lineTo(x + w - i - L, y + h - i);
-        c.moveTo(x + i + L, y + h - i); c.lineTo(x + i, y + h - i); c.lineTo(x + i, y + h - i - L);
+        if (q > 0) { /* cantos arredondados: cada canto vira um arco com braços retos */
+          const X0 = x + i, Y0 = y + i, X1 = x + w - i, Y1 = y + h - i;
+          c.moveTo(X0, Y0 + L); c.lineTo(X0, Y0 + q); c.arcTo(X0, Y0, X0 + q, Y0, q); c.lineTo(X0 + L, Y0);
+          c.moveTo(X1 - L, Y0); c.lineTo(X1 - q, Y0); c.arcTo(X1, Y0, X1, Y0 + q, q); c.lineTo(X1, Y0 + L);
+          c.moveTo(X1, Y1 - L); c.lineTo(X1, Y1 - q); c.arcTo(X1, Y1, X1 - q, Y1, q); c.lineTo(X1 - L, Y1);
+          c.moveTo(X0 + L, Y1); c.lineTo(X0 + q, Y1); c.arcTo(X0, Y1, X0, Y1 - q, q); c.lineTo(X0, Y1 - L);
+        } else {
+          c.moveTo(x + i, y + i + L); c.lineTo(x + i, y + i); c.lineTo(x + i + L, y + i);
+          c.moveTo(x + w - i - L, y + i); c.lineTo(x + w - i, y + i); c.lineTo(x + w - i, y + i + L);
+          c.moveTo(x + w - i, y + h - i - L); c.lineTo(x + w - i, y + h - i); c.lineTo(x + w - i - L, y + h - i);
+          c.moveTo(x + i + L, y + h - i); c.lineTo(x + i, y + h - i); c.lineTo(x + i, y + h - i - L);
+        }
         c.lineWidth = t; c.stroke(); break;
       }
       case 'notch': {
-        box(t / 2, 0, t); box(t / 2 + g, 0, Math.max(0.15, t * 0.55));
-        const q = g * 1.9;
-        [[x, y], [x + w - q, y], [x, y + h - q], [x + w - q, y + h - q]].forEach(([a, b]) => c.fillRect(a, b, q, q));
+        box(t / 2, r, t); box(t / 2 + g, Math.max(0, r - g), Math.max(0.15, t * 0.55));
+        if (!r) { const q = g * 1.9; [[x, y], [x + w - q, y], [x, y + h - q], [x + w - q, y + h - q]].forEach(([a, b]) => c.fillRect(a, b, q, q)); }
         break;
       }
       case 'scallop': scallopPath(c, x, y, w, h, f.bump || 4.5); c.lineWidth = t; c.stroke(); break;
