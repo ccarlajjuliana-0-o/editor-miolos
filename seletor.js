@@ -143,6 +143,16 @@
   }
 
   // abre no lugar do seletor nativo
+  /* campos de "Fundo": a setinha ▾ abre o mesmo seletor completo (sem a paleta pequena) */
+  const fundoLabel = (cf) => {
+    const lp = cf.closest('label.pfield,.pfield'), a = lp && [...lp.children].find((c) => c !== cf && c.tagName === 'SPAN'); if (a) return a.textContent;
+    let n = cf.parentElement; for (let i = 0; n && i < 3; i++, n = n.parentElement) { const x = [...n.children].find((c) => c !== cf && /^(SPAN|H5|H4|B|LABEL)$/.test(c.tagName) && !c.contains(cf)); if (x) return x.textContent; }
+    const pv = (lp || cf).previousElementSibling; return pv ? pv.textContent : '';
+  };
+  document.addEventListener('click', (e) => {
+    const b = e.target && e.target.closest && e.target.closest('.cct'); if (!b) return; const cf = b.closest('.cfield'), inp = cf && cf.querySelector('input[type=color]');
+    if (!inp || !/fundo/i.test(fundoLabel(cf))) return; e.preventDefault(); e.stopImmediatePropagation(); inp.click();
+  }, true);
   document.addEventListener('click', (e) => {
     const el = e.target && e.target.closest && e.target.closest('input[type=color]'); if (!el || el.disabled) return;
     e.preventDefault(); e.stopPropagation(); if (st && st.el === el) { close(); return; } close(); open(el);

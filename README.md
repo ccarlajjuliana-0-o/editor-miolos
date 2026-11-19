@@ -370,3 +370,7 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Selecionar parte das células cria **exceções** só nelas. "Sem cor"/"Tirar cor" numa exceção devolve a célula ao fundo da tabela.
 - Textos dos campos lado a lado no painel da tabela não se sobrepõem mais (quebram linha); fundo e cor alternada ficam juntos.
 - Cache `estudio-miolos-v77`.
+
+## Ajuste 72 · Seletor de cor nos campos de "Fundo"
+- Em todo campo de cor cujo nome é "Fundo" (fundo do widget, do título, das células, da seleção, ModuLab etc.), a setinha ▾ agora abre o mesmo seletor completo do quadradinho (caixa de cor, matiz, HEX, conta-gotas, cores da página e da marca) em vez da paleta pequena. Os demais campos de cor mantêm a paleta.
+- Cache `estudio-miolos-v78`.
