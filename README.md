@@ -338,3 +338,12 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Fórmulas: `=SOMA(B2:B5)`, `=B2*C2`, `=MEDIA`, `=MIN`, `=MAX`, `=MULT`, `=CONT`, `=ARRED(x;n)`; referências acompanham inserção/exclusão. No PDF/PNG vai o resultado calculado.
 - Espaçamento entre células e cantos arredondados continuam valendo. Tabelas antigas não mudam.
 - Cache `estudio-miolos-v72`.
+
+## Ajuste 67 · Correções da tabela
+- Widgets com título/moldura: a seleção de células agora acompanha a área real da tabela (antes ficava deslocada e pegava células erradas).
+- A linha do título do widget entrou na tabela: aparece como linha "T" (selecionável, dois cliques editam o texto, arraste a divisão de baixo para mudar a altura, pode travar, cor/fundo/alinhamento no painel e na barra rápida).
+- Seleção por clique não "escapa" para a célula vizinha (só arrasta depois de ~5 px).
+- Botões ＋ e − nas divisões continuam visíveis enquanto o mouse caminha até eles.
+- Painel: "Conteúdo" ganhou "Cantos arredondados"; linhas/espessura foram para "Células e grade"; cabeçalho reagrupado (texto, faixa, linhas); edição de células em blocos: Seleção/tamanhos/travas, Formato, Bordas, Fórmulas (todos com ocultar/expandir).
+- Barra rápida no modo células: cor de fundo e cor do texto mostram a cor atual com seletor, "sem cor", tamanho, negrito, itálico, alinhamentos, travar.
+- Cache `estudio-miolos-v73`.

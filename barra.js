@@ -28,6 +28,7 @@
         btn('ta:left', 'Alinhar o texto à esquerda', svg(AL.l), (e.align || 'left') === 'left') + btn('ta:center', 'Centralizar o texto', svg(AL.c), e.align === 'center') + btn('ta:right', 'Alinhar o texto à direita', svg(AL.r), e.align === 'right') + sep +
         common + sep + alignBtns(' (na página)');
     }
+    const tb = window.Tabela && Tabela.bar ? Tabela.bar(e) : ''; if (tb) return tb + sep + common + sep + alignBtns(' (na página)');
     const dt = dateBar(e); if (dt) return dt + sep + common + sep + alignBtns(' (na página)');
     return common + sep + alignBtns(' (na página)');
   }
@@ -77,7 +78,7 @@
     if (!els.length || busy || (els.length === 1 && S.ptEdit === els[0].id)) { bar.hidden = true; sig = ''; return; }
     if (window.ColorPicker && ColorPicker.isOpen()) { place(els); return; }
     if (bar.contains(document.activeElement) && document.activeElement.matches('input,select')) { place(els); return; }
-    const key = JSON.stringify(els.map((e) => [e.id, e.type, e.font, e.weight, e.italic, e.align, e.color, e.size, e.locked, e.g, e.month, e.year, e.weekStart, e.holidays, e.showTitle, e.date, e.fmt]));
+    const key = JSON.stringify(els.map((e) => [e.id, e.type, e.font, e.weight, e.italic, e.align, e.color, e.size, e.locked, e.g, e.month, e.year, e.weekStart, e.holidays, e.showTitle, e.date, e.fmt, window.Tabela && Tabela.sig ? Tabela.sig(e) : '']));
     if (key !== sig) { bar.innerHTML = html(els); sig = key; }
     if (!place(els)) bar.hidden = true;
   }

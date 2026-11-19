@@ -19,14 +19,20 @@
     if (sumL > total * 0.9) { const k = total * 0.9 / sumL; return a.map((v, i) => (lk[i] ? v * k : (total - sumL * k) / nf)); }
     const free = total - sumL; return a.map((v, i) => (lk[i] ? v : (wf ? v / wf * free : free / nf)));
   }
-  function lay(e) {
-    const H = hasH(e), rows = nR(e), cols = e.cols, rh = dist(e.rh, rows, e.h, e.lockR), cw = dist(e.cwm || e.cw, cols, e.w, e.lockC), ry = [0], cx = [0];
-    rh.forEach((v) => ry.push(ry[ry.length - 1] + v)); cw.forEach((v) => cx.push(cx[cx.length - 1] + v));
-    return { H, rows, cols, rh, cw, ry, cx };
+  /* widgets têm título/moldura: a tabela fica numa área interna (WX.layout) deslocada do canto do elemento */
+  function inn(e) {
+    if (!(e.wx && window.WX && WX.layout)) return { ox: 0, oy: 0, W: e.w, H: e.h, hd: 0 };
+    try { const L = WX.layout(e); return { ox: L.ix, oy: L.iy, W: L.iw, H: L.ih, hd: L.hd || 0 }; } catch (er) { return { ox: 0, oy: 0, W: e.w, H: e.h, hd: 0 }; }
   }
-  window.colWidths = function (e) { return lay(e).cw; };
-  function bake(e) { const L = lay(e); e.rh = L.rh.map(r2); e.cwm = L.cw.map(r2); e.cw = null; e.w = r2(e.cwm.reduce((a, b) => a + b, 0)); e.h = r2(e.rh.reduce((a, b) => a + b, 0)); }
-  const sumH = (e) => { e.h = r2(e.rh.reduce((a, b) => a + b, 0)); }, sumW = (e) => { e.w = r2(e.cwm.reduce((a, b) => a + b, 0)); };
+  function lay(e, raw) {
+    const I = raw ? { ox: 0, oy: 0, W: e.w, H: e.h, hd: 0 } : inn(e), H = hasH(e), rows = nR(e), cols = e.cols, rh = dist(e.rh, rows, I.H, e.lockR), cw = dist(e.cwm || e.cw, cols, I.W, e.lockC), ry = [0], cx = [0];
+    rh.forEach((v) => ry.push(ry[ry.length - 1] + v)); cw.forEach((v) => cx.push(cx[cx.length - 1] + v));
+    return { H, rows, cols, rh, cw, ry, cx, ox: I.ox, oy: I.oy, W: I.W, Ht: I.H, hd: I.hd };
+  }
+  window.colWidths = function (e) { return lay(e, true).cw; };
+  let DW = 0, DH = 0;
+  function bake(e) { const I = inn(e); DW = e.w - I.W; DH = e.h - I.H; const L = lay(e); e.rh = L.rh.map(r2); e.cwm = L.cw.map(r2); e.cw = null; e.w = r2(e.cwm.reduce((a, b) => a + b, 0) + DW); e.h = r2(e.rh.reduce((a, b) => a + b, 0) + DH); }
+  const sumH = (e) => { e.h = r2(e.rh.reduce((a, b) => a + b, 0) + DH); }, sumW = (e) => { e.w = r2(e.cwm.reduce((a, b) => a + b, 0) + DW); };
 
   /* ---------- texto, números e fórmulas ---------- */
   function raw(e, r, c) {
@@ -89,7 +95,7 @@
   }
   const bdSpec = (e, b) => (b && typeof b === 'object') ? { w: b.w || e.sw || 0.3, c: b.c || e.stroke, s: b.s || e.lnStyle } : null;
   R.table = function (c, e) {
-    const L = lay(e), { H, rows, cols, rh, cw, ry, cx } = L, cells = e.cells || {}, hasBd = Object.keys(cells).some((q) => cells[q].bd);
+    const L = lay(e, true), { H, rows, cols, rh, cw, ry, cx } = L, TW = cx[cols], TH = ry[rows], cells = e.cells || {}, hasBd = Object.keys(cells).some((q) => cells[q].bd);
     const cm = e.cellGap > 0 || e.cellR > 0, cg = cm ? Math.min(e.cellGap || 0, Math.min(...rh) * 0.5, Math.min(...cw) * 0.5) : 0, sw = e.sw || 0.3, hasHF = e.headFill && e.headFill !== 'none';
     const hl = e.hdLine || 'none', hlc = e.hdLc || e.stroke, hlw = e.hdLw || sw, hr = e.hdR > 0 ? e.hdR : (e.hdR === 0 ? 0 : Math.min(1.6, rh[0] / 4));
     const hsty = e.hdLnStyle || e.lnStyle, hlines = (X, Y, W, Hh) => LN.sideLines(c, X, Y, W, Hh, hr, hl, hsty, hlc, hlw);
@@ -108,10 +114,10 @@
         }
       }
     } else {
-      if (H && hasHF && !hdOv) { rr(c, 0, 0, e.w, rh[0], hr); c.fillStyle = e.headFill; c.fill(); }
-      if (H) { hlines(0, 0, e.w, rh[0]); if (e.hdGrid) { const P = []; for (let k = 1; k < cols; k++) P.push(LN.seg(cx[k], 0, cx[k], rh[0])); LN.stroke(c, P, hsty, hlc, hlw); } }
+      if (H && hasHF && !hdOv) { rr(c, 0, 0, TW, rh[0], hr); c.fillStyle = e.headFill; c.fill(); }
+      if (H) { hlines(0, 0, TW, rh[0]); if (e.hdGrid) { const P = []; for (let k = 1; k < cols; k++) P.push(LN.seg(cx[k], 0, cx[k], rh[0])); LN.stroke(c, P, hsty, hlc, hlw); } }
       for (let r = 0; r < rows; r++) for (let k = 0; k < cols; k++) { const isH = H && r === 0, ov = fillOv(r, k); let fl = ov !== undefined ? ov : (isH ? (hdOv && hasHF ? e.headFill : null) : zebra(r)); if (fl) { c.fillStyle = fl; c.fillRect(cx[k], ry[r], cw[k] + 0.02, rh[r] + 0.02); } }
-      if (!hasBd) { const GP = []; if (e.gridH !== false) for (let r = H ? 1 : 0; r <= rows; r++) GP.push(LN.seg(0, ry[r], e.w, ry[r])); if (e.gridV !== false) for (let i = 0; i <= cols; i++) GP.push(LN.seg(cx[i], H ? rh[0] : 0, cx[i], e.h)); LN.stroke(c, GP, e.lnStyle, e.stroke, sw); }
+      if (!hasBd) { const GP = []; if (e.gridH !== false) for (let r = H ? 1 : 0; r <= rows; r++) GP.push(LN.seg(0, ry[r], TW, ry[r])); if (e.gridV !== false) for (let i = 0; i <= cols; i++) GP.push(LN.seg(cx[i], H ? rh[0] : 0, cx[i], TH)); LN.stroke(c, GP, e.lnStyle, e.stroke, sw); }
       else {
         const he = {}, ve = {}, y0 = H ? 1 : 0; // arestas: he[r][k] topo da linha r; ve[k][r] esquerda da coluna k
         for (let r = y0; r <= rows; r++) for (let k = 0; k < cols; k++) if (e.gridH !== false) he[r + ',' + k] = 'd';
@@ -167,8 +173,8 @@
   const curEl = () => { const t = TS(); if (!t) return null; const p = curPage(); return p ? p.els.find((x) => x.id === t.id) || null : null; };
   const rng = (t) => ({ r0: Math.min(t.a[0], t.b[0]), r1: Math.max(t.a[0], t.b[0]), c0: Math.min(t.a[1], t.b[1]), c1: Math.max(t.a[1], t.b[1]) });
   const exit = () => { if (S.tcell) { S.tcell = null; try { drawOverlaysOnly(); renderProps(); } catch (er) { /* */ } } };
-  function enter(e, r, c) { S.sel = [e.id]; S.tcell = { id: e.id, a: [r, c], b: [r, c], hover: null, drag: null }; redraw(); renderProps(); }
-  const local = (e, pt) => { const a = -(e.rot || 0) * Math.PI / 180, dx = pt.x - (e.x + e.w / 2), dy = pt.y - (e.y + e.h / 2); return { x: dx * Math.cos(a) - dy * Math.sin(a) + e.w / 2, y: dx * Math.sin(a) + dy * Math.cos(a) + e.h / 2 }; };
+  function enter(e, r, c) { S.sel = [e.id]; S.tcell = { id: e.id, a: [r, c], b: [r, c], hover: null, drag: null, title: false }; redraw(); renderProps(); }
+  const local = (e, pt) => { const I = inn(e), a = -(e.rot || 0) * Math.PI / 180, dx = pt.x - (e.x + e.w / 2), dy = pt.y - (e.y + e.h / 2); return { x: dx * Math.cos(a) - dy * Math.sin(a) + e.w / 2 - I.ox, y: dx * Math.sin(a) + dy * Math.cos(a) + e.h / 2 - I.oy }; };
   const findIdx = (arr, v) => { for (let i = 0; i < arr.length - 1; i++) if (v < arr[i + 1]) return i; return arr.length - 2; };
   const clampRC = (e, r, c) => [Math.max(0, Math.min(nR(e) - 1, r)), Math.max(0, Math.min(e.cols - 1, c))];
   const cellKeys = (e, t) => { const q = rng(t), out = []; for (let r = q.r0; r <= q.r1; r++) for (let c = q.c0; c <= q.c1; c++) out.push([r, c]); return out; };
@@ -176,53 +182,61 @@
 
   /* ---------- sobreposição ---------- */
   const eo = window.extraOverlay;
+  const tokc = (v, d) => { try { const x = window.WX && WX.tok ? WX.tok(v) : v; return /^#[0-9a-f]{6}$/i.test(x || '') ? x : d; } catch (er) { return d; } };
   window.extraOverlay = function (p, k) {
     let h = eo(p, k); const t = TS(); if (!t) return h;
     const e = curEl(); if (!e || S.sel.length !== 1 || S.sel[0] !== e.id || !p.els.includes(e)) { if (p === curPage()) S.tcell = null; return h; }
-    const L = lay(e), q = rng(t), lk = (cond) => (cond ? `<b class="tlk">${ico('lock')}</b>` : '');
+    const L = lay(e), q = rng(t), lk = (cond) => (cond ? `<b class="tlk">${ico('lock')}</b>` : ''), hdOn = L.hd > 0 && e.wx && e.wx.hd && e.wx.hd.on;
     let s = '';
-    s += `<div class="tsel" style="left:${L.cx[q.c0] * k}px;top:${L.ry[q.r0] * k}px;width:${(L.cx[q.c1 + 1] - L.cx[q.c0]) * k}px;height:${(L.ry[q.r1 + 1] - L.ry[q.r0]) * k}px"></div>`;
-    s += `<div class="tanc" style="left:${L.cx[t.a[1]] * k}px;top:${L.ry[t.a[0]] * k}px;width:${L.cw[t.a[1]] * k}px;height:${L.rh[t.a[0]] * k}px"></div>`;
-    for (let c = 0; c < L.cols; c++) s += `<i class="tcs${c >= q.c0 && c <= q.c1 ? ' on' : ''}" data-tcol="${c}" style="left:${L.cx[c] * k}px;width:${L.cw[c] * k}px">${colName(c)}${lk(e.lockC && e.lockC[c])}</i>`;
-    for (let r = 0; r < L.rows; r++) s += `<i class="trs${r >= q.r0 && r <= q.r1 ? ' on' : ''}" data-trow="${r}" style="top:${L.ry[r] * k}px;height:${L.rh[r] * k}px">${r + 1}${lk(e.lockR && e.lockR[r])}</i>`;
+    if (t.title && hdOn) s += `<div class="tsel" style="left:${-L.ox * k}px;top:${-L.oy * k}px;width:${(e.w) * k}px;height:${L.hd * k}px"></div>`;
+    else {
+      s += `<div class="tsel" style="left:${L.cx[q.c0] * k}px;top:${L.ry[q.r0] * k}px;width:${(L.cx[q.c1 + 1] - L.cx[q.c0]) * k}px;height:${(L.ry[q.r1 + 1] - L.ry[q.r0]) * k}px"></div>`;
+      s += `<div class="tanc" style="left:${L.cx[t.a[1]] * k}px;top:${L.ry[t.a[0]] * k}px;width:${L.cw[t.a[1]] * k}px;height:${L.rh[t.a[0]] * k}px"></div>`;
+    }
+    for (let c = 0; c < L.cols; c++) s += `<i class="tcs${!t.title && c >= q.c0 && c <= q.c1 ? ' on' : ''}" data-tcol="${c}" style="left:${L.cx[c] * k}px;width:${L.cw[c] * k}px">${colName(c)}${lk(e.lockC && e.lockC[c])}</i>`;
+    for (let r = 0; r < L.rows; r++) s += `<i class="trs${!t.title && r >= q.r0 && r <= q.r1 ? ' on' : ''}" data-trow="${r}" style="top:${L.ry[r] * k}px;height:${L.rh[r] * k}px">${r + 1}${lk(e.lockR && e.lockR[r])}</i>`;
+    if (hdOn) s += `<i class="trs ttl${t.title ? ' on' : ''}" data-ttl="1" title="Linha do título do widget" style="top:${-L.oy * k}px;height:${L.hd * k}px">T${lk(e.wx.hd.lock)}</i>`;
     s += `<i class="tall" data-tall="1" title="Selecionar tudo"></i>`;
     for (const q2 of Object.keys(e.cells || {})) if (e.cells[q2].lock) { const [r, c] = q2.split(',').map(Number); if (r < L.rows && c < L.cols) s += `<b class="tclk" style="left:${(L.cx[c + 1] - 3.2) * k}px;top:${(L.ry[r] + 0.4) * k}px">${ico('lock')}</b>`; }
     const hv = t.hover;
     if (hv && !t.drag) {
-      if (hv.ax === 'c') { const x = L.cx[hv.k] * k; s += `<i class="tgl v" style="left:${x}px"></i><div class="tchips c" style="left:${x}px"><button type="button" data-tact="inscol" data-i="${hv.k}" title="Inserir coluna aqui">＋</button><button type="button" data-tact="delcol" data-i="${Math.min(hv.k, L.cols - 1) === hv.k && hv.k < L.cols && hv.k === 0 ? 0 : Math.max(0, hv.k - 1)}" title="Excluir a coluna ao lado esquerdo desta linha">−</button></div>`; }
-      else { const y = L.ry[hv.k] * k, yrow = hv.k === 0 ? 0 : hv.k - 1; s += `<i class="tgl h" style="top:${y}px"></i><div class="tchips r" style="top:${y}px"><button type="button" data-tact="insrow" data-i="${hv.k}" title="Inserir linha aqui">＋</button><button type="button" data-tact="delrow" data-i="${yrow}" title="Excluir a linha acima desta divisão">−</button></div>`; }
+      if (hv.ax === 'c') { const x = L.cx[hv.k] * k; s += `<i class="tgl v" style="left:${x}px"></i><div class="tchips c" style="left:${x}px"><button type="button" data-tact="inscol" data-i="${hv.k}" title="Inserir coluna aqui">＋</button><button type="button" data-tact="delcol" data-i="${Math.max(0, hv.k - 1)}" title="Excluir a coluna à esquerda desta linha">−</button></div>`; }
+      else { const y = L.ry[hv.k] * k; s += `<i class="tgl h" style="top:${y}px"></i><div class="tchips r" style="top:${y}px"><button type="button" data-tact="insrow" data-i="${hv.k}" title="Inserir linha aqui">＋</button><button type="button" data-tact="delrow" data-i="${Math.max(0, hv.k - 1)}" title="Excluir a linha acima desta divisão">−</button></div>`; }
     }
-    return h + `<div class="tov" style="left:${e.x * k}px;top:${e.y * k}px;width:${e.w * k}px;height:${e.h * k}px;transform:rotate(${e.rot || 0}deg)">${s}</div>`;
+    return h + `<div class="tov" style="left:${e.x * k}px;top:${e.y * k}px;width:${e.w * k}px;height:${e.h * k}px;transform:rotate(${e.rot || 0}deg)"><div class="tin" style="left:${L.ox * k}px;top:${L.oy * k}px;width:${L.W * k}px;height:${L.Ht * k}px">${s}</div></div>`;
   };
 
   /* ---------- editor da célula ---------- */
   let EDIT = null;
   function startEdit(e, r, c, init) {
-    const x = cellOf(e, r, c); if (x && x.lock) { toast('Célula travada. Destrave para editar.'); return; }
-    const w = document.querySelector(`#stage .pg.on`) || document.querySelector('#stage .pg'); if (!w) return; const ov = w.querySelector('.ov'); if (!ov) return;
+    const isT = r === -1, x = cellOf(e, r, c);
+    if (isT) { if (!(e.wx && e.wx.hd && e.wx.hd.on)) return; if (e.wx.hd.lock) { toast('Linha do título travada. Destrave para editar.'); return; } }
+    else if (x && x.lock) { toast('Célula travada. Destrave para editar.'); return; }
+    const w = document.querySelector('#stage .pg.on') || document.querySelector('#stage .pg'); if (!w) return; const ov = w.querySelector('.ov'); if (!ov) return;
     closeEdit(true); const L = lay(e), k = S.k, p = curPage(), b = snapOf([p.id]);
     const wrap = document.createElement('div'); wrap.className = 'tcw'; Object.assign(wrap.style, { left: e.x * k + 'px', top: e.y * k + 'px', width: e.w * k + 'px', height: e.h * k + 'px', transform: `rotate(${e.rot || 0}deg)` });
-    const ta = document.createElement('textarea'), st = cellStyle(e, r, c); ta.className = 'tcedit';
-    Object.assign(ta.style, { left: L.cx[c] * k + 'px', top: L.ry[r] * k + 'px', width: Math.max(L.cw[c] * k, 60) + 'px', minHeight: L.rh[r] * k + 'px', fontFamily: `"${st.font}", Nunito, sans-serif`, fontSize: Math.min(st.size * PT, L.rh[r] * 0.62) * k + 'px', fontWeight: st.weight, fontStyle: st.italic ? 'italic' : 'normal', color: st.color, textAlign: st.al });
-    ta.value = init !== undefined ? init : raw(e, r, c); wrap.append(ta); ov.append(wrap); S.editing = e.id; ta.focus(); if (init === undefined) ta.select(); else ta.setSelectionRange(ta.value.length, ta.value.length);
+    const ta = document.createElement('textarea'); ta.className = 'tcedit';
+    if (isT) { const hd = e.wx.hd; Object.assign(ta.style, { left: '0px', top: '0px', width: e.w * k + 'px', height: L.hd * k + 'px', fontFamily: `"${(window.WX && WX.fnt ? WX.fnt(hd.font) : 'Nunito')}", Nunito, sans-serif`, fontSize: Math.min((hd.size || 8) * PT, L.hd * 0.7) * k + 'px', fontWeight: hd.weight || 600, color: tokc(hd.c, '#3E3550'), textAlign: hd.align || 'center' }); ta.value = init !== undefined ? init : (hd.text || ''); }
+    else { const st = cellStyle(e, r, c); Object.assign(ta.style, { left: (L.ox + L.cx[c]) * k + 'px', top: (L.oy + L.ry[r]) * k + 'px', width: Math.max(L.cw[c] * k, 60) + 'px', minHeight: L.rh[r] * k + 'px', fontFamily: `"${st.font}", Nunito, sans-serif`, fontSize: Math.min(st.size * PT, L.rh[r] * 0.62) * k + 'px', fontWeight: st.weight, fontStyle: st.italic ? 'italic' : 'normal', color: st.color, textAlign: st.al }); ta.value = init !== undefined ? init : raw(e, r, c); }
+    wrap.append(ta); ov.append(wrap); S.editing = e.id; ta.focus(); if (init === undefined) ta.select(); else ta.setSelectionRange(ta.value.length, ta.value.length);
     EDIT = { e, r, c, ta, wrap, b, p, done: false };
     ta.onpointerdown = (ev) => ev.stopPropagation(); ta.ondblclick = (ev) => ev.stopPropagation();
     ta.onkeydown = (ev) => {
       ev.stopPropagation();
       if (ev.key === 'Escape') { ev.preventDefault(); closeEdit(false); return; }
-      if (ev.key === 'Enter' && !ev.shiftKey && !ev.altKey) { ev.preventDefault(); closeEdit(true); move(e, 1, 0, false); return; }
+      if (ev.key === 'Enter' && !ev.shiftKey && !ev.altKey) { ev.preventDefault(); closeEdit(true); if (isT) { const t = TS(); if (t) { t.title = false; t.a = t.b = [hasH(e) ? 0 : 0, 0]; drawOverlaysOnly(); renderProps(); } } else move(e, 1, 0, false); return; }
       if (ev.key === 'Enter') { ev.preventDefault(); const s = ta.selectionStart; ta.value = ta.value.slice(0, s) + '\n' + ta.value.slice(ta.selectionEnd); ta.setSelectionRange(s + 1, s + 1); return; }
-      if (ev.key === 'Tab') { ev.preventDefault(); closeEdit(true); move(e, 0, ev.shiftKey ? -1 : 1, false); }
+      if (ev.key === 'Tab' && !isT) { ev.preventDefault(); closeEdit(true); move(e, 0, ev.shiftKey ? -1 : 1, false); }
     };
     ta.onblur = () => closeEdit(true);
   }
   function closeEdit(commit) {
     const E = EDIT; if (!E || E.done) return; E.done = true; EDIT = null;
-    if (commit) { const v = E.ta.value; if (v !== raw(E.e, E.r, E.c)) setRaw(E.e, E.r, E.c, v); }
+    if (commit) { const v = E.ta.value; if (E.r === -1) { if (v !== (E.e.wx.hd.text || '')) E.e.wx.hd.text = v; } else if (v !== raw(E.e, E.r, E.c)) setRaw(E.e, E.r, E.c, v); }
     E.wrap.remove(); S.editing = null; if (commit) pushHist(E.b, snapOf([E.p.id])); redraw(); renderProps(); try { thumbRefresh(E.p.id); } catch (er) { /* */ }
   }
   function move(e, dr, dc, extend) {
-    const t = TS(); if (!t) return; const f = clampRC(e, t.b[0] + dr, t.b[1] + dc); t.b = f; if (!extend) t.a = f.slice(); drawOverlaysOnly(); renderProps();
+    const t = TS(); if (!t) return; if (t.title) { if (dr > 0) { t.title = false; t.a = [0, 0]; t.b = [0, 0]; drawOverlaysOnly(); renderProps(); } return; } if (dr < 0 && t.b[0] === 0 && e.wx && e.wx.hd && e.wx.hd.on && !extend) { t.title = true; drawOverlaysOnly(); renderProps(); return; } const f = clampRC(e, t.b[0] + dr, t.b[1] + dc); t.b = f; if (!extend) t.a = f.slice(); drawOverlaysOnly(); renderProps();
   }
 
   /* ---------- ações (botões + e −, painel) ---------- */
@@ -241,63 +255,81 @@
   /* ---------- mouse e teclado ---------- */
   const stage = document.getElementById('stage');
   let drag = null;
-  function hoverAt(e, lp, k) {
-    const L = lay(e), tol = 7 / k, out = 14 / k; let res = null;
-    const inX = lp.x >= -out && lp.x <= e.w + out, inY = lp.y >= -out && lp.y <= e.h + out; if (!inX || !inY) return null;
-    if (lp.y >= -out && lp.y <= e.h) for (let i = 0; i <= L.cols; i++) if (Math.abs(lp.x - L.cx[i]) <= tol) { res = { ax: 'c', k: i }; break; }
-    if (!res && lp.x >= -out && lp.x <= e.w) for (let i = 0; i <= L.rows; i++) if (Math.abs(lp.y - L.ry[i]) <= tol) { res = { ax: 'r', k: i }; break; }
-    return res;
+  /* faixas de passagem do mouse: a linha de divisão + o caminho até os botões ＋ e − (que ficam fora da tabela) */
+  function hoverAt(e, lp, k, L, cur) {
+    const tol = 7 / k, W = L.W, H = L.Ht;
+    if (cur && !drag) { // mantém o botão enquanto o mouse caminha até ele
+      if (cur.ax === 'c') { const x = L.cx[cur.k]; if (Math.abs(lp.x - x) <= 26 / k && lp.y >= -70 / k && lp.y <= H + 6 / k) return cur; }
+      else { const y = L.ry[cur.k]; if (Math.abs(lp.y - y) <= 26 / k && lp.x >= -90 / k && lp.x <= W + 6 / k) return cur; }
+    }
+    if (lp.y >= -4 / k && lp.y <= H + 4 / k && lp.x >= -4 / k && lp.x <= W + 4 / k) {
+      for (let i = 0; i <= L.cols; i++) if (Math.abs(lp.x - L.cx[i]) <= tol) return { ax: 'c', k: i };
+      for (let i = 0; i <= L.rows; i++) if (Math.abs(lp.y - L.ry[i]) <= tol) return { ax: 'r', k: i };
+    }
+    return null;
   }
+  const hdBand = (e, L, lp) => { const hdOn = L.hd > 0 && e.wx && e.wx.hd && e.wx.hd.on; if (!hdOn) return 0; const top = -L.oy, bot = top + L.hd; if (lp.x < -L.ox - 1 || lp.x > e.w - L.ox + 1) return 0; if (Math.abs(lp.y - bot) <= 4 / S.k) return 2; if (lp.y >= top - 1 && lp.y < bot) return 1; return 0; };
   stage.addEventListener('pointerdown', (ev) => {
     const t = TS(); if (!t) return; const tg = ev.target;
     if (tg.closest && tg.closest('.tcedit')) return;
-    const chip = tg.closest && tg.closest('[data-tact]'); if (chip) { ev.stopPropagation(); ev.preventDefault(); act(chip.dataset.tact, +chip.dataset.i); return; }
+    const chip = tg.closest && tg.closest('[data-tact]'); if (chip) { ev.stopPropagation(); ev.preventDefault(); t.hover = null; act(chip.dataset.tact, +chip.dataset.i); return; }
     const w = tg.closest && tg.closest('.pg'); if (!w || ev.button > 0) return; const p = S.pages[w.dataset.id], e = curEl();
     if (!e || p !== curPage()) { exit(); return; } if (tg.dataset && (tg.dataset.h !== undefined || tg.dataset.v !== undefined)) return;
     closeEdit(true);
-    const pt = toMM(ev, w), lp = local(e, pt), L = lay(e), k = S.k, tol = 5 / k, down = () => { ev.preventDefault(); ev.stopPropagation(); w.setPointerCapture(ev.pointerId); };
-    const colSel = tg.closest('[data-tcol]'), rowSel = tg.closest('[data-trow]');
-    if (tg.closest('[data-tall]')) { down(); t.a = [0, 0]; t.b = [nR(e) - 1, e.cols - 1]; drawOverlaysOnly(); renderProps(); return; }
-    if (colSel) { down(); const c = +colSel.dataset.tcol; if (ev.shiftKey) t.b = [nR(e) - 1, c]; else { t.a = [0, c]; t.b = [nR(e) - 1, c]; } drag = { kind: 'cols', w }; drawOverlaysOnly(); renderProps(); return; }
-    if (rowSel) { down(); const r = +rowSel.dataset.trow; if (ev.shiftKey) t.b = [r, e.cols - 1]; else { t.a = [r, 0]; t.b = [r, e.cols - 1]; } drag = { kind: 'rows', w }; drawOverlaysOnly(); renderProps(); return; }
-    const inside = lp.x >= 0 && lp.x <= e.w && lp.y >= 0 && lp.y <= e.h;
-    if (!inside && !(lp.x >= -tol && lp.x <= e.w + tol && lp.y >= -tol && lp.y <= e.h + tol)) { exit(); return; }
-    down();
+    const pt = toMM(ev, w), lp = local(e, pt), L = lay(e), k = S.k, tol = 5 / k, down = () => { ev.preventDefault(); ev.stopPropagation(); try { w.setPointerCapture(ev.pointerId); } catch (er) { /* */ } };
+    const colSel = tg.closest('[data-tcol]'), rowSel = tg.closest('[data-trow]'), ttlSel = tg.closest('[data-ttl]');
+    if (tg.closest('[data-tall]')) { down(); t.title = false; t.a = [0, 0]; t.b = [nR(e) - 1, e.cols - 1]; drawOverlaysOnly(); renderProps(); return; }
+    if (ttlSel) { down(); t.title = true; drawOverlaysOnly(); renderProps(); return; }
+    if (colSel) { down(); t.title = false; const c = +colSel.dataset.tcol; if (ev.shiftKey) t.b = [nR(e) - 1, c]; else { t.a = [0, c]; t.b = [nR(e) - 1, c]; } drag = { kind: 'cols', w }; drawOverlaysOnly(); renderProps(); return; }
+    if (rowSel) { down(); t.title = false; const r = +rowSel.dataset.trow; if (ev.shiftKey) t.b = [r, e.cols - 1]; else { t.a = [r, 0]; t.b = [r, e.cols - 1]; } drag = { kind: 'rows', w }; drawOverlaysOnly(); renderProps(); return; }
+    const band = hdBand(e, L, lp);
+    if (band) {
+      down(); t.title = true; t.hover = null;
+      if (band === 2 && !(e.wx.hd.lock)) drag = { kind: 'title', y0: lp.y, b: snapOf([p.id]), p, e, moved: false, w };
+      else if (band === 2) toast('Linha do título travada: destrave para mudar a altura.');
+      drawOverlaysOnly(); renderProps(); return;
+    }
+    const inside = lp.x >= 0 && lp.x <= L.W && lp.y >= 0 && lp.y <= L.Ht;
+    if (!inside && !(lp.x >= -tol && lp.x <= L.W + tol && lp.y >= -tol && lp.y <= L.Ht + tol)) { exit(); return; }
+    down(); t.title = false;
     for (let i = 1; i <= L.cols; i++) if (Math.abs(lp.x - L.cx[i]) <= tol) { if (e.lockC && e.lockC[i - 1]) { toast('Coluna travada: destrave para mudar a largura.'); return; } drag = { kind: 'col', i: i - 1, x0: lp.x, b: snapOf([p.id]), p, e, moved: false, w }; return; }
     for (let i = 1; i <= L.rows; i++) if (Math.abs(lp.y - L.ry[i]) <= tol) { if (e.lockR && e.lockR[i - 1]) { toast('Linha travada: destrave para mudar a altura.'); return; } drag = { kind: 'row', i: i - 1, y0: lp.y, b: snapOf([p.id]), p, e, moved: false, w }; return; }
-    const r = findIdx(L.ry, Math.max(0, Math.min(e.h - 0.001, lp.y))), c = findIdx(L.cx, Math.max(0, Math.min(e.w - 0.001, lp.x)));
-    if (ev.shiftKey) t.b = [r, c]; else { t.a = [r, c]; t.b = [r, c]; } drag = { kind: 'sel', w }; t.hover = null; drawOverlaysOnly(); renderProps();
+    const r = findIdx(L.ry, Math.max(0, Math.min(L.Ht - 0.001, lp.y))), c = findIdx(L.cx, Math.max(0, Math.min(L.W - 0.001, lp.x)));
+    if (ev.shiftKey) t.b = [r, c]; else { t.a = [r, c]; t.b = [r, c]; } drag = { kind: 'sel', w, sx: ev.clientX, sy: ev.clientY, armed: false }; t.hover = null; drawOverlaysOnly(); renderProps();
   }, true);
   stage.addEventListener('pointermove', (ev) => {
     const t = TS(); if (!t) return; const e = curEl(); if (!e) return; const w = (drag && drag.w) || (ev.target.closest && ev.target.closest('.pg')); if (!w) return;
     const pt = toMM(ev, w), lp = local(e, pt), L = lay(e);
     if (drag) {
-      if (drag.kind === 'sel') { const r = findIdx(L.ry, Math.max(0, Math.min(e.h - 0.001, lp.y))), c = findIdx(L.cx, Math.max(0, Math.min(e.w - 0.001, lp.x))); if (t.b[0] !== r || t.b[1] !== c) { t.b = [r, c]; drawOverlaysOnly(); } }
-      else if (drag.kind === 'cols') { const c = findIdx(L.cx, Math.max(0, Math.min(e.w - 0.001, lp.x))); t.b = [nR(e) - 1, c]; drawOverlaysOnly(); }
-      else if (drag.kind === 'rows') { const r = findIdx(L.ry, Math.max(0, Math.min(e.h - 0.001, lp.y))); t.b = [r, e.cols - 1]; drawOverlaysOnly(); }
+      if (drag.kind === 'sel') { if (!drag.armed) { if (Math.hypot(ev.clientX - drag.sx, ev.clientY - drag.sy) < 5) return; drag.armed = true; } const r = findIdx(L.ry, Math.max(0, Math.min(L.Ht - 0.001, lp.y))), c = findIdx(L.cx, Math.max(0, Math.min(L.W - 0.001, lp.x))); if (t.b[0] !== r || t.b[1] !== c) { t.b = [r, c]; drawOverlaysOnly(); } }
+      else if (drag.kind === 'cols') { const c = findIdx(L.cx, Math.max(0, Math.min(L.W - 0.001, lp.x))); t.b = [nR(e) - 1, c]; drawOverlaysOnly(); }
+      else if (drag.kind === 'rows') { const r = findIdx(L.ry, Math.max(0, Math.min(L.Ht - 0.001, lp.y))); t.b = [r, e.cols - 1]; drawOverlaysOnly(); }
       else if (drag.kind === 'col') { if (Math.abs(lp.x - drag.x0) * S.k < 3 && !drag.moved) return; drag.moved = true; const w0 = L.cw[drag.i]; if (sizeCol(e, drag.i, w0 + (lp.x - drag.x0), ev.shiftKey)) { drag.x0 += e.cwm[drag.i] - w0; } scheduleRedraw(); }
       else if (drag.kind === 'row') { if (Math.abs(lp.y - drag.y0) * S.k < 3 && !drag.moved) return; drag.moved = true; const h0 = L.rh[drag.i]; if (sizeRow(e, drag.i, h0 + (lp.y - drag.y0), ev.shiftKey)) { drag.y0 += e.rh[drag.i] - h0; } scheduleRedraw(); }
+      else if (drag.kind === 'title') { if (Math.abs(lp.y - drag.y0) * S.k < 3 && !drag.moved) return; drag.moved = true; const d = Math.max(3, (e.wx.hd.h || 7) + (lp.y - drag.y0)) - (e.wx.hd.h || 7); if (d) { bake(e); e.wx.hd.h = r2((e.wx.hd.h || 7) + d); e.h = r2(e.h + d); drag.y0 += d; scheduleRedraw(); } }
       return;
     }
-    const h = hoverAt(e, lp, S.k), cur = t.hover; if (ev.target.closest && ev.target.closest('[data-tact]')) return;
+    if (ev.target.closest && ev.target.closest('[data-tact]')) return;
+    const cur = t.hover, h = hoverAt(e, lp, S.k, L, cur);
     if ((!h && !cur) || (h && cur && h.ax === cur.ax && h.k === cur.k)) return; t.hover = h; drawOverlaysOnly();
   });
   const endT = () => {
     const t = TS(); if (!drag) return; const d = drag; drag = null; if (!t) return;
-    if ((d.kind === 'col' || d.kind === 'row') && d.moved) { pushHist(d.b, snapOf([d.p.id])); try { thumbRefresh(d.p.id); } catch (er) { /* */ } }
+    if ((d.kind === 'col' || d.kind === 'row' || d.kind === 'title') && d.moved) { pushHist(d.b, snapOf([d.p.id])); try { thumbRefresh(d.p.id); } catch (er) { /* */ } }
     redraw(); renderProps();
   };
   stage.addEventListener('pointerup', endT, true); stage.addEventListener('pointercancel', endT, true);
-  stage.addEventListener('pointerleave', () => { const t = TS(); if (t && t.hover && !drag) { t.hover = null; drawOverlaysOnly(); } });
 
   stage.addEventListener('dblclick', (ev) => {
     const w = ev.target.closest && ev.target.closest('.pg'); if (!w || S.tool || S.ptEdit) return; const p = S.pages[w.dataset.id]; if (!p) return;
     if (ev.target.closest('[data-tact],[data-tcol],[data-trow],.tcedit')) { ev.stopImmediatePropagation(); return; }
     const pt = toMM(ev, w); let e = null;
-    for (let i = p.els.length - 1; i >= 0; i--) { const x = p.els[i]; if (x.hidden || x.locked) continue; const lp = local(x, pt); if (lp.x >= 0 && lp.x <= x.w && lp.y >= 0 && lp.y <= x.h) { e = x; break; } }
+    for (let i = p.els.length - 1; i >= 0; i--) { const x = p.els[i]; if (x.hidden || x.locked) continue; const a = -(x.rot || 0) * Math.PI / 180, dx = pt.x - (x.x + x.w / 2), dy = pt.y - (x.y + x.h / 2), lx = dx * Math.cos(a) - dy * Math.sin(a) + x.w / 2, ly = dx * Math.sin(a) + dy * Math.cos(a) + x.h / 2; if (lx >= 0 && lx <= x.w && ly >= 0 && ly <= x.h) { e = x; break; } }
     if (!e || e.type !== 'table') return; ev.stopImmediatePropagation(); ev.preventDefault();
-    const lp = local(e, pt), L = lay(e), r = findIdx(L.ry, lp.y), c = findIdx(L.cx, lp.x);
-    if (!TS() || TS().id !== e.id) enter(e, r, c); else { const t = TS(); t.a = [r, c]; t.b = [r, c]; drawOverlaysOnly(); }
+    const lp = local(e, pt), L = lay(e), band = hdBand(e, L, lp);
+    if (!TS() || TS().id !== e.id) enter(e, 0, 0);
+    if (band) { TS().title = true; drawOverlaysOnly(); renderProps(); startEdit(e, -1, 0); return; }
+    const r = findIdx(L.ry, Math.max(0, Math.min(L.Ht - 0.001, lp.y))), c = findIdx(L.cx, Math.max(0, Math.min(L.W - 0.001, lp.x))), t = TS(); t.title = false; t.a = [r, c]; t.b = [r, c]; drawOverlaysOnly(); renderProps();
     startEdit(e, r, c);
   }, true);
 
@@ -308,15 +340,16 @@
     const d = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[k];
     if (d) { eat(); move(e, d[0], d[1], ev.shiftKey); return; }
     if (k === 'Tab') { eat(); move(e, 0, ev.shiftKey ? -1 : 1, false); return; }
-    if (k === 'Enter' || k === 'F2') { eat(); startEdit(e, t.b[0], t.b[1]); return; }
+    if (k === 'Enter' || k === 'F2') { eat(); if (t.title) startEdit(e, -1, 0); else startEdit(e, t.b[0], t.b[1]); return; }
     if (mod && k.toLowerCase() === 'a') { eat(); t.a = [0, 0]; t.b = [nR(e) - 1, e.cols - 1]; drawOverlaysOnly(); renderProps(); return; }
+    if (t.title && (k === 'Delete' || k === 'Backspace')) { eat(); return; }
     if (k === 'Delete' || k === 'Backspace') { eat(); fmtApply((x, r, c) => { setRaw(x, r, c, ''); }, 'content'); return; }
     if (mod && (k.toLowerCase() === 'c' || k.toLowerCase() === 'x')) { eat(); const q = rng(t), rows = []; for (let r = q.r0; r <= q.r1; r++) { const a = []; for (let c = q.c0; c <= q.c1; c++) a.push(raw(e, r, c)); rows.push(a.join('\t')); } const txt = rows.join('\n'); window.__tclip = txt; try { navigator.clipboard.writeText(txt); } catch (er) { /* */ } if (k.toLowerCase() === 'x') fmtApply((x, r, c) => { setRaw(x, r, c, ''); }, 'content'); return; }
     if (mod && k.toLowerCase() === 'v') {
       eat(); const go = (txt) => { if (!txt) return; const q = rng(t), rows = txt.replace(/\r/g, '').replace(/\n$/, '').split('\n').map((l) => l.split('\t')); mutate((x) => { rows.forEach((row, i) => row.forEach((v, j) => { const r = q.r0 + i, c = q.c0 + j; if (r < nR(x) && c < x.cols) { const cl = cellOf(x, r, c); if (!(cl && cl.lock)) setRaw(x, r, c, v); } })); }); };
       if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then((s) => go(s || window.__tclip), () => go(window.__tclip)); else go(window.__tclip); return;
     }
-    if (!mod && !ev.altKey && k.length === 1) { eat(); startEdit(e, t.b[0], t.b[1], k); }
+    if (!mod && !ev.altKey && k.length === 1) { eat(); if (t.title) startEdit(e, -1, 0, k); else startEdit(e, t.b[0], t.b[1], k); }
   }, true);
 
   /* ---------- aplicar formatação à seleção ---------- */
@@ -329,14 +362,20 @@
   /* ---------- painel lateral ---------- */
   const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
   const cf = (k, v, none) => colorField(k, v, none).replace(/data-cset="/g, 'data-tset="').replace(/data-k="/g, 'data-tk="').replace(/ data-gr="1"/g, '');
+  const block = (id, title, body, openDef) => {
+    const o = Pref.acc && Pref.acc[id] !== undefined ? Pref.acc[id] !== false : openDef !== false, w = document.createElement('div'); w.className = 'wacc' + (o ? ' open' : ''); w.dataset.acc = id;
+    w.innerHTML = `<button class="wah" type="button" aria-expanded="${o}"><i class="wtri"></i><b>${title}</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><div class="pgrp tpan">${body}</div></div>`;
+    const hd = w.querySelector('.wah'); hd.onclick = () => { w.classList.toggle('open'); const on = w.classList.contains('open'); hd.setAttribute('aria-expanded', on); Pref.acc = Pref.acc || {}; Pref.acc[id] = on; try { savePref(); } catch (er) { /* */ } };
+    return w;
+  };
+  const TIDS = ['tcel', 'tfmt', 'tbrd', 'tfor'];
   function panel(P) {
-    P.querySelectorAll('[data-acc="tcel"]').forEach((x) => x.remove());
+    TIDS.forEach((id) => P.querySelectorAll(`[data-acc="${id}"]`).forEach((x) => x.remove()));
     const sel = selEls(); if (sel.length !== 1 || sel[0].type !== 'table') return; const e = sel[0];
-    const anchor = P.querySelector('[data-acc="tcells"]') || P.querySelector('[data-acc="cont"]'); if (!anchor) return;
-    const t = TS() && TS().id === e.id ? TS() : null, L = lay(e); let body = '';
-    const nm = (v) => r2(v);
+    let ref = P.querySelector('[data-acc="cont"]'); if (!ref) return;
+    const t = TS() && TS().id === e.id ? TS() : null, L = lay(e), nm = r2, blocks = [];
     const sizes = () => {
-      const q = t ? rng(t) : null, full = e.cols <= 10 && nR(e) <= 14, rs = [], cs = [];
+      const q = t && !t.title ? rng(t) : null, full = e.cols <= 10 && nR(e) <= 14, rs = [], cs = [];
       for (let c = 0; c < e.cols; c++) if (full || (q && c >= q.c0 && c <= q.c1)) cs.push(c);
       for (let r = 0; r < nR(e); r++) if (full || (q && r >= q.r0 && r <= q.r1)) rs.push(r);
       const row = (ax, i, v, lk) => `<div class="tsz"><span>${ax === 'c' ? colName(i) : i + 1}</span><input type="number" step="0.5" min="1" data-tsz="${ax}${i}" value="${nm(v)}"><label class="tlkb" title="Travar"><input type="checkbox" data-tlk="${ax}${i}"${lk ? ' checked' : ''}><i>${ico('lock')}</i></label></div>`;
@@ -345,46 +384,51 @@
         <div class="row tbtn"><button type="button" class="btn sm" data-ta="eqc">Igualar larguras</button><button type="button" class="btn sm" data-ta="eqr">Igualar alturas</button></div>`;
     };
     if (!t) {
-      body = `<button type="button" class="btn sm pri" data-ta="on">Editar células</button><p class="hint">Ou dê dois cliques na tabela. Selecione células, linhas ou colunas como numa planilha; arraste as divisões para mudar tamanhos; use ＋ e − nas divisões para inserir ou excluir.</p>${sizes()}`;
+      blocks.push(block('tcel', 'Células, linhas e colunas', `<button type="button" class="btn sm pri" data-ta="on">Editar células</button><p class="hint">Ou dê dois cliques na tabela. Selecione células, linhas ou colunas como numa planilha, arraste as divisões para mudar tamanhos e use ＋ e − nas divisões para inserir ou excluir.</p>${sizes()}`));
+    } else if (t.title) {
+      const hd = (e.wx && e.wx.hd) || {}, tk = (v, d) => tokc(v, d), al = hd.align || 'center';
+      blocks.push(block('tcel', 'Linha do título do widget', `<div class="tselh"><b>Título</b><small>linha T</small><button type="button" class="btn sm ghost" data-ta="off">Sair</button></div>
+        <label class="pfield"><span>Texto do título</span><input type="text" data-ti="text" value="${esc(hd.text || '')}"></label>
+        <div class="tsz"><span>Alt.</span><input type="number" step="0.5" min="3" data-ti="h" value="${nm(hd.h || 7)}"><label class="tlkb" title="Travar a altura e o texto da linha do título"><input type="checkbox" data-ti="lock"${hd.lock ? ' checked' : ''}><i>${ico('lock')}</i></label></div>
+        <div class="pfield"><span>Alinhamento</span><div class="segf tseg">${[['left', 'Esq.'], ['center', 'Centro'], ['right', 'Dir.']].map(([v, tt]) => `<button type="button" class="${al === v ? 'on' : ''}" data-ti="align:${v}">${tt}</button>`).join('')}</div></div>
+        <div class="fgrid"><label class="pfield"><span>Cor do texto</span><input type="color" data-ti="c" value="${tk(hd.c, '#3E3550')}"></label><label class="pfield"><span>Fundo</span><input type="color" data-ti="fill" value="${tk(hd.fill, '#F7E5E7')}"></label></div>
+        <p class="hint">Fonte, peso e linha própria estão em "Título do widget". Dois cliques no título editam o texto; arraste a divisão de baixo para mudar a altura.</p>`));
     } else {
       const q = rng(t), a = clampRC(e, t.a[0], t.a[1]), cl = cellOf(e, a[0], a[1]) || {}, st = cellStyle(e, a[0], a[1]), n = cellKeys(e, t).length, bd = cl.bd || {};
       const allLockedCells = cellKeys(e, t).every(([r, c]) => (cellOf(e, r, c) || {}).lock), allR = (() => { for (let r = q.r0; r <= q.r1; r++) if (!(e.lockR && e.lockR[r])) return false; return true; })(), allC = (() => { for (let c = q.c0; c <= q.c1; c++) if (!(e.lockC && e.lockC[c])) return false; return true; })();
-      const sidesBtn = (mode) => `<div class="sides tsides">${[['A', 'Todos os lados', 'cellBorder'], ['T', 'Em cima', 'cbT'], ['R', 'À direita', 'cbR'], ['B', 'Embaixo', 'cbB'], ['L', 'À esquerda', 'cbL']].map(([s, tt, ic]) => `<button type="button" class="sdb${mode === 'x' ? ' tx' : ''}" data-tb="${mode}${s}" title="${tt}">${sideIco(ic)}</button>`).join('')}</div>`;
+      const sidesBtn = (mode) => `<div class="sides tsides">${[['A', 'Todos os lados', 'cellBorder'], ['T', 'Em cima', 'cbT'], ['R', 'À direita', 'cbR'], ['B', 'Embaixo', 'cbB'], ['L', 'À esquerda', 'cbL']].map(([s2, tt, ic]) => `<button type="button" class="sdb${mode === 'x' ? ' tx' : ''}" data-tb="${mode}${s2}" title="${tt}">${sideIco(ic)}</button>`).join('')}</div>`;
       const seg = (name, opts, cur) => `<div class="segf tseg">${opts.map(([v, tt]) => `<button type="button" class="${cur === v ? 'on' : ''}" data-tal="${name}:${v}" title="${tt}">${tt}</button>`).join('')}</div>`;
-      body = `<div class="tselh"><b>${esc(label(e, t))}</b><small>${n} célula${n > 1 ? 's' : ''}${a ? ' · ativa ' + colName(a[1]) + (a[0] + 1) : ''}</small><button type="button" class="btn sm ghost" data-ta="off">Sair</button></div>
+      blocks.push(block('tcel', 'Seleção, tamanhos e travas', `<div class="tselh"><b>${esc(label(e, t))}</b><small>${n} célula${n > 1 ? 's' : ''} · ativa ${colName(a[1])}${a[0] + 1}</small><button type="button" class="btn sm ghost" data-ta="off">Sair</button></div>
+        <h4 class="tsh">Inserir e excluir</h4>
         <div class="row tbtn"><button type="button" class="btn sm" data-ta="insrowA">＋ Linha acima</button><button type="button" class="btn sm" data-ta="insrowB">＋ Linha abaixo</button><button type="button" class="btn sm" data-ta="inscolA">＋ Coluna à esq.</button><button type="button" class="btn sm" data-ta="inscolB">＋ Coluna à dir.</button><button type="button" class="btn sm danger" data-ta="delrows">− Linha(s)</button><button type="button" class="btn sm danger" data-ta="delcols">− Coluna(s)</button></div>
         <h4 class="tsh">Travas</h4><div class="row tbtn"><button type="button" class="btn sm${allLockedCells ? ' pri' : ''}" data-ta="lockcell">${allLockedCells ? 'Destravar' : 'Travar'} célula(s)</button><button type="button" class="btn sm${allR ? ' pri' : ''}" data-ta="lockrow">${allR ? 'Destravar' : 'Travar'} altura da linha</button><button type="button" class="btn sm${allC ? ' pri' : ''}" data-ta="lockcol">${allC ? 'Destravar' : 'Travar'} largura da coluna</button></div>
         <p class="hint">Célula travada não muda texto nem formato. Linha travada mantém a altura e coluna travada mantém a largura, mesmo ao esticar a tabela.</p>
-        ${sizes()}
-        <h4 class="tsh">Fundo da célula</h4><div class="pfield">${cf('tcFill', cl.fill === undefined ? 'none' : cl.fill, true)}</div><button type="button" class="btn sm ghost" data-ta="fillreset">Voltar ao padrão da tabela</button>
+        ${sizes()}`));
+      blocks.push(block('tfmt', 'Formato da célula', `<h4 class="tsh">Fundo</h4><div class="pfield">${cf('tcFill', cl.fill === undefined ? 'none' : cl.fill, true)}</div><button type="button" class="btn sm ghost" data-ta="fillreset">Voltar ao padrão da tabela</button>
         <h4 class="tsh">Texto</h4>
         <label class="pfield"><span>Fonte</span><select data-tf="font">${fontList().map((f) => `<option${f === st.font ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select></label>
         <div class="fgrid"><label class="pfield"><span>Tamanho (pt)</span><input type="number" step="0.5" min="2" data-tf="size" value="${st.size}"></label><label class="pfield"><span>Cor</span>${cf('tcColor', st.color, false)}</label></div>
         <div class="fgrid"><label class="pfield"><span>Peso</span><select data-tf="weight">${[[400, 'Normal'], [600, 'Semi-negrito'], [700, 'Negrito']].map(([v, tt]) => `<option value="${v}"${+st.weight === v ? ' selected' : ''}>${tt}</option>`).join('')}</select></label><label class="pfield"><span>Espaço entre letras</span><input type="number" step="0.01" data-tf="ls" value="${st.ls || 0}"></label></div>
         <div class="row"><label class="chk"><input type="checkbox" data-tf="italic"${st.italic ? ' checked' : ''}> Itálico</label><label class="chk"><input type="checkbox" data-tf="under"${st.under ? ' checked' : ''}> Sublinhado</label></div>
-        <div class="fgrid"><div class="pfield"><span>Alinhamento horizontal</span>${seg('al', [['left', 'Esq.'], ['center', 'Centro'], ['right', 'Dir.']], st.al)}</div><div class="pfield"><span>Alinhamento vertical</span>${seg('va', [['top', 'Topo'], ['middle', 'Meio'], ['bottom', 'Base']], st.va)}</div></div>
-        <h4 class="tsh">Bordas da seleção</h4>
-        <div class="fgrid"><label class="pfield"><span>Cor</span>${cf('tbColor', (bd.T && bd.T.c) || e.stroke, false)}</label><label class="pfield"><span>Espessura (mm)</span><input type="number" step="0.05" min="0.05" data-tbk="w" value="${(bd.T && bd.T.w) || e.sw || 0.3}"></label></div>
+        <h4 class="tsh">Alinhamento</h4>
+        <div class="fgrid"><div class="pfield"><span>Horizontal</span>${seg('al', [['left', 'Esq.'], ['center', 'Centro'], ['right', 'Dir.']], st.al)}</div><div class="pfield"><span>Vertical</span>${seg('va', [['top', 'Topo'], ['middle', 'Meio'], ['bottom', 'Base']], st.va)}</div></div>`));
+      blocks.push(block('tbrd', 'Bordas da célula', `<div class="fgrid"><label class="pfield"><span>Cor</span>${cf('tbColor', (bd.T && bd.T.c) || e.stroke, false)}</label><label class="pfield"><span>Espessura (mm)</span><input type="number" step="0.05" min="0.05" data-tbk="w" value="${(bd.T && bd.T.w) || e.sw || 0.3}"></label></div>
         <label class="pfield"><span>Tipo de linha</span><select data-tbk="s">${LN.OPTS.map(([v, tt]) => `<option value="${v}"${v === ((bd.T && bd.T.s) || e.lnStyle || 'solid') ? ' selected' : ''}>${tt}</option>`).join('')}</select></label>
-        <div class="pfield"><span>Aplicar borda em</span>${sidesBtn('a')}</div><div class="pfield"><span>Remover borda de</span>${sidesBtn('x')}</div><button type="button" class="btn sm ghost" data-ta="bdreset">Voltar às bordas da tabela</button>
-        <h4 class="tsh">Fórmulas</h4><p class="hint">Comece o texto da célula com <b>=</b>: <code>=SOMA(B2:B5)</code>, <code>=B2*C2</code>, <code>=MEDIA(A1:A4)</code>, <code>=MIN</code>, <code>=MAX</code>, <code>=MULT</code>, <code>=CONT</code>, <code>=ARRED(B2;1)</code>. Separe argumentos com ponto e vírgula. A1 é a primeira célula (a do cabeçalho, se houver).</p>`;
+        <div class="pfield"><span>Aplicar borda em</span>${sidesBtn('a')}</div><div class="pfield"><span>Remover borda de</span>${sidesBtn('x')}</div><button type="button" class="btn sm ghost" data-ta="bdreset">Voltar às bordas da tabela</button>`));
+      blocks.push(block('tfor', 'Fórmulas', `<p class="hint">Comece o texto da célula com <b>=</b>: <code>=SOMA(B2:B5)</code>, <code>=B2*C2</code>, <code>=MEDIA(A1:A4)</code>, <code>=MIN</code>, <code>=MAX</code>, <code>=MULT</code>, <code>=CONT</code>, <code>=ARRED(B2;1)</code>. Separe argumentos com ponto e vírgula. A1 é a primeira célula (a do cabeçalho, se houver).</p>`, false));
     }
-    const open = !(Pref.acc && Pref.acc.tcel === false), w = document.createElement('div'); w.className = 'wacc' + (open ? ' open' : ''); w.dataset.acc = 'tcel';
-    w.innerHTML = `<button class="wah" type="button" aria-expanded="${open}"><i class="wtri"></i><b>Células, linhas e colunas</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><div class="pgrp tpan">${body}</div></div>`;
-    anchor.parentNode.insertBefore(w, anchor.nextSibling);
-    const hd = w.querySelector('.wah'); hd.onclick = (ev) => { if (ev.target.closest('.wcol')) { w.classList.toggle('open'); } else w.classList.toggle('open'); const o = w.classList.contains('open'); hd.setAttribute('aria-expanded', o); Pref.acc = Pref.acc || {}; Pref.acc.tcel = o; try { savePref(); } catch (er) { /* */ } };
-    wire(w, e, t);
+    blocks.forEach((b) => { ref.after(b); ref = b; wire(b, e, t); });
   }
   function wire(w, e, t) {
     const on = (sel, ev, fn) => w.querySelectorAll(sel).forEach((x) => x.addEventListener(ev, (E) => { E.stopPropagation(); fn(x, E); }));
     on('[data-ta]', 'click', (x) => {
       const a = x.dataset.ta;
-      if (a === 'on') { enter(e, hasH(e) ? 1 : 0, 0); return; }
+      if (a === 'on') { enter(e, 0, 0); return; }
       if (a === 'off') { exit(); return; }
       if (/^(ins|del)/.test(a)) { act(a); return; }
-      if (a === 'eqc') mutate((z) => { const tot = lay(z).cw.reduce((p, q) => p + q, 0), L = lay(z), fr = []; let lk = 0, nf = 0; L.cw.forEach((v, i) => { if (z.lockC && z.lockC[i]) lk += v; else { nf++; fr.push(i); } }); if (!nf) return false; bake(z); fr.forEach((i) => { z.cwm[i] = r2((tot - lk) / nf); }); sumW(z); });
-      else if (a === 'eqr') mutate((z) => { const tot = lay(z).rh.reduce((p, q) => p + q, 0), L = lay(z), fr = []; let lk = 0, nf = 0; L.rh.forEach((v, i) => { if (z.lockR && z.lockR[i]) lk += v; else { nf++; fr.push(i); } }); if (!nf) return false; bake(z); fr.forEach((i) => { z.rh[i] = r2((tot - lk) / nf); }); sumH(z); });
-      else if (a === 'lockcell') { const q = rng(t), all = cellKeys(e, t).every(([r, c]) => (cellOf(e, r, c) || {}).lock); mutate((z) => { cellKeys(z, t).forEach(([r, c]) => setCell(z, r, c, { lock: all ? undefined : true })); }); }
+      if (a === 'eqc') mutate((z) => { const L = lay(z), tot = L.cw.reduce((p, q) => p + q, 0), fr = []; let lk = 0; L.cw.forEach((v, i) => { if (z.lockC && z.lockC[i]) lk += v; else fr.push(i); }); if (!fr.length) return false; bake(z); fr.forEach((i) => { z.cwm[i] = r2((tot - lk) / fr.length); }); sumW(z); });
+      else if (a === 'eqr') mutate((z) => { const L = lay(z), tot = L.rh.reduce((p, q) => p + q, 0), fr = []; let lk = 0; L.rh.forEach((v, i) => { if (z.lockR && z.lockR[i]) lk += v; else fr.push(i); }); if (!fr.length) return false; bake(z); fr.forEach((i) => { z.rh[i] = r2((tot - lk) / fr.length); }); sumH(z); });
+      else if (a === 'lockcell') { const all = cellKeys(e, t).every(([r, c]) => (cellOf(e, r, c) || {}).lock); mutate((z) => { cellKeys(z, t).forEach(([r, c]) => setCell(z, r, c, { lock: all ? undefined : true })); }); }
       else if (a === 'lockrow') { const q = rng(t); mutate((z) => { let all = true; for (let r = q.r0; r <= q.r1; r++) if (!(z.lockR && z.lockR[r])) all = false; bake(z); z.lockR = z.lockR || {}; for (let r = q.r0; r <= q.r1; r++) { if (all) delete z.lockR[r]; else z.lockR[r] = true; } }); }
       else if (a === 'lockcol') { const q = rng(t); mutate((z) => { let all = true; for (let c = q.c0; c <= q.c1; c++) if (!(z.lockC && z.lockC[c])) all = false; bake(z); z.lockC = z.lockC || {}; for (let c = q.c0; c <= q.c1; c++) { if (all) delete z.lockC[c]; else z.lockC[c] = true; } }); }
       else if (a === 'fillreset') fmtApply((z, r, c) => setCell(z, r, c, { fill: undefined }));
@@ -392,21 +436,29 @@
     });
     on('[data-tsz]', 'change', (x) => { const ax = x.dataset.tsz[0], i = +x.dataset.tsz.slice(1), v = parseFloat(x.value); if (!(v > 0)) return; mutate((z) => { const ok = ax === 'c' ? sizeCol(z, i, v, false) : sizeRow(z, i, v, false); if (!ok) { toast(ax === 'c' ? 'Coluna travada.' : 'Linha travada.'); return false; } }); });
     on('[data-tlk]', 'change', (x) => { const ax = x.dataset.tlk[0], i = +x.dataset.tlk.slice(1); mutate((z) => { bake(z); const k = ax === 'c' ? 'lockC' : 'lockR'; z[k] = z[k] || {}; if (x.checked) z[k][i] = true; else delete z[k][i]; }); });
+    // linha do título
+    const ti = (fn) => mutate((z) => { if (!(z.wx && z.wx.hd)) return false; fn(z.wx.hd, z); });
+    w.querySelectorAll('input[data-ti],button[data-ti]').forEach((x) => {
+      const k = x.dataset.ti;
+      if (x.tagName === 'BUTTON') x.addEventListener('click', (E) => { E.stopPropagation(); const [kk, v] = k.split(':'); ti((hd) => { hd[kk] = v; }); });
+      else x.addEventListener('change', (E) => { E.stopPropagation(); if (k === 'text') ti((hd) => { hd.text = x.value; }); else if (k === 'lock') ti((hd) => { hd.lock = x.checked || undefined; }); else if (k === 'h') { const v = Math.max(3, parseFloat(x.value) || 0); if (!v) return; ti((hd, z) => { if (hd.lock) { toast('Linha do título travada.'); return false; } bake(z); const d = v - (hd.h || 7); hd.h = v; z.h = r2(z.h + d); }); } else ti((hd) => { hd[k] = x.value; }); });
+      x.addEventListener('input', (E) => E.stopPropagation());
+    });
     // texto
     const tf = (k, v) => fmtApply((z, r, c) => setCell(z, r, c, { [k]: v }));
     on('[data-tf]', 'change', (x) => { const k = x.dataset.tf; if (x.type === 'checkbox') tf(k, x.checked ? true : undefined); else if (k === 'size' || k === 'ls' || k === 'weight') tf(k, parseFloat(x.value) || undefined); else tf(k, x.value); });
     on('[data-tal]', 'click', (x) => { const [k, v] = x.dataset.tal.split(':'); tf(k, v); });
     // cores
     const colorOf = (k) => { const i = w.querySelector(`[data-tk="${k}"]`); return i ? (i.dataset.gv || i.value) : null; };
-    w.querySelectorAll('input[type=color][data-tk]').forEach((i) => { const k = i.dataset.tk; const ap = () => { const v = i.value; if (k === 'tcFill') fmtApply((z, r, c) => setCell(z, r, c, { fill: v })); else if (k === 'tcColor') tf('color', v); /* tbColor só vale ao aplicar */ }; i.addEventListener('change', (E) => { E.stopPropagation(); if (k !== 'tbColor') ap(); }); i.addEventListener('input', (E) => E.stopPropagation()); });
-    on('[data-tset]', 'click', (x) => { const k = x.dataset.tset, v = x.dataset.v; if (k === 'tcFill') fmtApply((z, r, c) => setCell(z, r, c, { fill: v === 'none' ? 'none' : v })); else if (k === 'tcColor') tf('color', v); else if (k === 'tbColor') { const i = w.querySelector('[data-tk="tbColor"]'); if (i) { i.value = v; } } });
+    w.querySelectorAll('input[type=color][data-tk]').forEach((i) => { const k = i.dataset.tk; i.addEventListener('change', (E) => { E.stopPropagation(); const v = i.value; if (k === 'tcFill') fmtApply((z, r, c) => setCell(z, r, c, { fill: v })); else if (k === 'tcColor') tf('color', v); }); i.addEventListener('input', (E) => E.stopPropagation()); });
+    on('[data-tset]', 'click', (x) => { const k = x.dataset.tset, v = x.dataset.v; if (k === 'tcFill') fmtApply((z, r, c) => setCell(z, r, c, { fill: v === 'none' ? 'none' : v })); else if (k === 'tcColor') tf('color', v); else if (k === 'tbColor') { const i = w.querySelector('[data-tk="tbColor"]'); if (i) i.value = v; } });
     // bordas
     on('[data-tb]', 'click', (x) => {
-      const m = x.dataset.tb[0], s = x.dataset.tb[1], sides = s === 'A' ? ['T', 'R', 'B', 'L'] : [s], q = rng(t);
+      const m = x.dataset.tb[0], s2 = x.dataset.tb[1], sides = s2 === 'A' ? ['T', 'R', 'B', 'L'] : [s2], q = rng(t);
       const spec = { w: parseFloat(w.querySelector('[data-tbk="w"]').value) || 0.3, c: colorOf('tbColor') || e.stroke, s: w.querySelector('[data-tbk="s"]').value || 'solid' };
       fmtApply((z, r, c) => { const cur = Object.assign({}, (cellOf(z, r, c) || {}).bd || {}); sides.forEach((sd) => {
-        const edge = (sd === 'T' && r !== q.r0) || (sd === 'B' && r !== q.r1) || (sd === 'L' && c !== q.c0) || (sd === 'R' && c !== q.c1); // lados internos só no "todos"
-        if (s !== 'A' && edge) return; cur[sd] = m === 'a' ? Object.assign({}, spec) : 0; }); setCell(z, r, c, { bd: cur }); });
+        const edge = (sd === 'T' && r !== q.r0) || (sd === 'B' && r !== q.r1) || (sd === 'L' && c !== q.c0) || (sd === 'R' && c !== q.c1);
+        if (s2 !== 'A' && edge) return; cur[sd] = m === 'a' ? Object.assign({}, spec) : 0; }); setCell(z, r, c, { bd: cur }); });
     });
   }
   const rp = window.renderProps;
@@ -416,5 +468,54 @@
   const sep = window.setElProp;
   if (typeof sep === 'function') window.setElProp = function (e, k, v) { const r = sep.apply(this, arguments); if (e && e.type === 'table') { if (k === 'cols') { e.cwm = null; e.lockC = {}; } if (k === 'rows') { e.rh = null; e.lockR = {}; } } return r; };
 
-  window.Tabela = { lay, disp, raw, evalF, insRow, delRow, insCol, delCol, enter, exit, colName };
+  /* ---------- barra rápida (menu flutuante) no modo células ---------- */
+  const isHex = (v) => /^#[0-9a-f]{6}$/i.test(v || '');
+  const effFill = (e, r, c) => { const x = cellOf(e, r, c); if (x && x.fill !== undefined) return x.fill === 'none' ? null : x.fill; if (hasH(e) && r === 0) return e.headFill && e.headFill !== 'none' ? e.headFill : null; const z = e.cellFill2 && e.cellFill2 !== 'none' && (r - (hasH(e) ? 1 : 0)) % 2 === 1 ? e.cellFill2 : (e.cellFill && e.cellFill !== 'none' ? e.cellFill : null); return z; };
+  const QA = { l: 'M4 6h16M4 10h10M4 14h16M4 18h10', c: 'M4 6h16M7 10h10M4 14h16M7 18h10', r: 'M4 6h16M10 10h10M4 14h16M10 18h10', t: 'M4 5h16M8 9h8M8 13h8', m: 'M8 8h8M4 12h16M8 16h8', b: 'M8 11h8M8 15h8M4 19h16' };
+  const qsvg = (d) => `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="${d}"/></svg>`;
+  const qb = (a, t, inner, on) => `<button type="button" data-tq="${a}" title="${t}" aria-label="${t}" class="${on ? 'on' : ''}">${inner}</button>`;
+  const qsep = '<span class="qs"></span>';
+  function barHTML(e) {
+    const t = TS(); if (!t || t.id !== e.id) return '';
+    if (t.title) { const hd = (e.wx && e.wx.hd) || {}, c1 = tokc(hd.c, '#3E3550'), f1 = tokc(hd.fill, '#F7E5E7');
+      return `<span class="qlab">Título</span>` + `<label class="qc qf" title="Fundo do título"><span>▦</span><b style="background:${f1}"></b><input type="color" data-tq="ti:fill" value="${f1}" aria-label="Fundo do título"></label><label class="qc" title="Cor do texto do título"><span>A</span><b style="background:${c1}"></b><input type="color" data-tq="ti:c" value="${c1}" aria-label="Cor do texto do título"></label>` + qsep + qb('ti:al:left', 'Alinhar à esquerda', qsvg(QA.l), hd.align === 'left') + qb('ti:al:center', 'Centralizar', qsvg(QA.c), !hd.align || hd.align === 'center') + qb('ti:al:right', 'Alinhar à direita', qsvg(QA.r), hd.align === 'right') + qsep + qb('exit', 'Sair da edição de células', 'Sair'); }
+    const a = clampRC(e, t.a[0], t.a[1]), st = cellStyle(e, a[0], a[1]), fl = effFill(e, a[0], a[1]), fh = isHex(fl) ? fl : '#ffffff', ch = isHex(st.color) ? st.color : '#3E3550', cl = cellOf(e, a[0], a[1]) || {};
+    return `<span class="qlab">${esc(label(e, t))}</span>` +
+      `<label class="qc qf" title="Cor de fundo da célula${fl ? ' (' + fl + ')' : ' (sem cor)'}"><span>▦</span><b style="background:${fh}${fl ? '' : ';background-image:linear-gradient(45deg,#ddd 25%,transparent 25%,transparent 75%,#ddd 75%),linear-gradient(45deg,#ddd 25%,#fff 25%,#fff 75%,#ddd 75%);background-size:8px 8px;background-position:0 0,4px 4px'}"></b><input type="color" data-tq="fill" value="${fh}" aria-label="Cor de fundo da célula"></label>` +
+      qb('nofill', 'Sem cor de fundo', '∅') +
+      `<label class="qc" title="Cor do texto (${ch})"><span>A</span><b style="background:${ch}"></b><input type="color" data-tq="color" value="${ch}" aria-label="Cor do texto"></label>` + qsep +
+      `<input class="qn" type="number" step="0.5" min="2" data-tq="size" value="${st.size}" title="Tamanho da fonte (pt)" aria-label="Tamanho da fonte">` +
+      qb('bold', 'Negrito', '<b>B</b>', +st.weight >= 600).replace('<button', '<button class="qg"') + qb('italic', 'Itálico', '<i>I</i>', st.italic).replace('<button', '<button class="qg"') + qsep +
+      qb('al:left', 'Alinhar à esquerda', qsvg(QA.l), st.al === 'left') + qb('al:center', 'Centralizar', qsvg(QA.c), st.al === 'center') + qb('al:right', 'Alinhar à direita', qsvg(QA.r), st.al === 'right') +
+      qb('va:top', 'Alinhar em cima', qsvg(QA.t), st.va === 'top') + qb('va:middle', 'Alinhar ao meio', qsvg(QA.m), st.va === 'middle') + qb('va:bottom', 'Alinhar embaixo', qsvg(QA.b), st.va === 'bottom') + qsep +
+      qb('lock', cl.lock ? 'Destravar célula' : 'Travar célula', ico(cl.lock ? 'unlock' : 'lock')) + qb('exit', 'Sair da edição de células', 'Sair');
+  }
+  function barSig(e) { const t = TS(); if (!t || t.id !== e.id) return ''; const a = clampRC(e, t.a[0], t.a[1]); return JSON.stringify([t.a, t.b, !!t.title, cellOf(e, a[0], a[1]), e.wx && e.wx.hd, e.headFill, e.cellFill, e.cellFill2, e.color, e.size]); }
+  const QBAR = document.getElementById('qbar'); let qhist = null;
+  if (QBAR) {
+    QBAR.addEventListener('click', (ev) => {
+      const b = ev.target.closest('button[data-tq]'); if (!b) return; ev.stopPropagation(); const a = b.dataset.tq, e = curEl(), t = TS(); if (!e || !t) return;
+      if (a === 'exit') { exit(); return; }
+      if (a.startsWith('ti:al:')) { mutate((z) => { if (!(z.wx && z.wx.hd)) return false; z.wx.hd.align = a.slice(6); }); return; }
+      if (a === 'nofill') fmtApply((z, r, c) => setCell(z, r, c, { fill: 'none' }));
+      else if (a === 'bold') { const A = clampRC(e, t.a[0], t.a[1]), on = +cellStyle(e, A[0], A[1]).weight >= 600; fmtApply((z, r, c) => setCell(z, r, c, { weight: on ? 400 : 700 })); }
+      else if (a === 'italic') { const A = clampRC(e, t.a[0], t.a[1]), on = cellStyle(e, A[0], A[1]).italic; fmtApply((z, r, c) => setCell(z, r, c, { italic: on ? undefined : true })); }
+      else if (a.startsWith('al:') || a.startsWith('va:')) { const [k, v] = a.split(':'); fmtApply((z, r, c) => setCell(z, r, c, { [k]: v })); }
+      else if (a === 'lock') { const all = cellKeys(e, t).every(([r, c]) => (cellOf(e, r, c) || {}).lock); mutate((z) => { cellKeys(z, t).forEach(([r, c]) => setCell(z, r, c, { lock: all ? undefined : true })); }); }
+    });
+    QBAR.addEventListener('input', (ev) => {
+      const i = ev.target; const a = i.dataset && i.dataset.tq; if (!a || i.type !== 'color') return; ev.stopPropagation(); const e = curEl(), t = TS(), p = curPage(); if (!e || !t || !p) return;
+      qhist = qhist || snapOf([p.id]); const v = i.value;
+      if (a === 'ti:fill' || a === 'ti:c') { if (e.wx && e.wx.hd) e.wx.hd[a.slice(3)] = v; }
+      else cellKeys(e, t).forEach(([r, c]) => { const cl = cellOf(e, r, c); if (cl && cl.lock) return; setCell(e, r, c, a === 'fill' ? { fill: v } : { color: v }); });
+      const sw = i.parentNode.querySelector('b'); if (sw) sw.style.background = v; scheduleRedraw();
+    });
+    QBAR.addEventListener('change', (ev) => {
+      const i = ev.target, a = i.dataset && i.dataset.tq; if (!a) return; ev.stopPropagation(); const p = curPage(); if (!p) return;
+      if (i.type === 'color') { if (qhist) { pushHist(qhist, snapOf([p.id])); qhist = null; thumbRefresh(p.id); } renderProps(); return; }
+      if (a === 'size') { const v = parseFloat(i.value); if (v > 0) fmtApply((z, r, c) => setCell(z, r, c, { size: v })); }
+    });
+  }
+
+  window.Tabela = { bar: barHTML, sig: barSig, lay, disp, raw, evalF, insRow, delRow, insCol, delCol, enter, exit, colName };
 })();

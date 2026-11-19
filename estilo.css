@@ -985,3 +985,9 @@ body.qm-on #qbar{display:none!important}
 .tlkb svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
 .tseg{display:flex}.tseg button{flex:1;padding:5px 2px;font-size:11px}
 .tpan .btn.danger{color:#b4506e}
+.tin{position:absolute;pointer-events:none}
+.trs.ttl{background:#e7a6be;color:#fff;border-color:#d98aa8}.trs.ttl.on{background:var(--sel)}
+#qbar .qlab{flex:none;font:700 11px var(--f-title);color:#9168A0;padding:0 6px;white-space:nowrap}
+#qbar .qc.qf b{width:20px;height:11px;margin-left:-10px;bottom:4px;border:1px solid rgba(0,0,0,.2);border-radius:4px}
+#qbar .qc.qf span{position:absolute;left:0;right:0;top:2px;font-size:11px;line-height:1}
+#qbar .qc b{border:1px solid rgba(0,0,0,.12);height:4px;bottom:2px}

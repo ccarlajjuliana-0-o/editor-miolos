@@ -285,15 +285,16 @@
     P.querySelectorAll('[data-acc="thead"],[data-acc="tcells"]').forEach((x) => x.remove());
     const sel = selEls(); if (sel.length !== 1 || sel[0].type !== 'table') return;
     const e = sel[0], anchor = P.querySelector('[data-acc="cont"]'); if (!anchor) return;
-    FIELDS._th = [['hdFont', 'Fonte', 'font', 0, null, (x) => x.font], ['hdSize', 'Tamanho (pt)', 'num', 0.5], ['headFill', 'Cor da faixa', 'colorN'], ['hdColor', 'Cor do texto', 'color', 0, null, (x) => x.color],
-      ['hdWeight', 'Peso', 'sel', [[400, 'Normal'], [600, 'Semi-negrito'], [700, 'Negrito']], null, 600], ['hdAlign', 'Alinhamento', 'sel', [['center', 'Centro'], ['left', 'Esquerda'], ['right', 'Direita']], null, 'center'],
-      ['hdLs', 'Espaço entre letras', 'num', 0.01], ['hdLine', 'Linhas do cabeçalho', 'sidesl', 0, null, 'none'],
-      ['hdLc', 'Cor das linhas', 'colorN', 0, null, (x) => x.stroke], ['hdLw', 'Espessura (mm)', 'num', 0.05], ['hdLnStyle', 'Tipo de linha do cabeçalho', 'sel', LN.OPTS, null, 'solid'], ['hdGrid', 'Divisórias entre colunas', 'chk'], ['hdR', 'Cantos arredondados (mm)', 'num', 0.5]];
-    FIELDS._tc = [['cellGap', 'Espaço entre células (mm)', 'num', 0.2], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['cellFill', 'Fundo das células', 'colorN'], ['cellFill2', 'Cor alternada (linhas)', 'colorN'], ['gridH', 'Linhas horizontais', 'chk', 0, null, true], ['gridV', 'Linhas verticais', 'chk', 0, null, true], ['lnStyle', 'Tipo de linha', 'sel', LN.OPTS, null, 'solid'], ['cellBorder', 'Contorno das células', 'sides']];
+    FIELDS._th = [['hdFont', 'Fonte', 'font', 0, null, (x) => x.font], ['hdSize', 'Tamanho (pt)', 'num', 0.5], ['hdColor', 'Cor do texto', 'color', 0, null, (x) => x.color], ['hdWeight', 'Peso', 'sel', [[400, 'Normal'], [600, 'Semi-negrito'], [700, 'Negrito']], null, 600],
+      ['hdAlign', 'Alinhamento', 'sel', [['center', 'Centro'], ['left', 'Esquerda'], ['right', 'Direita']], null, 'center'], ['hdLs', 'Espaço entre letras', 'num', 0.01],
+      ['headFill', 'Cor da faixa', 'colorN'], ['hdR', 'Cantos arredondados (mm)', 'num', 0.5],
+      ['hdLine', 'Linhas do cabeçalho', 'sidesl', 0, null, 'none'], ['hdLc', 'Cor das linhas', 'colorN', 0, null, (x) => x.stroke], ['hdLw', 'Espessura (mm)', 'num', 0.05], ['hdLnStyle', 'Tipo de linha do cabeçalho', 'sel', LN.OPTS, null, 'solid'], ['hdGrid', 'Divisórias entre colunas', 'chk']];
+    FIELDS._tc = [['stroke', 'Cor das linhas', 'colorN'], ['sw', 'Espessura (mm)', 'num', 0.05], ['lnStyle', 'Tipo de linha', 'sel', LN.OPTS, null, 'solid'], ['gridH', 'Linhas horizontais', 'chk', 0, null, true], ['gridV', 'Linhas verticais', 'chk', 0, null, true], ['cellBorder', 'Contorno das células', 'sides'],
+      ['cellGap', 'Espaço entre células (mm)', 'num', 0.2], ['cellFill', 'Fundo das células', 'colorN'], ['cellFill2', 'Cor alternada (linhas)', 'colorN']];
     const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
     const mk = (id, title, hint, type) => { const open = !(Pref.acc && Pref.acc[id] === false), w = document.createElement('div'); w.className = 'wacc' + (open ? ' open' : ''); w.dataset.acc = id;
       w.innerHTML = `<button class="wah" type="button" aria-expanded="${open}"><i class="wtri"></i><b>${title}</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><p class="hint">${hint}</p><div class="pgrp">${fieldsHTML(Object.assign({}, e, { type }))}</div></div>`; return w; };
-    const a = mk('thead', 'Cabeçalho da tabela', '0 em tamanho ou espessura deixa automático.', '_th'), b = mk('tcells', 'Células e grade', 'Com espaço ou cantos arredondados, cada célula vira um quadradinho individual e o fundo do widget só pinta dentro delas. Linhas e fundos usam as cores acima.', '_tc');
+    const a = mk('thead', 'Cabeçalho da tabela', '0 em tamanho ou espessura deixa automático.', '_th'), b = mk('tcells', 'Células e grade', 'Linhas, contorno, espaço e fundo das células. Com espaço ou cantos arredondados (em Conteúdo), cada célula vira um quadradinho individual.', '_tc');
     anchor.parentNode.insertBefore(a, anchor.nextSibling); a.parentNode.insertBefore(b, a.nextSibling);
   }
   function cellSection(P) {
