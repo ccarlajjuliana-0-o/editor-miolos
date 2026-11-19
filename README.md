@@ -286,3 +286,10 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Posicionamentos com miniatura por categoria: Completo, Moldura, Faixas, Ondulado, Renda, Cantos. Chaves Contínuo / Invertido (duas páginas), Opacidade e Forrado (fio fino por dentro).
 - Envio de imagem de borda checa o mínimo (150 dpi para cobrir a página) e avisa antes de usar.
 - Bordas antigas continuam funcionando.
+
+## Ajuste 58 — Bordas v2.1
+- Um único interruptor **Contínuo** (ligado = contínua, desligado = invertida/espelhada). Na vista de 2 páginas a borda é aplicada nas duas por padrão.
+- **Forrado**: espessura, tipo de linha (traços, pontos, combinações) e gradiente no seletor de cor.
+- Novos layouts: **Contorno** (linhas fina/grossa/duplas, afastadas do extremo), **Lados**, **Destaque**, **Cantos**; "Completo" com esmaecido nas laterais e de dentro para fora / fora para dentro.
+- **Inverter o recorte** para Ondulado, Renda e demais (imagem onde era branco). Ondulado = cortes em "C" (abertura para a borda); Renda = cortes em "U" (abertura para o interior).
+- Estilos de borda das imagens (Lado, Topo + destaque, Canto arredondado) na galeria de miniaturas.
