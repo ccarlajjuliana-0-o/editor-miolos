@@ -230,3 +230,6 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Painel direito mais compacto: campos curtos (listas, números, cores) ficam dois por linha e menores.
 - Calendário: "Mostrar nome do mês" abre fonte, tamanho, peso, estilo, cor, espaço entre letras e alinhamento do nome; novo tamanho dos dias (0 = automático).
 - Moldura encosta no conteúdo (sem folga extra); o título do widget respeita a borda e diminui para caber na largura do widget.
+
+## Ajuste 44
+- Nova seção "Dias da semana" (com ocultar/expandir) no painel direito dos calendários (mensal e anual): como mostrar (automático, letra, abreviado, extenso), altura da faixa, cor da faixa, fonte, tamanho, cor, peso, alinhamento, espaço entre letras e linhas da faixa (em cima/embaixo) com cor e espessura próprias.

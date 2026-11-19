@@ -14,6 +14,18 @@ const MES3=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','d
 const DIAS=['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
 const DIA3=['dom','seg','ter','qua','qui','sex','sáb'];
 const DIA1=['D','S','T','Q','Q','S','S'];
+const DIAX=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+/* faixa dos dias da semana, comum a todos os calendários */
+function drawWeekBar(c,e,x,y,w,h,ws,autoFmt,autoSz,rad){const cw=w/7;
+  if(e.headFill&&e.headFill!=='none'){rr(c,x,y,w,h,rad);c.fillStyle=e.headFill;c.fill()}
+  const fmt=e.wdFmt&&e.wdFmt!=='auto'?e.wdFmt:autoFmt,N=fmt==='extenso'?DIAX:fmt==='abrev'?DIA3:DIA1,fam=e.wdFont||e.font,wt=e.wdWeight||600,al=e.wdAlign||'center',ls=e.wdLs||0;
+  let fs=e.wdSize?e.wdSize*PT:autoSz;font(c,fs,fam,wt);setLS(c,ls*fs*F);
+  let mw=0;for(let i=0;i<7;i++)mw=Math.max(mw,M(c,N[(ws+i)%7]));if(mw>cw*.94){fs*=cw*.94/mw;font(c,fs,fam,wt);setLS(c,ls*fs*F)}
+  c.fillStyle=e.wdColor||e.color;
+  for(let i=0;i<7;i++){const nm=N[(ws+i)%7],px=al==='left'?x+cw*i+.8:al==='right'?x+cw*(i+1)-.8:x+cw*i+cw/2;T(c,nm,px,y+h/2,al,'middle')}
+  setLS(c,0);
+  const ln=e.wdLine;if(ln&&ln!=='none'){c.beginPath();if(ln==='top'||ln==='both'){c.moveTo(x,y);c.lineTo(x+w,y)}if(ln==='bottom'||ln==='both'){c.moveTo(x,y+h);c.lineTo(x+w,y+h)}strokeIf(c,e.wdLc||e.stroke,e.wdLw||e.sw||.3)}}
+
 const daysIn=(y,m)=>new Date(y,m+1,0).getDate();
 const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const dkey=d=>d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();
@@ -83,7 +95,7 @@ function drawImgFit(c,im,x,y,w,h,fit){const iw=im.naturalWidth||im.width,ih=im.n
   const s=fit==='contain'?Math.min(w/iw,h/ih):Math.max(w/iw,h/ih),dw=iw*s,dh=ih*s;
   c.save();c.beginPath();c.rect(x,y,w,h);c.clip();c.drawImage(im,x+(w-dw)/2,y+(h-dh)/2,dw,dh);c.restore()}
 
-function calLayout(e){const tH=e.showTitle?Math.min(e.h*.14,16):0,hH=Math.min(e.h*.08,7.5),ws=e.weekStart||0;
+function calLayout(e){const tH=e.showTitle?Math.min(e.h*.14,16):0,hH=e.wdH>0?Math.min(e.wdH,e.h*.3):Math.min(e.h*.08,7.5),ws=e.weekStart||0;
   const first=new Date(e.year,e.month,1).getDay(),off=(first-ws+7)%7,dim=daysIn(e.year,e.month),rows=Math.ceil((off+dim)/7);
   return {tH,hH,ws,off,dim,rows,cw:e.w/7,ch:(e.h-tH-hH)/rows,top:tH+hH}}
 function ycLayout(e){const cols=e.w>e.h*1.15?4:3,rows=12/cols,g=Math.min(e.w,e.h)*.045,bw=(e.w-g*(cols-1))/cols,bh=(e.h-g*(rows-1))/rows;
@@ -105,9 +117,7 @@ const R={
     c.restore()},
   calendar(c,e){const L=calLayout(e);
     if(e.showTitle){const tf=e.titleSize?e.titleSize*PT:L.tH*.62,al=e.titleAlign||'center';font(c,tf,e.titleFont||'Great Vibes',e.titleWeight||400,e.titleStyle==='italic');setLS(c,(e.titleLs||0)*tf*F);c.fillStyle=e.titleColor||e.accent;T(c,cap(MESES[e.month])+' '+e.year,al==='left'?1:al==='right'?e.w-1:e.w/2,L.tH/2,al,'middle');setLS(c,0)}
-    if(e.headFill&&e.headFill!=='none'){rr(c,0,L.tH,e.w,L.hH,Math.min(1.6,L.hH/3));c.fillStyle=e.headFill;c.fill()}
-    font(c,Math.min(L.hH*.46,L.cw*.2),e.font,600);c.fillStyle=e.color;
-    for(let i=0;i<7;i++){const wd=(L.ws+i)%7;T(c,L.cw>15?DIA3[wd]:DIA1[wd],L.cw*i+L.cw/2,L.tH+L.hH/2,'center','middle')}
+    drawWeekBar(c,e,0,L.tH,e.w,L.hH,L.ws,L.cw>15?'abrev':'letra',Math.min(L.hH*.46,L.cw*.2),Math.min(1.6,L.hH/3));
     if(e.weekendFill&&e.weekendFill!=='none'){c.fillStyle=e.weekendFill;for(let i=0;i<7;i++){const wd=(L.ws+i)%7;if(wd===0||wd===6)c.fillRect(L.cw*i,L.top,L.cw,L.ch*L.rows)}}
     c.beginPath();for(let r=0;r<=L.rows;r++){if(r===0&&e.style==='linhas')continue;c.moveTo(0,L.top+r*L.ch);c.lineTo(e.w,L.top+r*L.ch)}
     if(e.style!=='linhas')for(let i=0;i<=7;i++){c.moveTo(i*L.cw,L.top);c.lineTo(i*L.cw,L.top+L.rows*L.ch)}
@@ -117,11 +127,9 @@ const R={
       font(c,fs,e.font,600);c.fillStyle=hn?e.accent:e.color;T(c,String(d),x+pad,y+pad+fs*.5,'left','middle');
       if(hn&&L.cw>15&&L.ch>11){font(c,fs*.52,e.font,400);c.fillStyle=e.accent;wrap(c,hn,L.cw-pad*2).slice(0,2).forEach((t,j)=>T(c,t,x+pad,y+pad+fs*1.25+fs*.62*j,'left','middle'))}}},
   yearcal(c,e){const Y=ycLayout(e),H=e.holidays?feriados(e.year):{};
-    for(let m=0;m<12;m++){const b=Y.box(m),tH=b.h*.17,hH=b.h*.11,cw=b.w/7,ch=(b.h-tH-hH)/6;
+    for(let m=0;m<12;m++){const b=Y.box(m),tH=b.h*.17,hH=e.wdH>0?Math.min(e.wdH,b.h*.25):b.h*.11,cw=b.w/7,ch=(b.h-tH-hH)/6;
       font(c,Math.min(tH*.62,b.w*.12),e.titleFont,600);c.fillStyle=e.accent;T(c,cap(MESES[m]),b.x+b.w/2,b.y+tH/2,'center','middle');
-      if(e.headFill&&e.headFill!=='none'){rr(c,b.x,b.y+tH,b.w,hH,hH/3);c.fillStyle=e.headFill;c.fill()}
-      font(c,Math.min(hH*.55,cw*.5),e.font,600);c.fillStyle=e.color;
-      for(let i=0;i<7;i++)T(c,DIA1[(e.weekStart+i)%7],b.x+cw*i+cw/2,b.y+tH+hH/2,'center','middle');
+      drawWeekBar(c,e,b.x,b.y+tH,b.w,hH,e.weekStart,'letra',Math.min(hH*.55,cw*.5),hH/3);
       const off=(new Date(e.year,m,1).getDay()-e.weekStart+7)%7,dim=daysIn(e.year,m);font(c,Math.min(ch*.52,cw*.46),e.font,400);
       const ga=c.globalAlpha;for(let d=1;d<=dim;d++){const idx=off+d-1,wd=(e.weekStart+idx%7)%7;c.fillStyle=H[m+'-'+d]?e.accent:wd===0?e.accent:e.color;c.globalAlpha=ga*((H[m+'-'+d]||wd!==0)?1:.75);T(c,String(d),b.x+(idx%7)*cw+cw/2,b.y+tH+hH+Math.floor(idx/7)*ch+ch/2,'center','middle');c.globalAlpha=ga}}},
   table(c,e){const hasH=Array.isArray(e.header)&&e.header.length>0,rows=e.rows+(hasH?1:0),rh=e.h/rows,cw=colWidths(e);
@@ -1011,8 +1019,8 @@ const FIELDS={
  ellipse:[['fill','Preenchimento','colorN'],['stroke','Contorno','colorN'],['sw','Espessura (mm)','num',.05]],
  line:[['stroke','Cor','color'],['sw','Espessura (mm)','num',.05],['dash','Estilo','sel',[['solid','Contínua'],['dash','Tracejada'],['dot','Pontilhada']]]],
  pattern:[['kind','Tipo','sel',[['lines','Pautas'],['dots','Pontos'],['grid','Quadriculado']]],['sp','Espaçamento (mm)','num',.5],['color','Cor','color'],['sw','Espessura (mm)','num',.05]],
- calendar:[['month','Mês','sel',MESES.map((m,i)=>[i,cap(m)])],['year','Ano','num',1],['weekStart','Semana começa','sel',[[0,'Domingo'],[1,'Segunda']]],['style','Estilo','sel',[['grade','Grade'],['linhas','Só linhas']]],['showTitle','Mostrar nome do mês','chk'],['titleFont','Fonte do nome','font',0,'showTitle'],['titleSize','Tamanho do nome (pt)','num',.5,'showTitle'],['titleWeight','Peso do nome','sel',[[400,'Normal'],[600,'Semi-negrito'],[700,'Negrito']],'showTitle'],['titleStyle','Estilo do nome','sel',[['normal','Normal'],['italic','Itálico']],'showTitle'],['titleColor','Cor do nome','color',0,'showTitle',e=>e.accent],['titleLs','Espaço entre letras','num',.01,'showTitle'],['titleAlign','Alinhar o nome','sel',[['center','Centro'],['left','Esquerda'],['right','Direita']],'showTitle'],['holidays','Feriados nacionais','chk'],['font','Fonte','font'],['size','Tamanho dos dias (pt)','num',.5],['color','Texto','color'],['accent','Destaque','color'],['headFill','Faixa dos dias','colorN'],['weekendFill','Fim de semana','colorN'],['stroke','Linhas','colorN'],['sw','Espessura (mm)','num',.05]],
- yearcal:[['year','Ano','num',1],['weekStart','Semana começa','sel',[[0,'Domingo'],[1,'Segunda']]],['holidays','Feriados nacionais','chk'],['font','Fonte','font'],['titleFont','Fonte dos meses','font'],['color','Texto','color'],['accent','Destaque','color'],['headFill','Faixa dos dias','colorN']],
+ calendar:[['month','Mês','sel',MESES.map((m,i)=>[i,cap(m)])],['year','Ano','num',1],['weekStart','Semana começa','sel',[[0,'Domingo'],[1,'Segunda']]],['style','Estilo','sel',[['grade','Grade'],['linhas','Só linhas']]],['showTitle','Mostrar nome do mês','chk'],['titleFont','Fonte do nome','font',0,'showTitle'],['titleSize','Tamanho do nome (pt)','num',.5,'showTitle'],['titleWeight','Peso do nome','sel',[[400,'Normal'],[600,'Semi-negrito'],[700,'Negrito']],'showTitle'],['titleStyle','Estilo do nome','sel',[['normal','Normal'],['italic','Itálico']],'showTitle'],['titleColor','Cor do nome','color',0,'showTitle',e=>e.accent],['titleLs','Espaço entre letras','num',.01,'showTitle'],['titleAlign','Alinhar o nome','sel',[['center','Centro'],['left','Esquerda'],['right','Direita']],'showTitle'],['holidays','Feriados nacionais','chk'],['font','Fonte','font'],['size','Tamanho dos dias (pt)','num',.5],['color','Texto','color'],['accent','Destaque','color'],['weekendFill','Fim de semana','colorN'],['stroke','Linhas','colorN'],['sw','Espessura (mm)','num',.05]],
+ yearcal:[['year','Ano','num',1],['weekStart','Semana começa','sel',[[0,'Domingo'],[1,'Segunda']]],['holidays','Feriados nacionais','chk'],['font','Fonte','font'],['titleFont','Fonte dos meses','font'],['color','Texto','color'],['accent','Destaque','color']],
  table:[['rows','Linhas','num',1],['cols','Colunas','num',1],['header','Cabeçalho (separe por vírgula)','list'],['side','Primeira coluna (separe por vírgula)','list'],['font','Fonte','font'],['size','Tamanho (pt)','num',.5],['color','Texto','color'],['headFill','Cabeçalho','colorN'],['stroke','Linhas','colorN'],['sw','Espessura (mm)','num',.05]],
  checklist:[['n','Itens','num',1],['items','Texto dos itens (um por linha)','lines'],['box','Marcador','sel',[['square','Quadrado'],['circle','Círculo']]],['lines','Linha para escrever','chk'],['color','Marcador','color'],['stroke','Linhas','colorN'],['sw','Espessura (mm)','num',.05]],
  habit:[['labels','Hábitos (um por linha)','lines'],['days','Dias','num',1],['rows','Linhas','num',1],['labelW','Largura dos nomes (0–0,6)','num',.02],['font','Fonte','font'],['color','Texto','color'],['accent','Círculos','color'],['stroke','Linhas','colorN']],

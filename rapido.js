@@ -249,10 +249,30 @@
     });
   }
 
+
+  /* ---------- faixa dos dias da semana (calendários) ---------- */
+  function wdSection(P) {
+    P.querySelectorAll('[data-acc="wdays"]').forEach((x) => x.remove());
+    const sel = selEls(); if (sel.length !== 1 || !['calendar', 'yearcal'].includes(sel[0].type) || typeof FIELDS === 'undefined') return;
+    const e = sel[0], cont = P.querySelector('[data-acc="cont"]'); if (!cont) return;
+    FIELDS._wd = [
+      ['wdFmt', 'Como mostrar', 'sel', [['auto', 'Automático'], ['letra', 'Letra (D, S…)'], ['abrev', 'Abrev. (dom…)'], ['extenso', 'Extenso']], null, 'auto'],
+      ['wdH', 'Altura da faixa (mm)', 'num', 0.5],
+      ['headFill', 'Cor da faixa', 'colorN'], ['wdColor', 'Cor do texto', 'color', 0, null, (x) => x.color],
+      ['wdFont', 'Fonte', 'font', 0, null, (x) => x.font], ['wdSize', 'Tamanho (pt)', 'num', 0.5],
+      ['wdWeight', 'Peso', 'sel', [[400, 'Normal'], [600, 'Semi-negrito'], [700, 'Negrito']], null, 600], ['wdAlign', 'Alinhamento', 'sel', [['center', 'Centro'], ['left', 'Esquerda'], ['right', 'Direita']], null, 'center'],
+      ['wdLs', 'Espaço entre letras', 'num', 0.01], ['wdLine', 'Linhas da faixa', 'sel', [['none', 'Nenhuma'], ['bottom', 'Embaixo'], ['top', 'Em cima'], ['both', 'Ambas']], null, 'none'],
+      ['wdLc', 'Cor das linhas', 'colorN', 0, null, (x) => x.stroke], ['wdLw', 'Espessura (mm)', 'num', 0.05]];
+    const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
+    const open = !(Pref.acc && Pref.acc.wdays === false), w = document.createElement('div'); w.className = 'wacc' + (open ? ' open' : ''); w.dataset.acc = 'wdays';
+    w.innerHTML = `<button class="wah" type="button" aria-expanded="${open}"><i class="wtri"></i><b>Dias da semana</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><p class="hint">0 em altura, tamanho ou espessura deixa automático.</p><div class="pgrp">${fieldsHTML(Object.assign({}, e, { type: '_wd' }))}</div></div>`;
+    cont.parentNode.insertBefore(w, cont.nextSibling);
+  }
+
   function boot() {
     addElements(); wireDbl(); wireGs(); wireLock(); wireZoom();
     if (typeof renderProps === 'function' && !renderProps._rp) {
-      const r0 = renderProps, f = function () { const out = r0.apply(this, arguments); const P = document.getElementById('props'); if (P && S.meta) { try { section(P); } catch (e) { console.warn(e); } } return out; }; f._rp = 1; f._lv = r0._lv; renderProps = f;
+      const r0 = renderProps, f = function () { const out = r0.apply(this, arguments); const P = document.getElementById('props'); if (P && S.meta) { try { section(P); wdSection(P); } catch (e) { console.warn(e); } } return out; }; f._rp = 1; f._lv = r0._lv; renderProps = f;
     }
   }
   window.Rapido = { boot, openQM };
