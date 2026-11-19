@@ -313,3 +313,8 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 ## Ajuste 62 — Catálogo no menu da página principal
 - O Catálogo saiu do menu do editor e agora fica no menu da esquerda da página principal (Projetos · ModuLab · **Catálogo** · Aparência · Lixeira · Nuvem e backup).
 - Na página principal, clicar num item do catálogo abre os detalhes (ou o editor do ModuLab, para itens do ModuLab). As abas Widgets/Adesivos do editor continuam mostrando "Do catálogo".
+
+## Ajuste 63 — Catálogo: planners e cadernos como modelos
+- Nova categoria **Planners e cadernos**: "Salvar um projeto no catálogo" guarda uma cópia (todas as páginas) como modelo, e o "Planner de exemplo" do app aparece como padrão.
+- **Usar** cria um projeto novo (cópia totalmente editável, com links entre páginas refeitos) e o original do catálogo nunca muda. O projeto novo guarda de qual modelo veio.
+- Salvar e usar aparecem no Histórico.

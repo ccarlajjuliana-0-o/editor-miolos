@@ -11,10 +11,11 @@
     ['fontes', 'Fontes', ['font', 'tipos'], 'font'],
     ['temas', 'Temas', ['tema'], null],
     ['colecoes', 'Coleções e outros', ['colecao', 'outro'], null],
+    ['planners', 'Planners e cadernos', ['planner'], null],
     ['modelos', 'Modelos de página', ['template'], null],
   ];
   const UPK = [['widget', 'Widget (PNG/JPEG)'], ['sticker', 'Adesivo (PNG/JPEG)'], ['border', 'Borda (PNG/JPEG)'], ['background', 'Fundo de página (PNG/JPEG)'], ['font', 'Fonte (TTF/OTF)']];
-  const KN = { widget: 'Widget', wgt: 'Widget', wsty: 'Estilo de widget', sticker: 'Adesivo', stk: 'Adesivo', border: 'Borda', bdr: 'Borda', pat: 'Padrão', background: 'Fundo', font: 'Fonte', tipos: 'Tipografia', tema: 'Tema', colecao: 'Coleção', outro: 'Outro', template: 'Modelo', logo: 'Logo' };
+  const KN = { widget: 'Widget', wgt: 'Widget', wsty: 'Estilo de widget', sticker: 'Adesivo', stk: 'Adesivo', border: 'Borda', bdr: 'Borda', pat: 'Padrão', background: 'Fundo', font: 'Fonte', tipos: 'Tipografia', tema: 'Tema', colecao: 'Coleção', outro: 'Outro', template: 'Modelo', planner: 'Planner/caderno', logo: 'Logo' };
   const SKIP = ['hist', 'config'];
   const st = { view: 'cat', cat: 'todos', hf: 'todos', up: 'widget' };
   const isCat = (x) => !!x.cat || MLK.includes(x.kind);
@@ -106,23 +107,54 @@
 
   function info(it) {
     const pv = it.src && it.kind !== 'font' ? `<div class="cinfo"><img src="${esc(srcUrl(it.src))}" alt=""></div>` : it.kind === 'font' ? `<div class="cinfo" style="font-family:'${esc(it.family || '')}';font-size:26px">Aa Bb Cc 123</div>` : '';
-    modal(`<h2>${esc(it.name || it.family || KN[it.kind] || 'Item')}</h2>${pv}<p class="hint">${esc(KN[it.kind] || it.kind)} · ${isCat(it) ? 'no catálogo' : 'minhas coisas'}<br>Criado em ${esc(fmt(it.createdAt || 0) || '—')}${it.updatedAt ? '<br>Alterado em ' + esc(fmt(it.updatedAt)) : ''}</p><div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Fechar</button></div>`, () => {});
+    modal(`<h2>${esc(it.name || it.family || KN[it.kind] || 'Item')}</h2>${pv}<p class="hint">${it.kind === 'planner' ? esc((it.count || 0) + ' páginas · ') : ''}${esc(KN[it.kind] || it.kind)} · ${isCat(it) ? 'no catálogo' : 'minhas coisas'}<br>Criado em ${esc(fmt(it.createdAt || 0) || '—')}${it.updatedAt ? '<br>Alterado em ' + esc(fmt(it.updatedAt)) : ''}</p><div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Fechar</button>${it.kind === 'planner' ? '<button class="btn pri" id="cgUse">Criar projeto a partir deste modelo</button>' : ''}</div>`, (b, close) => { const u = $('#cgUse', b); if (u) u.onclick = () => { close(); usePlanner(it); }; });
+  }
+
+  /* ---------- planners e cadernos como modelos ---------- */
+  async function savePlanner() {
+    let ps = []; try { ps = (await Store.listProjects()).filter((p) => !p.modulab && p.kind !== 'draft').sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)); } catch (e) { /* */ }
+    if (!ps.length) { toast('Você ainda não tem projetos para guardar.'); return; }
+    modal(`<h2>Salvar no catálogo</h2><p class="hint">Guarda uma cópia do projeto como modelo. Depois, edite à vontade nas cópias: o original do catálogo não muda.</p>
+      <label class="f">Projeto<select id="cgPj">${ps.map((p) => `<option value="${esc(p.id)}">${esc(p.name || 'Sem nome')} · ${p.count || (p.order || []).length} páginas</option>`).join('')}</select></label>
+      <label class="f">Nome no catálogo<input type="text" id="cgPn" maxlength="70" value="${esc(ps[0].name || '')}"></label>
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="cgPs">Salvar</button></div>`, (b, close) => {
+      $('#cgPj', b).onchange = () => { const p = ps.find((x) => x.id === $('#cgPj', b).value); $('#cgPn', b).value = p ? p.name || '' : ''; };
+      $('#cgPs', b).onclick = async () => {
+        const p = ps.find((x) => x.id === $('#cgPj', b).value); if (!p) return; const nm = $('#cgPn', b).value.trim() || p.name || 'Planner'; $('#cgPs', b).disabled = true;
+        try {
+          const pages = await Store.loadPages(p.id, p.order || []), meta = clone(p); delete meta.id;
+          const it = { id: uid('l'), kind: 'planner', cat: true, name: nm, meta, pages: clone(pages), order: (p.order || []).filter((id) => pages[id]), count: (p.order || []).length, createdAt: Date.now(), orig: p.id };
+          await Store.saveLib(it); S.lib.push(it); close(); toast('Projeto guardado no catálogo. 🌸'); refresh();
+        } catch (e) { console.error(e); toast('Não consegui guardar: o projeto pode ser grande demais para este aparelho.'); $('#cgPs', b).disabled = false; }
+      };
+    });
+  }
+  async function usePlanner(it) {
+    toast('Criando a cópia…');
+    try {
+      const map = {}; it.order.forEach((id) => (map[id] = uid('pg')));
+      const np = it.order.filter((id) => it.pages[id]).map((id) => { const pg = clone(it.pages[id]); pg.id = map[id]; remapLinks(pg, map); return pg; });
+      const nid = uid('p'), meta = Object.assign(clone(it.meta), { name: it.name + ' (novo)', order: np.map((x) => x.id), createdAt: Date.now(), updatedAt: Date.now(), origem: { id: it.id, nome: it.name } });
+      await pool(np.map((pg) => () => Store.savePage(nid, pg.id, pg)), 4); await Store.saveMeta(nid, meta);
+      await loadHome(); await openProject(nid);
+    } catch (e) { console.error(e); toast('Não consegui criar a cópia.'); }
   }
 
   /* ---------- miniaturas ---------- */
   function tile(it) {
     const hasImg = !!it.src && it.kind !== 'font';
-    const im = hasImg ? `<img src="${esc(srcUrl(it.src))}" alt="" loading="lazy">` : it.kind === 'font' ? `<span style="font-family:'${esc(it.family || '')}';font-size:18px">Aa</span>` : `<canvas data-cpv="${it.id}" width="190" height="120"></canvas>`;
+    const im = it.kind === 'planner' ? `<canvas data-cpl="${it.id}"></canvas>` : hasImg ? `<img src="${esc(srcUrl(it.src))}" alt="" loading="lazy">` : it.kind === 'font' ? `<span style="font-family:'${esc(it.family || '')}';font-size:18px">Aa</span>` : `<canvas data-cpv="${it.id}" width="190" height="120"></canvas>`;
     const mine = !isCat(it) || it.cat;
     const mirror = MLK.includes(it.kind) && !it.cat;
     return `<div class="ctile"><div class="cim" data-cuse="${it.id}" role="button" tabindex="0" title="${esc(it.name || it.family || '')}">${im}</div>
       <div class="cnm" title="${esc(it.name || it.family || '')}">${esc(it.name || it.family || KN[it.kind] || '')}</div>
-      <div class="cact"><button type="button" class="btn sm ghost" data-cren="${it.id}" title="Renomear">✎</button>${mirror ? '<span class="cbadge" title="Criado no ModuLab e espelhado aqui">ModuLab</span>' : `<button type="button" class="btn sm ghost" data-cmv="${it.id}" title="${it.cat ? 'Mover para Minhas coisas' : 'Enviar ao catálogo'}">${it.cat ? '↧' : '↥'}</button>`}<button type="button" class="btn sm ghost danger" data-cdl="${it.id}" title="Excluir">×</button></div></div>`;
+      <div class="cact">${it.kind === 'planner' ? `<button type="button" class="btn sm" data-cuse="${it.id}" title="Criar um projeto novo a partir deste modelo">Usar</button>` : ''}<button type="button" class="btn sm ghost" data-cren="${it.id}" title="Renomear">✎</button>${mirror ? '<span class="cbadge" title="Criado no ModuLab e espelhado aqui">ModuLab</span>' : `<button type="button" class="btn sm ghost" data-cmv="${it.id}" title="${it.cat ? 'Mover para Minhas coisas' : 'Enviar ao catálogo'}">${it.cat ? '↧' : '↥'}</button>`}<button type="button" class="btn sm ghost danger" data-cdl="${it.id}" title="Excluir">×</button></div></div>`;
   }
   const builtin = (key) => {
     if (key === 'widgets' && typeof WIDGETS !== 'undefined') return WIDGETS.map(([k, n]) => `<div class="ctile bi" data-cbw="${k}"><div class="cim"><canvas data-cbp="${k}"></canvas></div><div class="cnm">${esc(n)}</div></div>`).join('');
     if (key === 'adesivos' && typeof STICKERS !== 'undefined') return STICKERS.map((s, i) => `<div class="ctile bi" data-cbs="${i}"><div class="cim"><canvas data-cbq="${i}"></canvas></div><div class="cnm">${esc(SHAPES[s[0]] || 'Adesivo')}</div></div>`).join('');
     if (key === 'fontes' && typeof FONTS !== 'undefined') return `<div class="cfonts">${FONTS.map((f) => `<div class="cfont" style="font-family:'${esc(f[0])}'">${esc(f[0])}<small>${esc(f[1] || '')}</small></div>`).join('')}</div>`;
+    if (key === 'planners') return `<div class="ctile bi" data-cbx="sample"><div class="cim"><span style="font-size:12px;color:var(--muted);padding:6px">3 meses · A5 · com divisórias e links</span></div><div class="cnm">Planner de exemplo</div><div class="cact"><span class="btn sm">Criar projeto</span></div></div>`;
     if (key === 'modelos' && typeof TPL !== 'undefined') return `<div class="cfonts">${Object.keys(TPL).map((k) => `<div class="cfont">${esc(TPL[k].nome || k)}<small>modelo do app</small></div>`).join('')}</div>`;
     return '';
   };
@@ -138,8 +170,8 @@
     const cats = CATS.filter((c) => st.cat === 'todos' || c[0] === st.cat);
     return cats.map((c) => {
       const items = S.lib.filter((x) => c[2].includes(x.kind) && (mine ? !isCat(x) : isCat(x))), bi = mine ? '' : builtin(c[0]);
-      if (!items.length && !bi) return mine ? '' : section(c[0], `${c[1]} · 0`, '<p class="hint">Nada aqui ainda.</p>', false);
-      return section(c[0], `${c[1]} · ${items.length}${bi && !mine ? ' + padrão' : ''}`, `${bi ? `<small class="cl">PADRÃO DO APP</small><div class="cgrid">${/cfonts/.test(bi) ? '' : bi}</div>${/cfonts/.test(bi) ? bi : ''}` : ''}${items.length ? `<small class="cl">${mine ? 'MINHAS COISAS' : 'NO CATÁLOGO'}</small><div class="cgrid">${items.map(tile).join('')}</div>` : ''}`, st.cat !== 'todos');
+      if (!items.length && !bi && c[0] !== 'planners') return mine ? '' : section(c[0], `${c[1]} · 0`, '<p class="hint">Nada aqui ainda.</p>', false);
+      return section(c[0], `${c[1]} · ${items.length}${bi && !mine ? ' + padrão' : ''}`, `${c[0] === 'planners' && !mine ? '<div class="row"><button type="button" class="btn sm pri" id="cgSavePl">Salvar um projeto no catálogo</button></div><p class="hint">O catálogo guarda o original. Ao usar, o app cria uma cópia totalmente editável e o original continua intacto.</p>' : ''}${bi ? `<small class="cl">PADRÃO DO APP</small><div class="cgrid">${/cfonts/.test(bi) ? '' : bi}</div>${/cfonts/.test(bi) ? bi : ''}` : ''}${items.length ? `<small class="cl">${mine ? 'MINHAS COISAS' : 'NO CATÁLOGO'}</small><div class="cgrid">${items.map(tile).join('')}</div>` : ''}`, st.cat !== 'todos');
     }).join('') || '<p class="hint">Nada por aqui ainda.</p>';
   }
 
@@ -157,6 +189,9 @@
       $$('[data-cv]', P).forEach((b) => b.onclick = () => { st.view = b.dataset.cv; refresh(); });
       $$('[data-cc]', P).forEach((b) => b.onclick = () => { st.cat = b.dataset.cc; refresh(); });
       $$('[data-cacc]', P).forEach((a) => { $('.wah', a).onclick = () => { const o = !a.classList.contains('open'); a.classList.toggle('open', o); Pref.acc = Pref.acc || {}; Pref.acc[a.dataset.cacc] = o; savePref(); }; });
+      const sp = $('#cgSavePl', P); if (sp) sp.onclick = savePlanner;
+      $$('[data-cbx]', P).forEach((b) => b.onclick = async () => { await createSample(); });
+      $$('canvas[data-cpl]', P).forEach((cv) => { const it = S.lib.find((x) => x.id === cv.dataset.cpl); const pg = it && it.pages && it.pages[it.order[0]]; if (pg) try { previewCanvas(cv, pg, pg.w, pg.h, 120, 78); } catch (e) { /* */ } });
       const sy = $('#cgSync', P); if (sy) sy.onclick = syncNow;
       const hf = $('#cgHf', P); if (hf) hf.onchange = () => { st.hf = hf.value; refresh(); };
       const uk = $('#cgUk', P); if (uk) uk.onchange = () => { st.up = uk.value; refresh(); };
@@ -168,7 +203,7 @@
       };
       paint(); S.homeRepaint = paint;
       const get = (id) => S.lib.find((x) => x.id === id);
-      $$('[data-cuse]', P).forEach((b) => { const act = () => { const it = get(b.dataset.cuse); if (!it) return; if (['wgt', 'stk', 'bdr', 'tema', 'wsty'].includes(it.kind) && window.ModuLab && ModuLab.openEditor) ModuLab.openEditor(it.kind, it); else if (it.kind === 'pat' && window.ModuLab && ModuLab.openPat) ModuLab.openPat(it); else info(it); }; b.onclick = act; b.onkeydown = (e) => { if (e.key === 'Enter') act(); }; });
+      $$('[data-cuse]', P).forEach((b) => { const act = () => { const it = get(b.dataset.cuse); if (!it) return; if (it.kind === 'planner') { info(it); return; } if (['wgt', 'stk', 'bdr', 'tema', 'wsty'].includes(it.kind) && window.ModuLab && ModuLab.openEditor) ModuLab.openEditor(it.kind, it); else if (it.kind === 'pat' && window.ModuLab && ModuLab.openPat) ModuLab.openPat(it); else info(it); }; b.onclick = act; b.onkeydown = (e) => { if (e.key === 'Enter') act(); }; });
       $$('[data-cren]', P).forEach((b) => b.onclick = () => { const it = get(b.dataset.cren); if (it) rename(it); });
       $$('[data-cmv]', P).forEach((b) => b.onclick = () => { const it = get(b.dataset.cmv); if (it) move(it, !it.cat); });
       $$('[data-cdl]', P).forEach((b) => b.onclick = async () => { if (!b.dataset.cf) { b.dataset.cf = 1; b.classList.add('cf'); b.textContent = 'confirmar'; return; } const it = get(b.dataset.cdl); if (!it) return; try { await Store.delLib(it); S.lib = S.lib.filter((x) => x.id !== it.id); refresh(); } catch (e) { toast('Não consegui excluir.'); } });
