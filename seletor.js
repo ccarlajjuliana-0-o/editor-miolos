@@ -23,9 +23,20 @@
     return out.slice(0, 14);
   }
   const sw = (c, k) => `<button type="button" class="cps" data-c="${c}" style="background:${c}" title="${c}" aria-label="${c}"></button>`;
+  /* contexto do campo: aceita "sem cor" / gradiente? */
+  function ctxOf(el) {
+    const key = el.dataset && el.dataset.k, inP = !!(el.closest && el.closest('#props')), cf = el.closest && el.closest('.cfield');
+    let e = null; try { e = selEls()[0]; } catch (x) { /* sem seleção */ }
+    return { key, inP, e, none: inP && !!(cf && cf.querySelector('.sw.none')), grad: inP && key === 'fill' && !!e && ['rect', 'ellipse', 'shape', 'path'].includes(e.type) };
+  }
+  function applyVal(key, val, live) {
+    const p = curPage(); if (!p) return; selEls().forEach((e) => { e[key] = val; });
+    if (live) { redraw(); return; } redraw(); renderProps(); thumbRefresh(p.id);
+  }
   function html() {
     const pc = pageColors(), br = (typeof window.BRAND_COLORS !== 'undefined' ? window.BRAND_COLORS : []);
-    return `<div class="cp-h"><span>Sólido</span></div>
+    const cx = ctxOf(st.el);
+    return `<div class="cp-h"><span>Sólido</span><span class="cp-hb">${cx.none ? '<button type="button" class="cp-b" id="cpNone" title="Sem preenchimento">Sem cor</button>' : ''}${cx.grad ? '<button type="button" class="cp-b" id="cpGrad" title="Preencher com gradiente">Gradiente ›</button>' : ''}<button type="button" class="cp-x" id="cpX" title="Fechar" aria-label="Fechar">✕</button></span></div>
       <div class="cp-sv" id="cpSV"><i id="cpSVk"></i></div>
       <div class="cp-hue" id="cpH"><i id="cpHk"></i></div>
       <div class="cp-row"><span class="cp-f">HEX</span><input id="cpHex" type="text" spellcheck="false" maxlength="7" aria-label="Código HEX"><button type="button" id="cpEye" title="Conta-gotas: copiar uma cor da tela" aria-label="Conta-gotas"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l4 4M4 20l1-4 9-9a2.1 2.1 0 013 3l-9 9zM16 4l4 4"/></svg></button></div>
@@ -57,7 +68,8 @@
   function open(el) {
     const h = okHex(el.value) || '#c398c8', [r, g, b] = hex2rgb(h), v = rgb2hsv(r, g, b);
     st = { el, sig: sigOf(el), h: v[0], h0: v[0], s: v[1], v: v[2], hex: h, dirty: false };
-    pop.innerHTML = html(); pop.hidden = false; paint(); place(el);
+    pop.classList.remove('cp-g'); gs = null; pop.innerHTML = html(); pop.hidden = false; paint(); place(el);
+    { const cx = ctxOf(el); if (!noAuto && cx.grad && cx.e && GR.is(cx.e[cx.key])) { openGrad(); return; } noAuto = false; }
     drag(pop.querySelector('#cpSV'), (x, y) => { st.s = x; st.v = 1 - y; paint(); send('input'); });
     drag(pop.querySelector('#cpH'), (x) => { st.h = st.h0 = x * 359.99; paint(); send('input'); });
     const hx = pop.querySelector('#cpHex');
@@ -65,8 +77,57 @@
     hx.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); hx.blur(); } };
     pop.querySelectorAll('.cps').forEach((b) => { b.onclick = () => setHex(b.dataset.c); });
     pop.querySelector('#cpEye').onclick = eyedrop;
+    pop.querySelector('#cpX').onclick = close;
+    const nb = pop.querySelector('#cpNone'); if (nb) nb.onclick = () => { const c0 = ctxOf(st.el), sn = snapOf([curPage().id]); applyVal(c0.key, 'none'); pushHist(sn, snapOf([curPage().id])); close(); };
+    const gb = pop.querySelector('#cpGrad'); if (gb) gb.onclick = () => openGrad();
   }
-  function close() { if (!st) return; commit(); st = null; pop.hidden = true; pop.innerHTML = ''; }
+  /* ---------- segunda janela: gradiente (2 a 4 cores) ---------- */
+  let noAuto = false, gs = null; // { key, g, act, hsv, snap }
+  function gradHTML() {
+    const g = gs.g, dirs = [[315, '↖'], [0, '↑'], [45, '↗'], [270, '←'], [-1, ''], [90, '→'], [225, '↙'], [180, '↓'], [135, '↘']];
+    return `<div class="cp-h"><button type="button" class="cp-b" id="gBack">‹ Voltar</button><span>Gradiente</span><button type="button" class="cp-x" id="gX" title="Fechar" aria-label="Fechar">✕</button></div>
+      <div class="gprev" id="gPrev"></div>
+      <div class="cp-sec">Direção</div>
+      <div class="gdir"><div class="gdirs">${dirs.map(([a, t]) => (a < 0 ? '<i></i>' : `<button type="button" data-a="${a}" aria-label="Direção ${a}°">${t}</button>`)).join('')}</div>
+        <div class="gang"><input type="range" id="gAng" min="0" max="360" step="1"><span id="gAngV"></span></div></div>
+      <div class="cp-sec">Cores <small>(2 a 4)</small></div>
+      <div class="gst" id="gSt"></div>
+      <div class="cp-sv" id="cpSV"><i id="cpSVk"></i></div><div class="cp-hue" id="cpH"><i id="cpHk"></i></div>
+      <div class="cp-row"><span class="cp-f">HEX</span><input id="cpHex" type="text" spellcheck="false" maxlength="7" aria-label="Código HEX da cor selecionada"></div>
+      <div class="gsl"><label>Saturação <span id="gSatV"></span><input type="range" id="gSat" min="0" max="200" step="1"></label><label>Opacidade <span id="gOpV"></span><input type="range" id="gOp" min="0" max="100" step="1"></label></div>`;
+  }
+  function gPaint(live) {
+    const g = gs.g, hx = st.hex = rgb2hex(...hsv2rgb(gs.hsv[0], gs.hsv[1], gs.hsv[2])); g.cols[gs.act] = hx;
+    pop.querySelector('#gPrev').style.background = GR.css(GR.enc(g));
+    pop.querySelector('#gSt').innerHTML = g.cols.map((c, i) => `<button type="button" class="gch${i === gs.act ? ' on' : ''}" data-i="${i}" style="background:${c}" aria-label="Cor ${i + 1}"></button>`).join('') + (g.cols.length < 4 ? '<button type="button" class="gpm" id="gAdd" title="Adicionar cor" aria-label="Adicionar cor">＋</button>' : '') + (g.cols.length > 2 ? '<button type="button" class="gpm" id="gDel" title="Remover cor selecionada" aria-label="Remover cor">－</button>' : '');
+    const sv = pop.querySelector('#cpSV'); sv.style.background = `linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,hsl(${gs.hsv[0]},100%,50%))`;
+    const k = pop.querySelector('#cpSVk'); k.style.left = gs.hsv[1] * 100 + '%'; k.style.top = (1 - gs.hsv[2]) * 100 + '%'; k.style.background = hx;
+    const hk = pop.querySelector('#cpHk'); hk.style.left = gs.hsv[0] / 360 * 100 + '%'; hk.style.background = `hsl(${gs.hsv[0]},100%,50%)`;
+    const hi = pop.querySelector('#cpHex'); if (document.activeElement !== hi) hi.value = hx.toUpperCase();
+    pop.querySelector('#gAng').value = g.ang; pop.querySelector('#gAngV').textContent = Math.round(g.ang) + '°'; pop.querySelector('#gSat').value = g.sat; pop.querySelector('#gSatV').textContent = Math.round(g.sat) + '%'; pop.querySelector('#gOp').value = g.op; pop.querySelector('#gOpV').textContent = Math.round(g.op) + '%';
+    pop.querySelectorAll('.gdirs button').forEach((b) => b.classList.toggle('on', +b.dataset.a === Math.round(g.ang)));
+    pop.querySelectorAll('.gch').forEach((b) => { b.onclick = () => { gs.act = +b.dataset.i; gs.hsv = rgb2hsv(...hex2rgb(g.cols[gs.act])); gPaint(); }; });
+    const ad = pop.querySelector('#gAdd'); if (ad) ad.onclick = () => { g.cols.push(g.cols[g.cols.length - 1]); gs.act = g.cols.length - 1; gPaint(true); };
+    const dl = pop.querySelector('#gDel'); if (dl) dl.onclick = () => { g.cols.splice(gs.act, 1); gs.act = Math.min(gs.act, g.cols.length - 1); gs.hsv = rgb2hsv(...hex2rgb(g.cols[gs.act])); gPaint(true); };
+    applyVal(gs.key, GR.enc(g), true);
+  }
+  function gEnd() { if (!gs) return; const p = curPage(), n = snapOf([p.id]); try { pushHist(gs.snap, n); } catch (x) { /* sem histórico */ } renderProps(); thumbRefresh(p.id); gs = null; }
+  function openGrad() {
+    const cx = ctxOf(st.el), e = cx.e, cur = e[cx.key], g = GR.is(cur) ? GR.parse(cur) : { ang: 135, sat: 100, op: 100, cols: [okHex(cur) || st.hex || '#c398c8', '#f2bae8'] };
+    gs = { key: cx.key, g, act: 0, hsv: rgb2hsv(...hex2rgb(g.cols[0])), snap: snapOf([curPage().id]) };
+    pop.innerHTML = gradHTML(); pop.classList.add('cp-g');
+    drag(pop.querySelector('#cpSV'), (x, y) => { gs.hsv[1] = x; gs.hsv[2] = 1 - y; gPaint(); });
+    drag(pop.querySelector('#cpH'), (x) => { gs.hsv[0] = x * 359.99; gPaint(); });
+    const hi = pop.querySelector('#cpHex'); hi.onchange = () => { const k = okHex(hi.value); if (k) { gs.hsv = rgb2hsv(...hex2rgb(k)); } gPaint(); }; hi.onkeydown = (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); hi.blur(); } };
+    pop.querySelectorAll('.gdirs button').forEach((b) => { b.onclick = () => { gs.g.ang = +b.dataset.a; gPaint(); }; });
+    pop.querySelector('#gAng').oninput = (ev) => { gs.g.ang = +ev.target.value; gPaint(); };
+    pop.querySelector('#gSat').oninput = (ev) => { gs.g.sat = +ev.target.value; gPaint(); };
+    pop.querySelector('#gOp').oninput = (ev) => { gs.g.op = +ev.target.value; gPaint(); };
+    pop.querySelector('#gBack').onclick = () => { gEnd(); pop.classList.remove('cp-g'); const el = resolve(); if (el) { noAuto = true; open(el); } };
+    pop.querySelector('#gX').onclick = close;
+    gPaint(); const el = resolve(); if (el) place(el);
+  }
+  function close() { if (!st) return; if (gs) { gEnd(); pop.classList.remove('cp-g'); } commit(); st = null; pop.hidden = true; pop.innerHTML = ''; }
   async function eyedrop() {
     if (window.EyeDropper) {
       try { const res = await new window.EyeDropper().open(); if (st && res && res.sRGBHex) setHex(res.sRGBHex); } catch (e) { /* cancelado */ }

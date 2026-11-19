@@ -69,7 +69,11 @@ function rr(c,x,y,w,h,r){r=Math.max(0,Math.min(r||0,w/2,h/2));c.beginPath();c.mo
 function font(c,mm,fam,wt=400,it=false){const k=(it?'italic ':'')+(wt||400)+' ';ensureFont(k+'16px "'+fam+'"');c.font=k+(Math.max(.1,mm)*F).toFixed(2)+'px "'+fam+'", "Nunito", sans-serif'}
 function T(c,s,x,y,al='left',bl='middle'){c.save();c.scale(1/F,1/F);c.textAlign=al;c.textBaseline=bl;c.fillText(s,x*F,y*F);c.restore()}
 const M=(c,s)=>c.measureText(s).width/F;
-function fillIf(c,col){if(col&&col!=='none'){c.fillStyle=col;c.fill()}}
+function fillIf(c,col){if(col&&col!=='none'){c.fillStyle=GR.style(c,col,window.__fb);c.fill()}}
+function strokeEl(c,e,sw,polys){if(e.cellBorder===false)return;const sty=e.lnStyle||'solid';
+  if(polys){if(sty==='solid'&&cellSides(e)==='trbl'&&!e._poly){strokeIf(c,e.stroke,sw);return}LN.stroke(c,polys,sty,e.stroke,sw);return}
+  const ds=LN.dashOf(sty,sw);c.lineCap=ds.cap;strokeIf(c,e.stroke,sw,ds.d);c.lineCap='butt'}
+const ellPts=(w,h)=>{const P=[];for(let i=0;i<96;i++){const a=i/96*Math.PI*2;P.push([w/2+Math.cos(a)*w/2,h/2+Math.sin(a)*h/2])}return[{p:P,closed:true}]};
 function strokeIf(c,col,sw,dash){if(col&&col!=='none'&&sw>0){c.strokeStyle=col;c.lineWidth=sw;c.setLineDash(dash||[]);c.stroke();c.setLineDash([])}}
 function setLS(c,px){if('letterSpacing' in c)c.letterSpacing=px+'px'}
 function wrap(c,text,maxW){const out=[];for(const para of String(text).split('\n')){const words=para.split(' ');let line='';for(const w of words){const t=line?line+' '+w:w;if(M(c,t)>maxW&&line){out.push(line);line=w}else line=t}out.push(line)}return out}
@@ -110,9 +114,14 @@ const R={
     const lines=wrap(c,e.text??'',e.w+.01),lh=fs*(e.lh||1.2),tot=lines.length*lh;
     const y0=e.valign==='middle'?(e.h-tot)/2:e.valign==='bottom'?e.h-tot:0,ax=e.align==='center'?e.w/2:e.align==='right'?e.w:0;
     lines.forEach((ln,i)=>T(c,ln,ax,y0+i*lh+lh/2,e.align||'left','middle'));setLS(c,0)},
-  rect(c,e){rr(c,0,0,e.w,e.h,e.radius||0);fillIf(c,e.fill);strokeIf(c,e.stroke,e.sw)},
-  ellipse(c,e){c.beginPath();c.ellipse(e.w/2,e.h/2,e.w/2,e.h/2,0,0,7);fillIf(c,e.fill);strokeIf(c,e.stroke,e.sw)},
-  line(c,e){c.beginPath();c.moveTo(0,e.h/2);c.lineTo(e.w,e.h/2);c.lineCap='round';const sw=e.sw||.3;strokeIf(c,e.stroke,sw,e.dash==='dash'?[sw*5,sw*3.5]:e.dash==='dot'?[.01,sw*3]:[]);c.lineCap='butt'},
+  rect(c,e){rr(c,0,0,e.w,e.h,e.radius||0);fillIf(c,e.fill);strokeEl(c,e,e.sw,LN.rect(0,0,e.w,e.h,e.radius||0,cellSides(e)))},
+  ellipse(c,e){c.beginPath();c.ellipse(e.w/2,e.h/2,e.w/2,e.h/2,0,0,7);fillIf(c,e.fill);e._poly=1;strokeEl(c,e,e.sw,ellPts(e.w,e.h));delete e._poly},
+  line(c,e){const sw=e.sw||.3,wv=e.wv||0,rnd=e.lcap!=='butt',n=e.dn|0;let P=[[0,e.h/2],[e.w,e.h/2]];
+    if(wv>0){const wl=Math.max(2,wv*4);P=[];const N=Math.max(8,Math.ceil(e.w/.4));for(let i=0;i<=N;i++){const x=e.w*i/N;P.push([x,e.h/2+wv*Math.sin(x/wl*Math.PI*2)])}}
+    let Lp=0;for(let i=1;i<P.length;i++)Lp+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);
+    c.beginPath();P.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.lineCap=rnd?'round':'butt';c.lineJoin='round';
+    let d=[];if(e.dash==='dash'||e.dash==='dot'){if(n>0){const per=Lp/n,len=e.dash==='dot'?.01:per*.6,dl=rnd?Math.max(.01,len-(e.dash==='dot'?0:sw)):len;d=[dl,Math.max(.01,per-dl)]}else d=e.dash==='dash'?[sw*5,sw*3.5]:[.01,sw*3]}
+    strokeIf(c,e.stroke,sw,d);c.lineCap='butt';c.lineJoin='miter'},
   pattern(c,e){const sp=Math.max(1.5,e.sp||6),sw=e.sw||.25;c.save();c.beginPath();c.rect(0,0,e.w,e.h);c.clip();
     if(e.kind==='dots'){c.fillStyle=e.color;const r=Math.max(.18,sw*1.1),ox=((e.w%sp)/2)||sp/2,oy=((e.h%sp)/2)||sp/2;for(let y=oy;y<=e.h+.01;y+=sp)for(let x=ox;x<=e.w+.01;x+=sp){c.beginPath();c.arc(x,y,r,0,7);c.fill()}}
     else if(e.kind==='grid'){const ox=(e.w%sp)/2,oy=(e.h%sp)/2;c.beginPath();for(let y=oy;y<=e.h+.01;y+=sp){c.moveTo(0,y);c.lineTo(e.w,y)}for(let x=ox;x<=e.w+.01;x+=sp){c.moveTo(x,0);c.lineTo(x,e.h)}strokeIf(c,e.color,sw)}
@@ -154,10 +163,10 @@ const R={
     c.fillStyle=e.color;
     if(hasH){const hfs=e.hdSize?e.hdSize*PT:fs,fam=e.hdFont||e.font,al=e.hdAlign||'center',ls=e.hdLs||0;font(c,hfs,fam,e.hdWeight||600);setLS(c,ls*hfs*F);c.fillStyle=e.hdColor||e.color;for(let i=0;i<e.cols;i++){const px=al==='left'?cx[i]+cg/2+.9:al==='right'?cx[i]+cw[i]-cg/2-.9:cx[i]+cw[i]/2;T(c,fitText(c,String(e.header[i]??''),cw[i]-1.6-cg),px,rh/2,al,'middle')}setLS(c,0)}
     if(Array.isArray(e.side)){font(c,fs,e.font,600);c.fillStyle=e.color;for(let r=0;r<e.rows;r++){const s=e.side[r];if(s)T(c,fitText(c,String(s),cw[0]-2-cg),1.4+cg/2,(r+(hasH?1:0))*rh+rh/2,'left','middle')}}},
-  path(c,e){const P=(e.pts||[]).map(([u,v])=>[u*e.w,v*e.h]);if(P.length<2)return;const dash=e.dash&&e.dash.length?e.dash:null;
+  path(c,e){const P=(e.pts||[]).map(([u,v])=>[u*e.w,v*e.h]);if(P.length<2)return;const dash=e.dash&&e.dash.length?e.dash:(e.lnStyle&&e.lnStyle!=='solid'?LN.dashOf(e.lnStyle,e.sw||.3).d:null);
     if(e.more&&e.more.length){c.beginPath();[{pts:e.pts,closed:e.closed},...e.more].forEach(q=>{const Q=(q.pts||[]).map(([u,v])=>[u*e.w,v*e.h]);if(Q.length<2)return;c.moveTo(Q[0][0],Q[0][1]);for(let i=1;i<Q.length;i++)c.lineTo(Q[i][0],Q[i][1]);if(q.closed)c.closePath()});
-      if(e.fill&&e.fill!=='none'){c.fillStyle=e.fill;c.fill(e.rule==='evenodd'?'evenodd':'nonzero')}c.lineCap=e.cap||'round';c.lineJoin=e.join||'round';strokeIf(c,e.stroke,e.sw,dash);c.lineCap='butt';c.lineJoin='miter';return}
-    tracePath(c,P,e.smooth,e.closed);c.lineJoin=e.join||'round';c.lineCap=e.cap||'round';if(e.closed){if(e.rule==='evenodd'&&e.fill&&e.fill!=='none'){c.fillStyle=e.fill;c.fill('evenodd')}else fillIf(c,e.fill)}strokeIf(c,e.stroke,e.sw,dash);c.lineJoin='miter';c.lineCap='butt'},
+      if(e.fill&&e.fill!=='none'){c.fillStyle=GR.style(c,e.fill,e);c.fill(e.rule==='evenodd'?'evenodd':'nonzero')}c.lineCap=e.cap||'round';c.lineJoin=e.join||'round';strokeIf(c,e.stroke,e.sw,dash);c.lineCap='butt';c.lineJoin='miter';return}
+    tracePath(c,P,e.smooth,e.closed);c.lineJoin=e.join||'round';c.lineCap=e.cap||'round';if(e.closed){if(e.rule==='evenodd'&&e.fill&&e.fill!=='none'){c.fillStyle=GR.style(c,e.fill,e);c.fill('evenodd')}else fillIf(c,e.fill)}strokeIf(c,e.stroke,e.sw,dash);c.lineJoin='miter';c.lineCap='butt'},
   habit(c,e){const rows=Math.max(1,e.rows|0),days=Math.max(1,e.days|0),lw=e.w*(e.labelW||.3),rh=e.h/(rows+1),cw=(e.w-lw)/days;
     font(c,Math.min(rh*.42,cw*.62),e.font,600);c.fillStyle=e.color;for(let d=0;d<days;d++)T(c,String(d+1),lw+cw*d+cw/2,rh/2,'center','middle');
     c.beginPath();for(let r=1;r<=rows+1;r++){c.moveTo(0,r*rh);c.lineTo(e.w,r*rh)}strokeIf(c,e.stroke,.3);
@@ -174,12 +183,12 @@ const R={
       for(const s of [-1,1]){c.beginPath();c.arc(x+s*d*.17,y-d*.1,d*.045,0,7);c.fill()}
       const t=n>1?i/(n-1)*2-1:0;c.beginPath();c.moveTo(x-d*.2,y+d*.16);c.quadraticCurveTo(x,y+d*.16+t*d*.17,x+d*.2,y+d*.16);c.lineCap='round';strokeIf(c,e.color,sw);c.lineCap='butt'}},
   shape(c,e){const sw=e.sw||0;
-    if(e.kind==='flor'){const cx=e.w/2,cy=e.h/2;for(let i=0;i<5;i++){const a=-Math.PI/2+i*2*Math.PI/5;c.beginPath();c.ellipse(cx+Math.cos(a)*e.w*.24,cy+Math.sin(a)*e.h*.24,e.w*.22,e.h*.22,0,0,7);fillIf(c,e.fill);strokeIf(c,e.stroke,sw)}
-      c.beginPath();c.ellipse(cx,cy,e.w*.11,e.h*.11,0,0,7);fillIf(c,e.fill2);strokeIf(c,e.stroke,sw);return}
-    if(e.kind==='livros'){rr(c,e.w*.04,e.h*.54,e.w*.92,e.h*.34,e.h*.06);fillIf(c,e.fill2);strokeIf(c,e.stroke,sw);rr(c,e.w*.84,e.h*.58,e.w*.07,e.h*.26,e.h*.03);fillIf(c,'#FBF7F4');
-      rr(c,e.w*.1,e.h*.18,e.w*.8,e.h*.34,e.h*.06);fillIf(c,e.fill);strokeIf(c,e.stroke,sw);rr(c,e.w*.78,e.h*.22,e.w*.07,e.h*.26,e.h*.03);fillIf(c,'#FBF7F4');
+    if(e.kind==='flor'){const cx=e.w/2,cy=e.h/2;for(let i=0;i<5;i++){const a=-Math.PI/2+i*2*Math.PI/5;c.beginPath();c.ellipse(cx+Math.cos(a)*e.w*.24,cy+Math.sin(a)*e.h*.24,e.w*.22,e.h*.22,0,0,7);fillIf(c,e.fill);strokeEl(c,e,sw)}
+      c.beginPath();c.ellipse(cx,cy,e.w*.11,e.h*.11,0,0,7);fillIf(c,e.fill2);strokeEl(c,e,sw);return}
+    if(e.kind==='livros'){rr(c,e.w*.04,e.h*.54,e.w*.92,e.h*.34,e.h*.06);fillIf(c,e.fill2);strokeEl(c,e,sw);rr(c,e.w*.84,e.h*.58,e.w*.07,e.h*.26,e.h*.03);fillIf(c,'#FBF7F4');
+      rr(c,e.w*.1,e.h*.18,e.w*.8,e.h*.34,e.h*.06);fillIf(c,e.fill);strokeEl(c,e,sw);rr(c,e.w*.78,e.h*.22,e.w*.07,e.h*.26,e.h*.03);fillIf(c,'#FBF7F4');
       c.beginPath();c.moveTo(e.w*.66,e.h*.18);c.lineTo(e.w*.66,e.h*.52);strokeIf(c,e.stroke!=='none'?e.stroke:'#4A4E79',Math.max(sw,.25));return}
-    shapePath(c,e.kind,e.w,e.h);fillIf(c,e.fill);strokeIf(c,e.stroke,sw);
+    shapePath(c,e.kind,e.w,e.h);fillIf(c,e.fill);strokeEl(c,e,sw);
     if(e.kind==='folha'){c.beginPath();c.moveTo(e.w*.12,e.h*.88);c.quadraticCurveTo(e.w*.5,e.h*.5,e.w*.86,e.h*.12);strokeIf(c,e.stroke!=='none'&&sw?e.stroke:'rgba(74,78,121,.35)',Math.max(sw,.25))}},
   image(c,e){const im=getImg(e.src);if(e.radius){rr(c,0,0,e.w,e.h,e.radius);c.save();c.clip()}
     if(im)drawImgFit(c,im,0,0,e.w,e.h,e.fit||'contain');else{c.fillStyle='rgba(195,152,200,.15)';c.fillRect(0,0,e.w,e.h)}
@@ -198,7 +207,7 @@ function tracePath(c,P,smooth,closed){c.beginPath();const n=P.length,mid=(a,b)=>
   if(!smooth||n<3){c.moveTo(P[0][0],P[0][1]);for(let i=1;i<n;i++)c.lineTo(P[i][0],P[i][1]);if(closed)c.closePath();return}
   if(closed){const m=mid(P[n-1],P[0]);c.moveTo(m[0],m[1]);for(let i=0;i<n;i++){const p=P[i],q=mid(p,P[(i+1)%n]);c.quadraticCurveTo(p[0],p[1],q[0],q[1])}c.closePath()}
   else{c.moveTo(P[0][0],P[0][1]);for(let i=1;i<n-1;i++){const q=mid(P[i],P[i+1]);c.quadraticCurveTo(P[i][0],P[i][1],q[0],q[1])}c.lineTo(P[n-1][0],P[n-1][1])}}
-function drawEl(c,e,o){if(o&&o.skip===e.id)return;if(e.hidden)return;c.save();c.globalAlpha=e.opacity??1;c.translate(e.x+e.w/2,e.y+e.h/2);if(e.rot)c.rotate(e.rot*Math.PI/180);c.translate(-e.w/2,-e.h/2);
+function drawEl(c,e,o){if(o&&o.skip===e.id)return;if(e.hidden)return;window.__fb=e;c.save();c.globalAlpha=e.opacity??1;c.translate(e.x+e.w/2,e.y+e.h/2);if(e.rot)c.rotate(e.rot*Math.PI/180);c.translate(-e.w/2,-e.h/2);
   const fn=R[e.type];if(fn){try{if(e.wx&&window.WX)WX.draw(c,e,fn);else fn(c,e)}catch(err){console.warn(err)}}c.restore()}
 function drawPage(c,pg,k,ox=0,oy=0,o={}){const b=o.bleed||0;c.save();c.setTransform(k,0,0,k,ox,oy);
   c.beginPath();c.rect(-b,-b,pg.w+2*b,pg.h+2*b);c.clip();c.fillStyle=pg.bg||'#FFFFFF';c.fillRect(-b,-b,pg.w+2*b,pg.h+2*b);
@@ -1031,9 +1040,9 @@ function stickerMaker(initSrc){const imgs=S.lib.filter(x=>['sticker','widget','b
 const ALIGN=[['left','Esq.'],['center','Centro'],['right','Dir.']],VAL=[['top','Topo'],['middle','Meio'],['bottom','Base']];
 const FIELDS={
  text:[['text','Texto','ta'],['font','Fonte','font'],['size','Tamanho (pt)','num',.5],['weight','Peso','sel',[[300,'Leve'],[400,'Normal'],[500,'Médio'],[600,'Semi-negrito'],[700,'Negrito']]],['italic','Itálico','chk'],['color','Cor','color'],['align','Alinhamento','seg',ALIGN],['valign','Vertical','seg',VAL],['lh','Entrelinha','num',.05],['ls','Espaçamento (em)','num',.01]],
- rect:[['fill','Preenchimento','colorN'],['stroke','Contorno','colorN'],['sw','Espessura (mm)','num',.05],['radius','Cantos (mm)','num',.5]],
- ellipse:[['fill','Preenchimento','colorN'],['stroke','Contorno','colorN'],['sw','Espessura (mm)','num',.05]],
- line:[['stroke','Cor','color'],['sw','Espessura (mm)','num',.05],['dash','Estilo','sel',[['solid','Contínua'],['dash','Tracejada'],['dot','Pontilhada']]]],
+ rect:[['fill','Preenchimento','colorN'],['stroke','Contorno','colorN'],['sw','Espessura (mm)','num',.05],['radius','Cantos (mm)','num',.5],['lnStyle','Tipo de linha','sel',LN.OPTS,null,'solid'],['cellBorder','Contorno','sides']],
+ ellipse:[['fill','Preenchimento','colorN'],['stroke','Contorno','colorN'],['sw','Espessura (mm)','num',.05],['lnStyle','Tipo de linha','sel',LN.OPTS,null,'solid'],['cellBorder','Contorno ligado','sidesm']],
+ line:[['stroke','Cor','color'],['sw','Espessura (mm)','num',.05],['dash','Estilo','sel',[['solid','Contínua'],['dash','Tracejada'],['dot','Pontilhada']]],['dn','Quantidade de tracinhos (0 = automático)','num',1,(x)=>x.dash&&x.dash!=='solid',0],['lcap','Pontas','sel',[['round','Arredondadas'],['butt','Retas']],null,'round'],['wv','Ondulação (mm, 0 = reta)','num',.1,null,0]],
  pattern:[['kind','Tipo','sel',[['lines','Pautas'],['dots','Pontos'],['grid','Quadriculado']]],['sp','Espaçamento (mm)','num',.5],['color','Cor','color'],['sw','Espessura (mm)','num',.05]],
  calendar:[['month','Mês','sel',MESES.map((m,i)=>[i,cap(m)])],['year','Ano','num',1],['weekStart','Semana começa','sel',[[0,'Domingo'],[1,'Segunda']]],['style','Estilo','sel',[['grade','Grade'],['linhas','Só linhas']]],['showTitle','Mostrar nome do mês','chk'],['titleFont','Fonte do nome','font',0,'showTitle'],['titleSize','Tamanho do nome (pt)','num',.5,'showTitle'],['titleWeight','Peso do nome','sel',[[400,'Normal'],[600,'Semi-negrito'],[700,'Negrito']],'showTitle'],['titleStyle','Estilo do nome','sel',[['normal','Normal'],['italic','Itálico']],'showTitle'],['titleColor','Cor do nome','color',0,'showTitle',e=>e.accent],['titleLs','Espaço entre letras','num',.01,'showTitle'],['titleAlign','Alinhar o nome','sel',[['center','Centro'],['left','Esquerda'],['right','Direita']],'showTitle'],['holidays','Feriados nacionais','chk'],['font','Fonte','font'],['size','Tamanho dos dias (pt)','num',.5],['color','Texto','color'],['accent','Destaque','color'],['weekendFill','Fim de semana','colorN'],['stroke','Linhas','colorN'],['sw','Espessura (mm)','num',.05]],
  yearcal:[['year','Ano','num',1],['weekStart','Semana começa','sel',[[0,'Domingo'],[1,'Segunda']]],['holidays','Feriados nacionais','chk'],['font','Fonte','font'],['titleFont','Fonte dos meses','font'],['color','Texto','color'],['accent','Destaque','color']],
@@ -1043,14 +1052,14 @@ const FIELDS={
  hours:[['from','Começa (hora)','num',1],['to','Termina (hora)','num',1],['fmt','Formato','sel',[['h','6h'],['24','06:00']]],['half','Meia hora pontilhada','chk'],['font','Fonte','font'],['color','Texto','color'],['stroke','Linhas','colorN']],
  water:[['n','Quantidade','num',1],['color','Contorno','color'],['fill','Preenchimento','colorN'],['sw','Espessura (mm)','num',.05]],
  mood:[['n','Quantidade','num',1],['color','Cor','color'],['sw','Espessura (mm)','num',.05]],
- shape:[['kind','Forma','sel',Object.entries(SHAPES)],['fill','Cor','colorN'],['fill2','Segunda cor','colorN'],['stroke','Contorno','colorN'],['sw','Espessura (mm)','num',.05]],
+ shape:[['kind','Forma','sel',Object.entries(SHAPES)],['fill','Cor','colorN'],['fill2','Segunda cor','colorN'],['stroke','Contorno','colorN'],['sw','Espessura (mm)','num',.05],['lnStyle','Tipo de linha','sel',LN.DOPTS,null,'solid'],['cellBorder','Contorno ligado','sidesm']],
  image:[['fit','Encaixe','sel',[['contain','Inteira'],['cover','Preencher'],['stretch','Esticar']]],['radius','Cantos (mm)','num',.5]],
  divider:[['text','Texto','text'],['font','Fonte','font'],['size','Tamanho (pt)','num',.5],['color','Cor','color'],['accent','Corações','color']],
- path:[['smooth','Curvas suaves','chk'],['closed','Forma fechada','chk'],['fill','Preenchimento','colorN'],['stroke','Contorno','colorN'],['sw','Espessura (mm)','num',.05]],
+ path:[['smooth','Curvas suaves','chk'],['closed','Forma fechada','chk'],['fill','Preenchimento','colorN'],['stroke','Contorno','colorN'],['sw','Espessura (mm)','num',.05],['lnStyle','Tipo de linha','sel',LN.DOPTS,null,'solid']],
  tabs:[['labels','Abas (uma por linha)','lines'],['active','Aba em destaque (nº, 0 = nenhuma)','numa',1],['font','Fonte','font'],['color','Texto','color'],['fill1','Cor 1','color'],['fill2','Cor 2','color'],['activeFill','Cor do destaque','color']]
 };
 const TYPE_NAME={text:'Texto',rect:'Retângulo',ellipse:'Círculo',line:'Linha',pattern:'Pautas e grades',calendar:'Calendário do mês',yearcal:'Calendário anual',table:'Tabela',checklist:'Lista de tarefas',habit:'Hábitos',hours:'Agenda por horas',water:'Copos de água',mood:'Humor',shape:'Forma',image:'Imagem',divider:'Divisor',tabs:'Abas laterais',path:'Forma livre'};
-function colorField(k,v,none){const isNone=!!none&&(v==='none'||!v);const hex=/^#[0-9a-f]{6}$/i.test(v||'')?v:'#ffffff';return `<div class="cfield cc${isNone?' isnone':''}">${none?`<button class="sw none${isNone?' cur':''}" data-cset="${k}" data-v="none" title="Sem cor" aria-label="Sem cor"></button>`:''}<input type="color" data-k="${k}" data-t="color" value="${hex}" aria-label="Cor atual. Clique para escolher qualquer cor"><button type="button" class="cct" title="Mostrar ou ocultar as cores da paleta" aria-label="Paleta de cores">▾</button>${BRAND.map(c=>`<button class="sw" data-cset="${k}" data-v="${c}" style="background:${c}" title="${c}" aria-label="${c}"></button>`).join('')}</div>`}
+function colorField(k,v,none){const isNone=!!none&&(v==='none'||!v);const hex=/^#[0-9a-f]{6}$/i.test(v||'')?v:'#ffffff',isG=GR.is(v);return `<div class="cfield cc${isNone?' isnone':''}${isG?' isgrad':''}"${isG?` style="--gr:${GR.css(v)}"`:''}>${none?`<button class="sw none${isNone?' cur':''}" data-cset="${k}" data-v="none" title="Sem cor" aria-label="Sem cor"></button>`:''}<input type="color" data-k="${k}" data-t="color" value="${hex}" aria-label="Cor atual. Clique para escolher qualquer cor"><button type="button" class="cct" title="Mostrar ou ocultar as cores da paleta" aria-label="Paleta de cores">▾</button>${BRAND.map(c=>`<button class="sw" data-cset="${k}" data-v="${c}" style="background:${c}" title="${c}" aria-label="${c}"></button>`).join('')}</div>`}
 const sideIco=(k,on)=>{const d={cbT:'M4 4h16',cbR:'M20 4v16',cbB:'M4 20h16',cbL:'M4 4v16',cellBorder:''}[k];return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1" stroke-dasharray="1.6 2.2" opacity=".5"/>${k==='cellBorder'?'<rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2.2"/>':`<path d="${d}" stroke="currentColor" stroke-width="2.6"/>`}</svg>`};
 function fieldsHTML(e){const F=(FIELDS[e.type]||[]).filter(f=>!f[4]||(typeof f[4]==='function'?f[4](e):e[f[4]])),sm=x=>x&&['sel','num','numa','font','color','colorN'].includes(x[2]),out=[],one=f=>{const o=f[5]!==undefined&&e[f[0]]===undefined?Object.assign({},e,{[f[0]]:typeof f[5]==='function'?f[5](e):f[5]}):e;return fieldHTML(f,o)};
   for(let i=0;i<F.length;i++){if(sm(F[i])&&sm(F[i+1])){out.push('<div class="crow">'+one(F[i])+one(F[i+1])+'</div>');i++}else out.push(one(F[i]))}return out.join('')}
@@ -1061,6 +1070,7 @@ function fieldHTML(f,obj){const [k,l,t,x]=f,v=obj[k],k0=k;let inner='';
   else if(t==='date')inner=`<input type="date" data-k="${k}" data-t="text" value="${esc(v)}">`;
   else if(t==='sidesl'){const S=LN.sidesOf(v),b=(s,tt)=>{const on=s==='A'?S==='TRBL':S.includes(s),k={A:'cellBorder',T:'cbT',R:'cbR',B:'cbB',L:'cbL'}[s];return `<button type="button" class="sdb${on?' on':''}" data-tl="${k0}:${s}" title="${tt}" aria-label="${tt}" aria-pressed="${on}">${sideIco(k)}</button>`};
     return `<div class="pfield"><span>${l}</span><div class="sides">${b('A','Contorno todo')}<i></i>${b('T','Lado de cima')}${b('R','Lado direito')}${b('B','Lado de baixo')}${b('L','Lado esquerdo')}</div></div>`}
+  else if(t==='sidesm'){const on=obj[k]!==false;return `<div class="pfield"><span>${l}</span><div class="sides"><button type="button" class="sdb${on?' on':''}" data-tg="cellBorder" title="Contorno (ligar/desligar)" aria-pressed="${on}">${sideIco('cellBorder')}</button></div></div>`}
   else if(t==='sides'){const on=obj.cellBorder!==false,b=(k,tt)=>`<button type="button" class="sdb${obj[k]!==false&&(k==='cellBorder'||on)?' on':''}${k!=='cellBorder'&&!on?' off':''}" data-tg="${k}" title="${tt}" aria-label="${tt}" aria-pressed="${obj[k]!==false}">${sideIco(k)}</button>`;
     return `<div class="pfield"><span>${l}</span><div class="sides">${b('cellBorder','Contorno de todas as células (ligar/desligar)')}<i></i>${b('cbT','Lado de cima')}${b('cbR','Lado direito')}${b('cbB','Lado de baixo')}${b('cbL','Lado esquerdo')}</div></div>`}
   else if(t==='chk')return `<label class="chk"><input type="checkbox" data-k="${k}" data-t="chk"${v?' checked':''}> ${l}</label>`;

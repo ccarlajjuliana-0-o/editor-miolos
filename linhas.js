@@ -56,5 +56,28 @@
   function sidesOf(s) { s = s || 'none'; if (s === 'none') return ''; if (s === 'box') return 'TRBL'; if (s === 'top') return 'T'; if (s === 'bottom') return 'B'; if (s === 'both') return 'TB'; if (s === 'sides') return 'RL'; return String(s).replace(/[^TRBL]/g, ''); }
   function sidesStr(set) { const o = ['T', 'R', 'B', 'L'].filter((k) => set.includes(k)).join(''); return o === 'TRBL' ? 'box' : o || 'none'; }
   function sideLines(c, X, Y, W, H, r, s, sty, col, lw) { const S = sidesOf(s); if (!S) return; if (S === 'TRBL') { stroke(c, rect(X, Y, W, H, r), sty, col, lw); return; } const P = []; if (S.includes('T')) P.push(seg(X, Y, X + W, Y)); if (S.includes('B')) P.push(seg(X, Y + H, X + W, Y + H)); if (S.includes('L')) P.push(seg(X, Y, X, Y + H)); if (S.includes('R')) P.push(seg(X + W, Y, X + W, Y + H)); stroke(c, P, sty, col, lw); }
-  window.LN = { OPTS, MOPTS, seg, rect, stroke, dashOf, sidesOf, sidesStr, sideLines };
+
+  /* ---------- preenchimento em gradiente: 'g|ângulo|saturação|opacidade|#c1,#c2,…' (2 a 4 cores) ---------- */
+  const h2r = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  function adj(hex, sat, op) {
+    let [r, g, b] = h2r(/^#[0-9a-f]{6}$/i.test(hex) ? hex : '#ffffff'); const mx = Math.max(r, g, b), mn = Math.min(r, g, b), k = sat / 100;
+    if (k !== 1) { const m = (mx + mn) / 2; r = Math.max(0, Math.min(255, m + (r - m) * k)); g = Math.max(0, Math.min(255, m + (g - m) * k)); b = Math.max(0, Math.min(255, m + (b - m) * k)); }
+    return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${Math.max(0, Math.min(1, op / 100))})`;
+  }
+  const GR = {
+    is: (v) => typeof v === 'string' && v.startsWith('g|'),
+    parse(v) { const p = String(v).split('|'), n = (x, d) => (isNaN(parseFloat(x)) ? d : parseFloat(x)); const cols = (p[4] || '').split(',').filter(Boolean); return { ang: n(p[1], 135), sat: n(p[2], 100), op: n(p[3], 100), cols: cols.length >= 2 ? cols.slice(0, 4) : ['#c398c8', '#92a8d1'] }; },
+    enc: (g) => `g|${Math.round(g.ang)}|${Math.round(g.sat)}|${Math.round(g.op)}|${g.cols.join(',')}`,
+    css(v) { const g = GR.parse(v); return `linear-gradient(${g.ang}deg,${g.cols.map((c, i) => adj(c, g.sat, g.op) + ' ' + Math.round(i / (g.cols.length - 1) * 100) + '%').join(',')})`; },
+    style(c, v, b) {
+      if (!GR.is(v)) return v; const g = GR.parse(v), w = (b && b.w) || 100, h = (b && b.h) || 100;
+      if (typeof c.createLinearGradient !== 'function') { const m = g.cols[Math.floor((g.cols.length - 1) / 2)]; return adj(m, g.sat, g.op); } /* exportação vetorial: cor média */
+      const a = g.ang * Math.PI / 180, dx = Math.sin(a), dy = -Math.cos(a), half = (Math.abs(w * dx) + Math.abs(h * dy)) / 2, cx = w / 2, cy = h / 2;
+      const gr = c.createLinearGradient(cx - dx * half, cy - dy * half, cx + dx * half, cy + dy * half);
+      g.cols.forEach((col, i) => gr.addColorStop(i / (g.cols.length - 1), adj(col, g.sat, g.op))); return gr;
+    },
+  };
+  window.GR = GR;
+  const DOPTS = OPTS.filter((o) => !['zigzag', 'wave', 'double', 'double2', 'triple'].includes(o[0]));
+  window.LN = { OPTS, MOPTS, DOPTS, seg, rect, stroke, dashOf, sidesOf, sidesStr, sideLines };
 })();

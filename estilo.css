@@ -888,3 +888,16 @@ body.qm-on #qbar{display:none!important}
 .sides{display:flex;align-items:center;gap:6px}.sides i{width:1px;height:22px;background:var(--line);margin:0 2px}
 .sdb{width:38px;height:38px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer;padding:0}
 .sdb.on{background:var(--soft,#EFE3F1);color:var(--accent);border-color:var(--accent)}.sdb.off{opacity:.35;cursor:not-allowed}
+
+.cp-h{display:flex;align-items:center;justify-content:space-between;gap:6px}.cp-hb{display:flex;gap:6px;align-items:center}
+.cp-b{border:1px solid var(--line);background:var(--surface);color:var(--accent);border-radius:9px;padding:4px 9px;font:inherit;font-size:12px;cursor:pointer}
+.cp-x{border:0;background:transparent;color:var(--muted);font-size:15px;cursor:pointer;padding:2px 6px;border-radius:8px}.cp-x:hover,.cp-b:hover{background:var(--soft,#EFE3F1)}
+.gprev{height:46px;border-radius:12px;border:1px solid var(--line);margin:6px 0}
+.gdir{display:flex;gap:12px;align-items:center}.gdirs{display:grid;grid-template-columns:repeat(3,30px);gap:4px}.gdirs button{width:30px;height:30px;border:1px solid var(--line);background:var(--surface);border-radius:9px;cursor:pointer;color:var(--muted)}.gdirs button.on{background:var(--soft,#EFE3F1);color:var(--accent);border-color:var(--accent)}
+.gang{flex:1;display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted)}.gang input,.gsl input{width:100%}
+.gst{display:flex;gap:8px;align-items:center;margin:4px 0 8px}.gch{width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}.gch.on{box-shadow:0 0 0 2px var(--accent)}
+.gpm{width:30px;height:30px;border-radius:50%;border:1px dashed var(--line);background:transparent;color:var(--muted);cursor:pointer}
+.gsl{display:grid;gap:8px;margin-top:8px;font-size:12px;color:var(--muted)}.gsl label{display:grid;gap:2px}.gsl span{float:right}
+#cpop.cp-g{width:260px}
+.cfield.isgrad input[type=color]{opacity:0}.cfield.isgrad{position:relative}.cfield.isgrad::before{content:"";position:absolute;left:0;top:0;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--gr);pointer-events:none}
+.gsl label{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px}.gsl span{float:none}

@@ -121,7 +121,7 @@
     const els = selEls();
     if (els.length === 1) {
       const e = els[0], grpEl = $('#fldGrp', P); if (!grpEl) return;
-      RT = 'e'; const W = WX.ACCEPT.has(e.type), mk = !!MKF[e.type];
+      RT = 'e'; const W = WX.ACCEPT.has(e.type) && !['rect', 'ellipse', 'shape', 'path', 'line'].includes(e.type), mk = !!MKF[e.type];
       const wrap = document.createElement('div'); wrap.className = 'wacc' + (openAcc('cont') ? ' open' : ''); wrap.dataset.acc = 'cont';
       wrap.innerHTML = `<button class="wah" type="button" aria-expanded="${openAcc('cont')}"><i class="wtri"></i><b>Conteúdo</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"></div>`;
       grpEl.parentNode.insertBefore(wrap, grpEl); $('.wab', wrap).appendChild(grpEl);

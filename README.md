@@ -266,3 +266,9 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 
 ## Ajuste 53
 - "Linhas da faixa" (dias da semana) e "Linhas do cabeçalho" agora usam a mesma fileira de ícones do contorno das células (geral, cima, direita, baixo, esquerda), com combinações livres de lados. Valores antigos continuam funcionando.
+
+## Ajuste 54
+- Elementos (retângulo, círculo, formas, caminhos): tipo de linha (mesmos tipos das tabelas) e contorno ligar/desligar com os mesmos botões; retângulo também por lado. Sem bordas/molduras/título (sem as setas de decoração do widget).
+- Linha tracejada/pontilhada: quantidade de tracinhos, pontas arredondadas ou retas e ondulação (mm).
+- Seletor de cores: botão "Sem cor" (campos que aceitam) e "Gradiente ›" (preenchimento dos elementos): segunda janela com direção, 2 a 4 cores, saturação e opacidade, botões Voltar e Fechar. No PDF o gradiente sai como cor média.
+- linhas.js agora carrega antes do app.js.
