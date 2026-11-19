@@ -16,15 +16,17 @@ const DIA3=['dom','seg','ter','qua','qui','sex','sáb'];
 const DIA1=['D','S','T','Q','Q','S','S'];
 const DIAX=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 /* faixa dos dias da semana, comum a todos os calendários */
-function drawWeekBar(c,e,x,y,w,h,ws,autoFmt,autoSz,rad){const cw=w/7;
-  if(e.headFill&&e.headFill!=='none'){rr(c,x,y,w,h,rad);c.fillStyle=e.headFill;c.fill()}
+function drawWeekBar(c,e,x,y,w,h,ws,autoFmt,autoSz,rad){const cw=w/7,gap=Math.min(e.wdGap||0,cw*.6),r=e.wdR>0?e.wdR:(e.wdR===0?0:rad);
+  const lc=e.wdLc||e.stroke,lw=e.wdLw||e.sw||.3,ln=e.wdLine||'none',hasF=e.headFill&&e.headFill!=='none';
+  const lines=(X,W)=>{if(ln==='none')return;if(ln==='box'){rr(c,X,y,W,h,r);strokeIf(c,lc,lw);return}c.beginPath();if(ln==='top'||ln==='both'){c.moveTo(X,y);c.lineTo(X+W,y)}if(ln==='bottom'||ln==='both'){c.moveTo(X,y+h);c.lineTo(X+W,y+h)}if(ln==='sides'){c.moveTo(X,y);c.lineTo(X,y+h);c.moveTo(X+W,y);c.lineTo(X+W,y+h)}strokeIf(c,lc,lw)};
+  if(gap>0){for(let i=0;i<7;i++){const X=x+cw*i+gap/2,W=cw-gap;if(hasF){rr(c,X,y,W,h,r);c.fillStyle=e.headFill;c.fill()}lines(X,W)}}
+  else{if(hasF){rr(c,x,y,w,h,r);c.fillStyle=e.headFill;c.fill()}lines(x,w);if(e.wdGrid){c.beginPath();for(let i=1;i<7;i++){c.moveTo(x+cw*i,y);c.lineTo(x+cw*i,y+h)}strokeIf(c,lc,lw)}}
   const fmt=e.wdFmt&&e.wdFmt!=='auto'?e.wdFmt:autoFmt,N=fmt==='extenso'?DIAX:fmt==='abrev'?DIA3:DIA1,fam=e.wdFont||e.font,wt=e.wdWeight||600,al=e.wdAlign||'center',ls=e.wdLs||0;
   let fs=e.wdSize?e.wdSize*PT:autoSz;font(c,fs,fam,wt);setLS(c,ls*fs*F);
   let mw=0;for(let i=0;i<7;i++)mw=Math.max(mw,M(c,N[(ws+i)%7]));if(mw>cw*.94){fs*=cw*.94/mw;font(c,fs,fam,wt);setLS(c,ls*fs*F)}
   c.fillStyle=e.wdColor||e.color;
-  for(let i=0;i<7;i++){const nm=N[(ws+i)%7],px=al==='left'?x+cw*i+.8:al==='right'?x+cw*(i+1)-.8:x+cw*i+cw/2;T(c,nm,px,y+h/2,al,'middle')}
-  setLS(c,0);
-  const ln=e.wdLine;if(ln&&ln!=='none'){c.beginPath();if(ln==='top'||ln==='both'){c.moveTo(x,y);c.lineTo(x+w,y)}if(ln==='bottom'||ln==='both'){c.moveTo(x,y+h);c.lineTo(x+w,y+h)}strokeIf(c,e.wdLc||e.stroke,e.wdLw||e.sw||.3)}}
+  for(let i=0;i<7;i++){const nm=N[(ws+i)%7],px=al==='left'?x+cw*i+.8+gap/2:al==='right'?x+cw*(i+1)-.8-gap/2:x+cw*i+cw/2;T(c,nm,px,y+h/2,al,'middle')}
+  setLS(c,0)}
 
 const daysIn=(y,m)=>new Date(y,m+1,0).getDate();
 const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
@@ -118,12 +120,16 @@ const R={
   calendar(c,e){const L=calLayout(e);
     if(e.showTitle){const tf=e.titleSize?e.titleSize*PT:L.tH*.62,al=e.titleAlign||'center';font(c,tf,e.titleFont||'Great Vibes',e.titleWeight||400,e.titleStyle==='italic');setLS(c,(e.titleLs||0)*tf*F);c.fillStyle=e.titleColor||e.accent;T(c,cap(MESES[e.month])+' '+e.year,al==='left'?1:al==='right'?e.w-1:e.w/2,L.tH/2,al,'middle');setLS(c,0)}
     drawWeekBar(c,e,0,L.tH,e.w,L.hH,L.ws,L.cw>15?'abrev':'letra',Math.min(L.hH*.46,L.cw*.2),Math.min(1.6,L.hH/3));
+    const cellMode=e.cellGap>0||e.cellR>0,cg=cellMode?Math.min(e.cellGap||0,Math.min(L.cw,L.ch)*.5):0;
+    if(cellMode){for(let idx=0;idx<L.rows*7;idx++){const d=idx-L.off+1;if(e.cellHide&&(d<1||d>L.dim))continue;const col=idx%7,wd=(L.ws+col)%7,X=col*L.cw+cg/2,Y=L.top+Math.floor(idx/7)*L.ch+cg/2,W=L.cw-cg,Hh=L.ch-cg,wk=e.weekendFill&&e.weekendFill!=='none'&&(wd===0||wd===6),fl=wk?e.weekendFill:(e.cellFill&&e.cellFill!=='none'?e.cellFill:null);
+      rr(c,X,Y,W,Hh,Math.min(e.cellR||0,W/2,Hh/2));if(fl){c.fillStyle=fl;c.fill()}strokeIf(c,e.stroke,e.sw||.3)}}
+    else{
     if(e.weekendFill&&e.weekendFill!=='none'){c.fillStyle=e.weekendFill;for(let i=0;i<7;i++){const wd=(L.ws+i)%7;if(wd===0||wd===6)c.fillRect(L.cw*i,L.top,L.cw,L.ch*L.rows)}}
     c.beginPath();for(let r=0;r<=L.rows;r++){if(r===0&&e.style==='linhas')continue;c.moveTo(0,L.top+r*L.ch);c.lineTo(e.w,L.top+r*L.ch)}
     if(e.style!=='linhas')for(let i=0;i<=7;i++){c.moveTo(i*L.cw,L.top);c.lineTo(i*L.cw,L.top+L.rows*L.ch)}
-    strokeIf(c,e.stroke,e.sw||.3);
+    strokeIf(c,e.stroke,e.sw||.3)}
     const H=e.holidays?feriados(e.year):{},fs=e.size?e.size*PT:Math.min(L.ch*.22,L.cw*.24,4.6),pad=Math.max(.8,fs*.45);
-    for(let d=1;d<=L.dim;d++){const idx=L.off+d-1,x=(idx%7)*L.cw,y=L.top+Math.floor(idx/7)*L.ch,hn=H[e.month+'-'+d];
+    for(let d=1;d<=L.dim;d++){const idx=L.off+d-1,x=(idx%7)*L.cw+cg/2,y=L.top+Math.floor(idx/7)*L.ch+cg/2,hn=H[e.month+'-'+d];
       font(c,fs,e.font,600);c.fillStyle=hn?e.accent:e.color;T(c,String(d),x+pad,y+pad+fs*.5,'left','middle');
       if(hn&&L.cw>15&&L.ch>11){font(c,fs*.52,e.font,400);c.fillStyle=e.accent;wrap(c,hn,L.cw-pad*2).slice(0,2).forEach((t,j)=>T(c,t,x+pad,y+pad+fs*1.25+fs*.62*j,'left','middle'))}}},
   yearcal(c,e){const Y=ycLayout(e),H=e.holidays?feriados(e.year):{};

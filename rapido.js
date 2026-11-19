@@ -261,18 +261,30 @@
       ['headFill', 'Cor da faixa', 'colorN'], ['wdColor', 'Cor do texto', 'color', 0, null, (x) => x.color],
       ['wdFont', 'Fonte', 'font', 0, null, (x) => x.font], ['wdSize', 'Tamanho (pt)', 'num', 0.5],
       ['wdWeight', 'Peso', 'sel', [[400, 'Normal'], [600, 'Semi-negrito'], [700, 'Negrito']], null, 600], ['wdAlign', 'Alinhamento', 'sel', [['center', 'Centro'], ['left', 'Esquerda'], ['right', 'Direita']], null, 'center'],
-      ['wdLs', 'Espaço entre letras', 'num', 0.01], ['wdLine', 'Linhas da faixa', 'sel', [['none', 'Nenhuma'], ['bottom', 'Embaixo'], ['top', 'Em cima'], ['both', 'Ambas']], null, 'none'],
-      ['wdLc', 'Cor das linhas', 'colorN', 0, null, (x) => x.stroke], ['wdLw', 'Espessura (mm)', 'num', 0.05]];
+      ['wdLs', 'Espaço entre letras', 'num', 0.01], ['wdLine', 'Linhas da faixa', 'sel', [['none', 'Nenhuma'], ['bottom', 'Embaixo'], ['top', 'Em cima'], ['both', 'Em cima e embaixo'], ['sides', 'Laterais'], ['box', 'Contorno todo']], null, 'none'],
+      ['wdLc', 'Cor das linhas', 'colorN', 0, null, (x) => x.stroke], ['wdLw', 'Espessura (mm)', 'num', 0.05],
+      ['wdGrid', 'Divisórias entre os dias (grade)', 'chk'], ['wdGap', 'Espaço entre células (mm)', 'num', 0.2], ['wdR', 'Cantos arredondados (mm)', 'num', 0.5]];
     const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
     const open = !(Pref.acc && Pref.acc.wdays === false), w = document.createElement('div'); w.className = 'wacc' + (open ? ' open' : ''); w.dataset.acc = 'wdays';
     w.innerHTML = `<button class="wah" type="button" aria-expanded="${open}"><i class="wtri"></i><b>Dias da semana</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><p class="hint">0 em altura, tamanho ou espessura deixa automático.</p><div class="pgrp">${fieldsHTML(Object.assign({}, e, { type: '_wd' }))}</div></div>`;
     cont.parentNode.insertBefore(w, cont.nextSibling);
   }
 
+  function cellSection(P) {
+    P.querySelectorAll('[data-acc="dcells"]').forEach((x) => x.remove());
+    const sel = selEls(); if (sel.length !== 1 || sel[0].type !== 'calendar') return;
+    const e = sel[0], anchor = P.querySelector('[data-acc="wdays"]') || P.querySelector('[data-acc="cont"]'); if (!anchor) return;
+    FIELDS._dc = [['cellGap', 'Espaço entre os dias (mm)', 'num', 0.2], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['cellFill', 'Fundo de cada dia', 'colorN'], ['cellHide', 'Ocultar células sem dia', 'chk']];
+    const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
+    const open = !(Pref.acc && Pref.acc.dcells === false), w = document.createElement('div'); w.className = 'wacc' + (open ? ' open' : ''); w.dataset.acc = 'dcells';
+    w.innerHTML = `<button class="wah" type="button" aria-expanded="${open}"><i class="wtri"></i><b>Células dos dias</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><p class="hint">Com espaço ou cantos arredondados, cada dia vira um quadradinho individual (usa as cores de linhas e fim de semana acima).</p><div class="pgrp">${fieldsHTML(Object.assign({}, e, { type: '_dc' }))}</div></div>`;
+    anchor.parentNode.insertBefore(w, anchor.nextSibling);
+  }
+
   function boot() {
     addElements(); wireDbl(); wireGs(); wireLock(); wireZoom();
     if (typeof renderProps === 'function' && !renderProps._rp) {
-      const r0 = renderProps, f = function () { const out = r0.apply(this, arguments); const P = document.getElementById('props'); if (P && S.meta) { try { section(P); wdSection(P); } catch (e) { console.warn(e); } } return out; }; f._rp = 1; f._lv = r0._lv; renderProps = f;
+      const r0 = renderProps, f = function () { const out = r0.apply(this, arguments); const P = document.getElementById('props'); if (P && S.meta) { try { section(P); wdSection(P); cellSection(P); } catch (e) { console.warn(e); } } return out; }; f._rp = 1; f._lv = r0._lv; renderProps = f;
     }
   }
   window.Rapido = { boot, openQM };

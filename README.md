@@ -233,3 +233,7 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 
 ## Ajuste 44
 - Nova seção "Dias da semana" (com ocultar/expandir) no painel direito dos calendários (mensal e anual): como mostrar (automático, letra, abreviado, extenso), altura da faixa, cor da faixa, fonte, tamanho, cor, peso, alinhamento, espaço entre letras e linhas da faixa (em cima/embaixo) com cor e espessura próprias.
+
+## Ajuste 45
+- Faixa dos dias: linhas também nas laterais ou em volta (contorno), divisórias da grade ligáveis, espaço entre células e cantos arredondados.
+- Nova seção "Células dos dias" no calendário mensal: espaço entre os dias, cantos arredondados, fundo de cada dia e ocultar células vazias — cada dia vira um quadradinho individual.
