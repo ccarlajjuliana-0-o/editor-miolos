@@ -262,7 +262,7 @@
       ['wdFont', 'Fonte', 'font', 0, null, (x) => x.font], ['wdSize', 'Tamanho (pt)', 'num', 0.5],
       ['wdWeight', 'Peso', 'sel', [[400, 'Normal'], [600, 'Semi-negrito'], [700, 'Negrito']], null, 600], ['wdAlign', 'Alinhamento', 'sel', [['center', 'Centro'], ['left', 'Esquerda'], ['right', 'Direita']], null, 'center'],
       ['wdLs', 'Espaço entre letras', 'num', 0.01], ['wdLine', 'Linhas da faixa', 'sel', [['none', 'Nenhuma'], ['bottom', 'Embaixo'], ['top', 'Em cima'], ['both', 'Em cima e embaixo'], ['sides', 'Laterais'], ['box', 'Contorno todo']], null, 'none'],
-      ['wdLc', 'Cor das linhas', 'colorN', 0, null, (x) => x.stroke], ['wdLw', 'Espessura (mm)', 'num', 0.05],
+      ['wdLc', 'Cor das linhas', 'colorN', 0, null, (x) => x.stroke], ['wdLw', 'Espessura (mm)', 'num', 0.05], ['wdLnStyle', 'Tipo de linha da faixa', 'sel', LN.OPTS, null, 'solid'],
       ['wdGrid', 'Divisórias entre os dias (grade)', 'chk'], ['wdGap', 'Espaço entre células (mm)', 'num', 0.2], ['wdR', 'Cantos arredondados (mm)', 'num', 0.5]];
     const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
     const open = !(Pref.acc && Pref.acc.wdays === false), w = document.createElement('div'); w.className = 'wacc' + (open ? ' open' : ''); w.dataset.acc = 'wdays';
@@ -287,8 +287,8 @@
     FIELDS._th = [['hdFont', 'Fonte', 'font', 0, null, (x) => x.font], ['hdSize', 'Tamanho (pt)', 'num', 0.5], ['headFill', 'Cor da faixa', 'colorN'], ['hdColor', 'Cor do texto', 'color', 0, null, (x) => x.color],
       ['hdWeight', 'Peso', 'sel', [[400, 'Normal'], [600, 'Semi-negrito'], [700, 'Negrito']], null, 600], ['hdAlign', 'Alinhamento', 'sel', [['center', 'Centro'], ['left', 'Esquerda'], ['right', 'Direita']], null, 'center'],
       ['hdLs', 'Espaço entre letras', 'num', 0.01], ['hdLine', 'Linhas do cabeçalho', 'sel', [['none', 'Nenhuma'], ['bottom', 'Embaixo'], ['top', 'Em cima'], ['both', 'Em cima e embaixo'], ['sides', 'Laterais'], ['box', 'Contorno todo']], null, 'none'],
-      ['hdLc', 'Cor das linhas', 'colorN', 0, null, (x) => x.stroke], ['hdLw', 'Espessura (mm)', 'num', 0.05], ['hdGrid', 'Divisórias entre colunas', 'chk'], ['hdR', 'Cantos arredondados (mm)', 'num', 0.5]];
-    FIELDS._tc = [['cellGap', 'Espaço entre células (mm)', 'num', 0.2], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['cellFill', 'Fundo das células', 'colorN'], ['cellFill2', 'Cor alternada (linhas)', 'colorN'], ['gridH', 'Linhas horizontais', 'chk', 0, null, true], ['gridV', 'Linhas verticais', 'chk', 0, null, true]];
+      ['hdLc', 'Cor das linhas', 'colorN', 0, null, (x) => x.stroke], ['hdLw', 'Espessura (mm)', 'num', 0.05], ['hdLnStyle', 'Tipo de linha do cabeçalho', 'sel', LN.OPTS, null, 'solid'], ['hdGrid', 'Divisórias entre colunas', 'chk'], ['hdR', 'Cantos arredondados (mm)', 'num', 0.5]];
+    FIELDS._tc = [['cellGap', 'Espaço entre células (mm)', 'num', 0.2], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['cellFill', 'Fundo das células', 'colorN'], ['cellFill2', 'Cor alternada (linhas)', 'colorN'], ['gridH', 'Linhas horizontais', 'chk', 0, null, true], ['gridV', 'Linhas verticais', 'chk', 0, null, true], ['lnStyle', 'Tipo de linha', 'sel', LN.OPTS, null, 'solid'], ['cellBorder', 'Contorno das células', 'chk', 0, null, true], ['cbT', '↑ Em cima', 'chk', 0, (x) => x.cellBorder !== false, true], ['cbR', '→ Direita', 'chk', 0, (x) => x.cellBorder !== false, true], ['cbB', '↓ Embaixo', 'chk', 0, (x) => x.cellBorder !== false, true], ['cbL', '← Esquerda', 'chk', 0, (x) => x.cellBorder !== false, true]];
     const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
     const mk = (id, title, hint, type) => { const open = !(Pref.acc && Pref.acc[id] === false), w = document.createElement('div'); w.className = 'wacc' + (open ? ' open' : ''); w.dataset.acc = id;
       w.innerHTML = `<button class="wah" type="button" aria-expanded="${open}"><i class="wtri"></i><b>${title}</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><p class="hint">${hint}</p><div class="pgrp">${fieldsHTML(Object.assign({}, e, { type }))}</div></div>`; return w; };
@@ -299,10 +299,10 @@
     P.querySelectorAll('[data-acc="dcells"]').forEach((x) => x.remove());
     const sel = selEls(); if (sel.length !== 1 || sel[0].type !== 'calendar') return;
     const e = sel[0], anchor = P.querySelector('[data-acc="wdays"]') || P.querySelector('[data-acc="cont"]'); if (!anchor) return;
-    FIELDS._dc = [['cellGap', 'Espaço entre os dias (mm)', 'num', 0.2], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['cellFill', 'Fundo de cada dia', 'colorN'], ['cellHide', 'Ocultar células sem dia', 'chk']];
+    FIELDS._dc = [['cellGap', 'Espaço entre os dias (mm)', 'num', 0.2], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['cellFill', 'Fundo de cada dia', 'colorN'], ['cellHide', 'Ocultar células sem dia', 'chk'], ['lnStyle', 'Tipo de linha', 'sel', LN.OPTS, null, 'solid'], ['cellBorder', 'Contorno das células', 'chk', 0, null, true], ['cbT', '↑ Em cima', 'chk', 0, (x) => x.cellBorder !== false, true], ['cbR', '→ Direita', 'chk', 0, (x) => x.cellBorder !== false, true], ['cbB', '↓ Embaixo', 'chk', 0, (x) => x.cellBorder !== false, true], ['cbL', '← Esquerda', 'chk', 0, (x) => x.cellBorder !== false, true]];
     const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
     const open = !(Pref.acc && Pref.acc.dcells === false), w = document.createElement('div'); w.className = 'wacc' + (open ? ' open' : ''); w.dataset.acc = 'dcells';
-    w.innerHTML = `<button class="wah" type="button" aria-expanded="${open}"><i class="wtri"></i><b>Células dos dias</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><p class="hint">Com espaço ou cantos arredondados, cada dia vira um quadradinho individual (usa as cores de linhas e fim de semana acima).</p><div class="pgrp">${fieldsHTML(Object.assign({}, e, { type: '_dc' }))}</div></div>`;
+    w.innerHTML = `<button class="wah" type="button" aria-expanded="${open}"><i class="wtri"></i><b>Células dos dias</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><p class="hint">Com espaço ou cantos arredondados, cada dia vira um quadradinho individual. O tipo de linha vale para a grade e para o contorno das células; o contorno pode ser total ou só de alguns lados.</p><div class="pgrp">${fieldsHTML(Object.assign({}, e, { type: '_dc' }))}</div></div>`;
     anchor.parentNode.insertBefore(w, anchor.nextSibling);
   }
 
@@ -316,11 +316,11 @@
     const F = (t) => (FIELDS[t] || []).map((f) => f[0]);
     switch (id) {
       case 'cont': return F(e.type).concat(e.type === 'calendar' || e.type === 'yearcal' ? ['headFill'] : []).filter((k) => !(['calendar', 'yearcal'].includes(e.type) && /^(wd|cell)/.test(k)));
-      case 'wdays': return ['headFill', 'wdFmt', 'wdH', 'wdColor', 'wdFont', 'wdSize', 'wdWeight', 'wdAlign', 'wdLs', 'wdLine', 'wdLc', 'wdLw', 'wdGrid', 'wdGap', 'wdR'];
-      case 'thead': return ['headFill', 'hdFont', 'hdSize', 'hdColor', 'hdWeight', 'hdAlign', 'hdLs', 'hdLine', 'hdLc', 'hdLw', 'hdGrid', 'hdR'];
-      case 'tcells': return ['cellGap', 'cellR', 'cellFill', 'cellFill2', 'gridH', 'gridV'];
+      case 'wdays': return ['headFill', 'wdFmt', 'wdH', 'wdColor', 'wdFont', 'wdSize', 'wdWeight', 'wdAlign', 'wdLs', 'wdLine', 'wdLc', 'wdLw', 'wdLnStyle', 'wdGrid', 'wdGap', 'wdR'];
+      case 'thead': return ['headFill', 'hdFont', 'hdSize', 'hdColor', 'hdWeight', 'hdAlign', 'hdLs', 'hdLine', 'hdLc', 'hdLw', 'hdLnStyle', 'hdGrid', 'hdR'];
+      case 'tcells': return ['cellGap', 'cellR', 'cellFill', 'cellFill2', 'gridH', 'gridV', 'lnStyle', 'cellBorder', 'cbT', 'cbR', 'cbB', 'cbL'];
       case 'curva': return ['cvOn', 'cvDir', 'cvR', 'cvSpan', 'cvStart', 'cvLs'];
-      case 'dcells': return ['cellGap', 'cellR', 'cellFill', 'cellHide'];
+      case 'dcells': return ['cellGap', 'cellR', 'cellFill', 'cellHide', 'lnStyle', 'cellBorder', 'cbT', 'cbR', 'cbB', 'cbL'];
       case 'mark': return ['box', 'mk', 'mfill', 'mfc', 'msize'];
       case 'hd': return ['wx.hd']; case 'bg': return ['wx.bg']; case 'fr': return ['wx.fr']; case 'sty': return ['wx'];
       case 'size': return ['opacity', 'w', 'h'];

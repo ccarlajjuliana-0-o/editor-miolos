@@ -16,11 +16,12 @@ const DIA3=['dom','seg','ter','qua','qui','sex','sáb'];
 const DIA1=['D','S','T','Q','Q','S','S'];
 const DIAX=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 /* faixa dos dias da semana, comum a todos os calendários */
+const cellSides=e=>(e.cbT!==false?'t':'')+(e.cbR!==false?'r':'')+(e.cbB!==false?'b':'')+(e.cbL!==false?'l':'');
 function drawWeekBar(c,e,x,y,w,h,ws,autoFmt,autoSz,rad){const cw=w/7,gap=Math.min(e.wdGap||0,cw*.6),r=e.wdR>0?e.wdR:(e.wdR===0?0:rad);
   const lc=e.wdLc||e.stroke,lw=e.wdLw||e.sw||.3,ln=e.wdLine||'none',hasF=e.headFill&&e.headFill!=='none';
-  const lines=(X,W)=>{if(ln==='none')return;if(ln==='box'){rr(c,X,y,W,h,r);strokeIf(c,lc,lw);return}c.beginPath();if(ln==='top'||ln==='both'){c.moveTo(X,y);c.lineTo(X+W,y)}if(ln==='bottom'||ln==='both'){c.moveTo(X,y+h);c.lineTo(X+W,y+h)}if(ln==='sides'){c.moveTo(X,y);c.lineTo(X,y+h);c.moveTo(X+W,y);c.lineTo(X+W,y+h)}strokeIf(c,lc,lw)};
+  const lsty=e.wdLnStyle||e.lnStyle||'solid',lines=(X,W)=>{if(ln==='none')return;if(ln==='box'){LN.stroke(c,LN.rect(X,y,W,h,r),lsty,lc,lw);return}const P=[];if(ln==='top'||ln==='both')P.push(LN.seg(X,y,X+W,y));if(ln==='bottom'||ln==='both')P.push(LN.seg(X,y+h,X+W,y+h));if(ln==='sides'){P.push(LN.seg(X,y,X,y+h),LN.seg(X+W,y,X+W,y+h))}LN.stroke(c,P,lsty,lc,lw)};
   if(gap>0){for(let i=0;i<7;i++){const X=x+cw*i+gap/2,W=cw-gap;if(hasF){rr(c,X,y,W,h,r);c.fillStyle=e.headFill;c.fill()}lines(X,W)}}
-  else{if(hasF){rr(c,x,y,w,h,r);c.fillStyle=e.headFill;c.fill()}lines(x,w);if(e.wdGrid){c.beginPath();for(let i=1;i<7;i++){c.moveTo(x+cw*i,y);c.lineTo(x+cw*i,y+h)}strokeIf(c,lc,lw)}}
+  else{if(hasF){rr(c,x,y,w,h,r);c.fillStyle=e.headFill;c.fill()}lines(x,w);if(e.wdGrid){const P=[];for(let i=1;i<7;i++)P.push(LN.seg(x+cw*i,y,x+cw*i,y+h));LN.stroke(c,P,lsty,lc,lw)}}
   const fmt=e.wdFmt&&e.wdFmt!=='auto'?e.wdFmt:autoFmt,N=fmt==='extenso'?DIAX:fmt==='abrev'?DIA3:DIA1,fam=e.wdFont||e.font,wt=e.wdWeight||600,al=e.wdAlign||'center',ls=e.wdLs||0;
   let fs=e.wdSize?e.wdSize*PT:autoSz;font(c,fs,fam,wt);setLS(c,ls*fs*F);
   let mw=0;for(let i=0;i<7;i++)mw=Math.max(mw,M(c,N[(ws+i)%7]));if(mw>cw*.94){fs*=cw*.94/mw;font(c,fs,fam,wt);setLS(c,ls*fs*F)}
@@ -122,12 +123,12 @@ const R={
     drawWeekBar(c,e,0,L.tH,e.w,L.hH,L.ws,L.cw>15?'abrev':'letra',Math.min(L.hH*.46,L.cw*.2),Math.min(1.6,L.hH/3));
     const cellMode=e.cellGap>0||e.cellR>0,cg=cellMode?Math.min(e.cellGap||0,Math.min(L.cw,L.ch)*.5):0;
     if(cellMode){for(let idx=0;idx<L.rows*7;idx++){const d=idx-L.off+1;if(e.cellHide&&(d<1||d>L.dim))continue;const col=idx%7,wd=(L.ws+col)%7,X=col*L.cw+cg/2,Y=L.top+Math.floor(idx/7)*L.ch+cg/2,W=L.cw-cg,Hh=L.ch-cg,wk=e.weekendFill&&e.weekendFill!=='none'&&(wd===0||wd===6),fl=wk?e.weekendFill:(e.cellFill&&e.cellFill!=='none'?e.cellFill:null);
-      rr(c,X,Y,W,Hh,Math.min(e.cellR||0,W/2,Hh/2));if(fl){c.fillStyle=fl;c.fill()}strokeIf(c,e.stroke,e.sw||.3)}}
+      const cr=Math.min(e.cellR||0,W/2,Hh/2);rr(c,X,Y,W,Hh,cr);if(fl){c.fillStyle=fl;c.fill()}if(e.cellBorder!==false)LN.stroke(c,LN.rect(X,Y,W,Hh,cr,cellSides(e)),e.lnStyle,e.stroke,e.sw||.3)}}
     else{
     if(e.weekendFill&&e.weekendFill!=='none'){c.fillStyle=e.weekendFill;for(let i=0;i<7;i++){const wd=(L.ws+i)%7;if(wd===0||wd===6)c.fillRect(L.cw*i,L.top,L.cw,L.ch*L.rows)}}
-    c.beginPath();for(let r=0;r<=L.rows;r++){if(r===0&&e.style==='linhas')continue;c.moveTo(0,L.top+r*L.ch);c.lineTo(e.w,L.top+r*L.ch)}
-    if(e.style!=='linhas')for(let i=0;i<=7;i++){c.moveTo(i*L.cw,L.top);c.lineTo(i*L.cw,L.top+L.rows*L.ch)}
-    strokeIf(c,e.stroke,e.sw||.3)}
+    const GP=[];for(let r=0;r<=L.rows;r++){if(r===0&&e.style==='linhas')continue;GP.push(LN.seg(0,L.top+r*L.ch,e.w,L.top+r*L.ch))}
+    if(e.style!=='linhas')for(let i=0;i<=7;i++)GP.push(LN.seg(i*L.cw,L.top,i*L.cw,L.top+L.rows*L.ch));
+    LN.stroke(c,GP,e.lnStyle,e.stroke,e.sw||.3)}
     const H=e.holidays?feriados(e.year):{},fs=e.size?e.size*PT:Math.min(L.ch*.22,L.cw*.24,4.6),pad=Math.max(.8,fs*.45);
     for(let d=1;d<=L.dim;d++){const idx=L.off+d-1,x=(idx%7)*L.cw+cg/2,y=L.top+Math.floor(idx/7)*L.ch+cg/2,hn=H[e.month+'-'+d];
       font(c,fs,e.font,600);c.fillStyle=hn?e.accent:e.color;T(c,String(d),x+pad,y+pad+fs*.5,'left','middle');
@@ -141,15 +142,15 @@ const R={
   table(c,e){const hasH=Array.isArray(e.header)&&e.header.length>0,rows=e.rows+(hasH?1:0),rh=e.h/rows,cw=colWidths(e),cx=[];let xx=0;for(let i=0;i<e.cols;i++){cx.push(xx);xx+=cw[i]||0}
     const cm=e.cellGap>0||e.cellR>0,cg=cm?Math.min(e.cellGap||0,rh*.5,Math.min(...cw)*.5):0,sw=e.sw||.3,fs=Math.min((e.size||8)*PT,rh*.5),hasHF=e.headFill&&e.headFill!=='none';
     const hl=e.hdLine||'none',hlc=e.hdLc||e.stroke,hlw=e.hdLw||sw,hr=e.hdR>0?e.hdR:(e.hdR===0?0:Math.min(1.6,rh/4));
-    const hlines=(X,Y,W,Hh)=>{if(hl==='none')return;if(hl==='box'){rr(c,X,Y,W,Hh,hr);strokeIf(c,hlc,hlw);return}c.beginPath();if(hl==='top'||hl==='both'){c.moveTo(X,Y);c.lineTo(X+W,Y)}if(hl==='bottom'||hl==='both'){c.moveTo(X,Y+Hh);c.lineTo(X+W,Y+Hh)}if(hl==='sides'){c.moveTo(X,Y);c.lineTo(X,Y+Hh);c.moveTo(X+W,Y);c.lineTo(X+W,Y+Hh)}strokeIf(c,hlc,hlw)};
+    const hsty=e.hdLnStyle||e.lnStyle,hlines=(X,Y,W,Hh)=>{if(hl==='none')return;if(hl==='box'){LN.stroke(c,LN.rect(X,Y,W,Hh,hr),hsty,hlc,hlw);return}const P=[];if(hl==='top'||hl==='both')P.push(LN.seg(X,Y,X+W,Y));if(hl==='bottom'||hl==='both')P.push(LN.seg(X,Y+Hh,X+W,Y+Hh));if(hl==='sides')P.push(LN.seg(X,Y,X,Y+Hh),LN.seg(X+W,Y,X+W,Y+Hh));LN.stroke(c,P,hsty,hlc,hlw)};
     if(cm){for(let r=0;r<rows;r++)for(let k=0;k<e.cols;k++){const X=cx[k]+cg/2,Y=r*rh+cg/2,W=cw[k]-cg,Hh=rh-cg,isH=hasH&&r===0;
         if(isH){if(hasHF){rr(c,X,Y,W,Hh,hr);c.fillStyle=e.headFill;c.fill()}hlines(X,Y,W,Hh)}
-        else{const fl=(e.cellFill2&&e.cellFill2!=='none'&&(r-(hasH?1:0))%2===1)?e.cellFill2:(e.cellFill&&e.cellFill!=='none'?e.cellFill:null);rr(c,X,Y,W,Hh,Math.min(e.cellR||0,W/2,Hh/2));if(fl){c.fillStyle=fl;c.fill()}strokeIf(c,e.stroke,sw)}}}
+        else{const fl=(e.cellFill2&&e.cellFill2!=='none'&&(r-(hasH?1:0))%2===1)?e.cellFill2:(e.cellFill&&e.cellFill!=='none'?e.cellFill:null);const cr=Math.min(e.cellR||0,W/2,Hh/2);rr(c,X,Y,W,Hh,cr);if(fl){c.fillStyle=fl;c.fill()}if(e.cellBorder!==false)LN.stroke(c,LN.rect(X,Y,W,Hh,cr,cellSides(e)),e.lnStyle,e.stroke,sw)}}}
     else{
       if(hasH&&hasHF){rr(c,0,0,e.w,rh,hr);c.fillStyle=e.headFill;c.fill()}
-      if(hasH){hlines(0,0,e.w,rh);if(e.hdGrid){c.beginPath();for(let k=1;k<e.cols;k++){c.moveTo(cx[k],0);c.lineTo(cx[k],rh)}strokeIf(c,hlc,hlw)}}
+      if(hasH){hlines(0,0,e.w,rh);if(e.hdGrid){const P=[];for(let k=1;k<e.cols;k++)P.push(LN.seg(cx[k],0,cx[k],rh));LN.stroke(c,P,hsty,hlc,hlw)}}
       for(let r=hasH?1:0;r<rows;r++){const fl=(e.cellFill&&e.cellFill!=='none')?((e.cellFill2&&e.cellFill2!=='none'&&(r-(hasH?1:0))%2===1)?e.cellFill2:e.cellFill):((e.cellFill2&&e.cellFill2!=='none'&&(r-(hasH?1:0))%2===1)?e.cellFill2:null);if(fl){c.fillStyle=fl;c.fillRect(0,r*rh,e.w,rh)}}
-      c.beginPath();if(e.gridH!==false)for(let r=hasH?1:0;r<=rows;r++){c.moveTo(0,r*rh);c.lineTo(e.w,r*rh)}if(e.gridV!==false){let x=0;for(let i=0;i<=e.cols;i++){c.moveTo(x,hasH?rh:0);c.lineTo(x,e.h);x+=cw[i]||0}}strokeIf(c,e.stroke,sw)}
+      const GP=[];if(e.gridH!==false)for(let r=hasH?1:0;r<=rows;r++)GP.push(LN.seg(0,r*rh,e.w,r*rh));if(e.gridV!==false){let x=0;for(let i=0;i<=e.cols;i++){GP.push(LN.seg(x,hasH?rh:0,x,e.h));x+=cw[i]||0}}LN.stroke(c,GP,e.lnStyle,e.stroke,sw)}
     c.fillStyle=e.color;
     if(hasH){const hfs=e.hdSize?e.hdSize*PT:fs,fam=e.hdFont||e.font,al=e.hdAlign||'center',ls=e.hdLs||0;font(c,hfs,fam,e.hdWeight||600);setLS(c,ls*hfs*F);c.fillStyle=e.hdColor||e.color;for(let i=0;i<e.cols;i++){const px=al==='left'?cx[i]+cg/2+.9:al==='right'?cx[i]+cw[i]-cg/2-.9:cx[i]+cw[i]/2;T(c,fitText(c,String(e.header[i]??''),cw[i]-1.6-cg),px,rh/2,al,'middle')}setLS(c,0)}
     if(Array.isArray(e.side)){font(c,fs,e.font,600);c.fillStyle=e.color;for(let r=0;r<e.rows;r++){const s=e.side[r];if(s)T(c,fitText(c,String(s),cw[0]-2-cg),1.4+cg/2,(r+(hasH?1:0))*rh+rh/2,'left','middle')}}},
@@ -1050,7 +1051,7 @@ const FIELDS={
 };
 const TYPE_NAME={text:'Texto',rect:'Retângulo',ellipse:'Círculo',line:'Linha',pattern:'Pautas e grades',calendar:'Calendário do mês',yearcal:'Calendário anual',table:'Tabela',checklist:'Lista de tarefas',habit:'Hábitos',hours:'Agenda por horas',water:'Copos de água',mood:'Humor',shape:'Forma',image:'Imagem',divider:'Divisor',tabs:'Abas laterais',path:'Forma livre'};
 function colorField(k,v,none){const isNone=!!none&&(v==='none'||!v);const hex=/^#[0-9a-f]{6}$/i.test(v||'')?v:'#ffffff';return `<div class="cfield cc${isNone?' isnone':''}">${none?`<button class="sw none${isNone?' cur':''}" data-cset="${k}" data-v="none" title="Sem cor" aria-label="Sem cor"></button>`:''}<input type="color" data-k="${k}" data-t="color" value="${hex}" aria-label="Cor atual. Clique para escolher qualquer cor"><button type="button" class="cct" title="Mostrar ou ocultar as cores da paleta" aria-label="Paleta de cores">▾</button>${BRAND.map(c=>`<button class="sw" data-cset="${k}" data-v="${c}" style="background:${c}" title="${c}" aria-label="${c}"></button>`).join('')}</div>`}
-function fieldsHTML(e){const F=(FIELDS[e.type]||[]).filter(f=>!f[4]||e[f[4]]),sm=x=>x&&['sel','num','numa','font','color','colorN'].includes(x[2]),out=[],one=f=>{const o=f[5]!==undefined&&e[f[0]]===undefined?Object.assign({},e,{[f[0]]:typeof f[5]==='function'?f[5](e):f[5]}):e;return fieldHTML(f,o)};
+function fieldsHTML(e){const F=(FIELDS[e.type]||[]).filter(f=>!f[4]||(typeof f[4]==='function'?f[4](e):e[f[4]])),sm=x=>x&&['sel','num','numa','font','color','colorN'].includes(x[2]),out=[],one=f=>{const o=f[5]!==undefined&&e[f[0]]===undefined?Object.assign({},e,{[f[0]]:typeof f[5]==='function'?f[5](e):f[5]}):e;return fieldHTML(f,o)};
   for(let i=0;i<F.length;i++){if(sm(F[i])&&sm(F[i+1])){out.push('<div class="crow">'+one(F[i])+one(F[i+1])+'</div>');i++}else out.push(one(F[i]))}return out.join('')}
 function fieldHTML(f,obj){const [k,l,t,x]=f,v=obj[k];let inner='';
   if(t==='ta')inner=`<textarea data-k="${k}" data-t="text" rows="3">${esc(v)}</textarea>`;

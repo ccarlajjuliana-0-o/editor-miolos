@@ -197,7 +197,7 @@
       c.save(); shapePathF(c, 0, 0, L.bw, L.bh, f); c.clip();
       if (hd.fill && hd.fill !== 'none') { c.fillStyle = tok(hd.fill); c.fillRect(0, 0, L.bw, L.hd); }
       c.restore();
-      if (hd.line) { c.beginPath(); c.moveTo(L.ex, L.hd); c.lineTo(L.bw - L.ex, L.hd); strokeIf(c, tok(hd.lc || '@ink'), hd.lw || 0.3); }
+      if (hd.line) LN.stroke(c, [LN.seg(L.ex, L.hd, L.bw - L.ex, L.hd)], hd.lsty, tok(hd.lc || '@ink'), hd.lw || 0.3);
       if (hd.text) {
         const ins = L.ex + L.fi, av = Math.max(4, L.bw - 4.4 - 2 * ins);
         let fs = Math.min((hd.size || 8) * PT, (L.hd - L.fi) * 0.78); const fam = fnt(hd.font), wt = hd.weight || 600, ax = hd.align === 'left' ? 2.2 + ins : hd.align === 'right' ? L.bw - 2.2 - ins : L.bw / 2;
