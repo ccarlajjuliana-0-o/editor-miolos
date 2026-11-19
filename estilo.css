@@ -877,3 +877,7 @@ body.qm-on #qbar{display:none!important}
 .fsub{gap:8px;margin:6px 0 10px}.fsub .btn{flex:1}
 .crow{display:flex;gap:12px;align-items:flex-start}.crow .pfield{flex:1;min-width:0}
 .crow .pfield>span,.pfield.nw>span{white-space:nowrap}
+
+.crow{gap:8px}.crow .pfield{margin:0}
+#fldGrp .pfield select,#fldGrp .pfield input[type=number],#fldGrp .pfield input[type=text]{padding:5px 9px;font-size:13.5px;min-height:34px;border-radius:11px}
+#fldGrp .crow .pfield>span{white-space:normal;line-height:1.15;min-height:27px;display:flex;align-items:flex-end}

@@ -225,3 +225,8 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 ## Ajuste 42
 - A moldura (borda) de qualquer widget/objeto decorado agora ocupa espaço: o conteúdo e o título ficam sempre dentro dela, sem invadir.
 - Rótulos de cor encurtados ("Texto", "Linhas", "Texto do título", "Fundo do título") para alinhar os seletores.
+
+## Ajuste 43
+- Painel direito mais compacto: campos curtos (listas, números, cores) ficam dois por linha e menores.
+- Calendário: "Mostrar nome do mês" abre fonte, tamanho, peso, estilo, cor, espaço entre letras e alinhamento do nome; novo tamanho dos dias (0 = automático).
+- Moldura encosta no conteúdo (sem folga extra); o título do widget respeita a borda e diminui para caber na largura do widget.

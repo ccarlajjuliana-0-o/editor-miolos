@@ -142,7 +142,7 @@
     const off = f.k === 'offset' ? Math.max(0.6, f.gap || 1.4) : 0, bw = e.w - off, bh = e.h - off;
     const ex = f.k === 'scallop' ? (f.bump || 4.5) * 0.5 : 0, ft = Math.max(0.05, f.w || 0.4), fg = f.gap ?? ft * 2.5;
     /* a moldura ocupa espaço: o conteúdo é empurrado para dentro e nunca fica sob a borda */
-    const fi = !f.k || f.k === 'none' || f.k === 'scallop' ? 0 : f.k === 'double' || f.k === 'notch' ? ft + fg + 0.4 : f.k === 'bold' ? ft + fg * 0.7 + 0.4 : ft + 0.4, pad = (w.pad || 0) + ex + fi;
+    const fi = !f.k || f.k === 'none' || f.k === 'scallop' ? 0 : f.k === 'double' || f.k === 'notch' ? ft + fg : f.k === 'bold' ? ft + fg * 0.7 : ft, pad = (w.pad || 0) + ex + fi;
     const hd = w.hd && w.hd.on ? Math.min(w.hd.h || 7, bh * 0.6) + fi : 0, pin = pad - fi;
     return { f, off, bw, bh, hd, pad, ex, fi, ix: pad, iy: hd ? hd + pin : pad, iw: Math.max(2, bw - 2 * pad), ih: Math.max(2, bh - (hd ? hd + pin : pad) - pad) };
   }
@@ -166,9 +166,12 @@
       c.restore();
       if (hd.line) { c.beginPath(); c.moveTo(L.ex, L.hd); c.lineTo(L.bw - L.ex, L.hd); strokeIf(c, tok(hd.lc || '@ink'), hd.lw || 0.3); }
       if (hd.text) {
-        const fs = Math.min((hd.size || 8) * PT, (L.hd - L.fi) * 0.78), ax = hd.align === 'left' ? 2.2 + L.ex : hd.align === 'right' ? L.bw - 2.2 - L.ex : L.bw / 2;
-        font(c, fs, fnt(hd.font), hd.weight || 600); setLS(c, (hd.ls || 0) * fs * F); c.fillStyle = tok(hd.c || '@ink');
-        T(c, fitText(c, hd.text, L.bw - 5 - 2 * L.ex), ax, (L.fi + L.hd) / 2 + fs * 0.04, hd.align || 'center', 'middle'); setLS(c, 0);
+        const ins = L.ex + L.fi, av = Math.max(4, L.bw - 4.4 - 2 * ins);
+        let fs = Math.min((hd.size || 8) * PT, (L.hd - L.fi) * 0.78); const fam = fnt(hd.font), wt = hd.weight || 600, ax = hd.align === 'left' ? 2.2 + ins : hd.align === 'right' ? L.bw - 2.2 - ins : L.bw / 2;
+        font(c, fs, fam, wt); setLS(c, (hd.ls || 0) * fs * F); const tw = M(c, hd.text);
+        if (tw > av) { fs *= Math.max(0.5, av / tw); font(c, fs, fam, wt); setLS(c, (hd.ls || 0) * fs * F); } /* o título acompanha a largura do widget */
+        c.fillStyle = tok(hd.c || '@ink');
+        T(c, fitText(c, hd.text, av), ax, (L.fi + L.hd) / 2 + fs * 0.04, hd.align || 'center', 'middle'); setLS(c, 0);
       }
     }
     c.save(); c.translate(L.ix, L.iy);

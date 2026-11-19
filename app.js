@@ -104,7 +104,7 @@ const R={
     else{c.beginPath();for(let y=sp;y<e.h+.01;y+=sp){c.moveTo(0,y);c.lineTo(e.w,y)}strokeIf(c,e.color,sw)}
     c.restore()},
   calendar(c,e){const L=calLayout(e);
-    if(e.showTitle){font(c,L.tH*.62,e.titleFont||'Great Vibes');c.fillStyle=e.accent;T(c,cap(MESES[e.month])+' '+e.year,e.w/2,L.tH/2,'center','middle')}
+    if(e.showTitle){const tf=e.titleSize?e.titleSize*PT:L.tH*.62,al=e.titleAlign||'center';font(c,tf,e.titleFont||'Great Vibes',e.titleWeight||400,e.titleStyle==='italic');setLS(c,(e.titleLs||0)*tf*F);c.fillStyle=e.titleColor||e.accent;T(c,cap(MESES[e.month])+' '+e.year,al==='left'?1:al==='right'?e.w-1:e.w/2,L.tH/2,al,'middle');setLS(c,0)}
     if(e.headFill&&e.headFill!=='none'){rr(c,0,L.tH,e.w,L.hH,Math.min(1.6,L.hH/3));c.fillStyle=e.headFill;c.fill()}
     font(c,Math.min(L.hH*.46,L.cw*.2),e.font,600);c.fillStyle=e.color;
     for(let i=0;i<7;i++){const wd=(L.ws+i)%7;T(c,L.cw>15?DIA3[wd]:DIA1[wd],L.cw*i+L.cw/2,L.tH+L.hH/2,'center','middle')}
@@ -112,7 +112,7 @@ const R={
     c.beginPath();for(let r=0;r<=L.rows;r++){if(r===0&&e.style==='linhas')continue;c.moveTo(0,L.top+r*L.ch);c.lineTo(e.w,L.top+r*L.ch)}
     if(e.style!=='linhas')for(let i=0;i<=7;i++){c.moveTo(i*L.cw,L.top);c.lineTo(i*L.cw,L.top+L.rows*L.ch)}
     strokeIf(c,e.stroke,e.sw||.3);
-    const H=e.holidays?feriados(e.year):{},fs=Math.min(L.ch*.22,L.cw*.24,4.6),pad=Math.max(.8,fs*.45);
+    const H=e.holidays?feriados(e.year):{},fs=e.size?e.size*PT:Math.min(L.ch*.22,L.cw*.24,4.6),pad=Math.max(.8,fs*.45);
     for(let d=1;d<=L.dim;d++){const idx=L.off+d-1,x=(idx%7)*L.cw,y=L.top+Math.floor(idx/7)*L.ch,hn=H[e.month+'-'+d];
       font(c,fs,e.font,600);c.fillStyle=hn?e.accent:e.color;T(c,String(d),x+pad,y+pad+fs*.5,'left','middle');
       if(hn&&L.cw>15&&L.ch>11){font(c,fs*.52,e.font,400);c.fillStyle=e.accent;wrap(c,hn,L.cw-pad*2).slice(0,2).forEach((t,j)=>T(c,t,x+pad,y+pad+fs*1.25+fs*.62*j,'left','middle'))}}},
@@ -1011,7 +1011,7 @@ const FIELDS={
  ellipse:[['fill','Preenchimento','colorN'],['stroke','Contorno','colorN'],['sw','Espessura (mm)','num',.05]],
  line:[['stroke','Cor','color'],['sw','Espessura (mm)','num',.05],['dash','Estilo','sel',[['solid','Contínua'],['dash','Tracejada'],['dot','Pontilhada']]]],
  pattern:[['kind','Tipo','sel',[['lines','Pautas'],['dots','Pontos'],['grid','Quadriculado']]],['sp','Espaçamento (mm)','num',.5],['color','Cor','color'],['sw','Espessura (mm)','num',.05]],
- calendar:[['month','Mês','sel',MESES.map((m,i)=>[i,cap(m)])],['year','Ano','num',1],['weekStart','Semana começa','sel',[[0,'Domingo'],[1,'Segunda']]],['style','Estilo','sel',[['grade','Grade'],['linhas','Só linhas']]],['showTitle','Mostrar nome do mês','chk'],['holidays','Feriados nacionais','chk'],['font','Fonte','font'],['titleFont','Fonte do título','font'],['color','Texto','color'],['accent','Destaque','color'],['headFill','Faixa dos dias','colorN'],['weekendFill','Fim de semana','colorN'],['stroke','Linhas','colorN'],['sw','Espessura (mm)','num',.05]],
+ calendar:[['month','Mês','sel',MESES.map((m,i)=>[i,cap(m)])],['year','Ano','num',1],['weekStart','Semana começa','sel',[[0,'Domingo'],[1,'Segunda']]],['style','Estilo','sel',[['grade','Grade'],['linhas','Só linhas']]],['showTitle','Mostrar nome do mês','chk'],['titleFont','Fonte do nome','font',0,'showTitle'],['titleSize','Tamanho do nome (pt)','num',.5,'showTitle'],['titleWeight','Peso do nome','sel',[[400,'Normal'],[600,'Semi-negrito'],[700,'Negrito']],'showTitle'],['titleStyle','Estilo do nome','sel',[['normal','Normal'],['italic','Itálico']],'showTitle'],['titleColor','Cor do nome','color',0,'showTitle',e=>e.accent],['titleLs','Espaço entre letras','num',.01,'showTitle'],['titleAlign','Alinhar o nome','sel',[['center','Centro'],['left','Esquerda'],['right','Direita']],'showTitle'],['holidays','Feriados nacionais','chk'],['font','Fonte','font'],['size','Tamanho dos dias (pt)','num',.5],['color','Texto','color'],['accent','Destaque','color'],['headFill','Faixa dos dias','colorN'],['weekendFill','Fim de semana','colorN'],['stroke','Linhas','colorN'],['sw','Espessura (mm)','num',.05]],
  yearcal:[['year','Ano','num',1],['weekStart','Semana começa','sel',[[0,'Domingo'],[1,'Segunda']]],['holidays','Feriados nacionais','chk'],['font','Fonte','font'],['titleFont','Fonte dos meses','font'],['color','Texto','color'],['accent','Destaque','color'],['headFill','Faixa dos dias','colorN']],
  table:[['rows','Linhas','num',1],['cols','Colunas','num',1],['header','Cabeçalho (separe por vírgula)','list'],['side','Primeira coluna (separe por vírgula)','list'],['font','Fonte','font'],['size','Tamanho (pt)','num',.5],['color','Texto','color'],['headFill','Cabeçalho','colorN'],['stroke','Linhas','colorN'],['sw','Espessura (mm)','num',.05]],
  checklist:[['n','Itens','num',1],['items','Texto dos itens (um por linha)','lines'],['box','Marcador','sel',[['square','Quadrado'],['circle','Círculo']]],['lines','Linha para escrever','chk'],['color','Marcador','color'],['stroke','Linhas','colorN'],['sw','Espessura (mm)','num',.05]],
@@ -1027,7 +1027,8 @@ const FIELDS={
 };
 const TYPE_NAME={text:'Texto',rect:'Retângulo',ellipse:'Círculo',line:'Linha',pattern:'Pautas e grades',calendar:'Calendário do mês',yearcal:'Calendário anual',table:'Tabela',checklist:'Lista de tarefas',habit:'Hábitos',hours:'Agenda por horas',water:'Copos de água',mood:'Humor',shape:'Forma',image:'Imagem',divider:'Divisor',tabs:'Abas laterais',path:'Forma livre'};
 function colorField(k,v,none){const isNone=!!none&&(v==='none'||!v);const hex=/^#[0-9a-f]{6}$/i.test(v||'')?v:'#ffffff';return `<div class="cfield cc${isNone?' isnone':''}">${none?`<button class="sw none${isNone?' cur':''}" data-cset="${k}" data-v="none" title="Sem cor" aria-label="Sem cor"></button>`:''}<input type="color" data-k="${k}" data-t="color" value="${hex}" aria-label="Cor atual. Clique para escolher qualquer cor"><button type="button" class="cct" title="Mostrar ou ocultar as cores da paleta" aria-label="Paleta de cores">▾</button>${BRAND.map(c=>`<button class="sw" data-cset="${k}" data-v="${c}" style="background:${c}" title="${c}" aria-label="${c}"></button>`).join('')}</div>`}
-function fieldsHTML(e){const out=[],F=FIELDS[e.type]||[],col=x=>x&&(x[2]==='color'||x[2]==='colorN');for(let i=0;i<F.length;i++){if(col(F[i])&&col(F[i+1])){out.push('<div class="crow">'+fieldHTML(F[i],e)+fieldHTML(F[i+1],e)+'</div>');i++}else out.push(fieldHTML(F[i],e))}return out.join('')}
+function fieldsHTML(e){const F=(FIELDS[e.type]||[]).filter(f=>!f[4]||e[f[4]]),sm=x=>x&&['sel','num','numa','font','color','colorN'].includes(x[2]),out=[],one=f=>{const o=f[5]!==undefined&&e[f[0]]===undefined?Object.assign({},e,{[f[0]]:typeof f[5]==='function'?f[5](e):f[5]}):e;return fieldHTML(f,o)};
+  for(let i=0;i<F.length;i++){if(sm(F[i])&&sm(F[i+1])){out.push('<div class="crow">'+one(F[i])+one(F[i+1])+'</div>');i++}else out.push(one(F[i]))}return out.join('')}
 function fieldHTML(f,obj){const [k,l,t,x]=f,v=obj[k];let inner='';
   if(t==='ta')inner=`<textarea data-k="${k}" data-t="text" rows="3">${esc(v)}</textarea>`;
   else if(t==='text')inner=`<input type="text" data-k="${k}" data-t="text" value="${esc(v)}">`;
