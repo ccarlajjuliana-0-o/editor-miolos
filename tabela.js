@@ -373,13 +373,16 @@
     const hd = w.querySelector('.wah'); hd.onclick = () => { w.classList.toggle('open'); const on = w.classList.contains('open'); hd.setAttribute('aria-expanded', on); Pref.acc = Pref.acc || {}; Pref.acc[id] = on; try { savePref(); } catch (er) { /* */ } };
     return w;
   };
+  /* contorno da célula: um único botão por lado liga/desliga (lados internos entram só em "todos") */
+  const bdTargets = (e, t, s2) => { const q = rng(t), sides = s2 === 'A' ? ['T', 'R', 'B', 'L'] : [s2], out = []; cellKeys(e, t).forEach(([r, c]) => sides.forEach((sd) => { const inner = (sd === 'T' && r !== q.r0) || (sd === 'B' && r !== q.r1) || (sd === 'L' && c !== q.c0) || (sd === 'R' && c !== q.c1); if (s2 !== 'A' && inner) return; out.push([r, c, sd]); })); return out; };
+  const bdOn = (e, r, c, sd) => { const bd = (cellOf(e, r, c) || {}).bd, v = bd && bd[sd]; if (v !== undefined) return !!v; if (e.cellGap > 0 || e.cellR > 0) return e.cellBorder !== false && cellSides(e).includes(sd.toLowerCase()); return sd === 'T' || sd === 'B' ? e.gridH !== false : e.gridV !== false; };
   function panel(P) {
     ['tab', 'tcel', 'tfmt', 'tbrd', 'tfor', 'tcells'].forEach((id) => P.querySelectorAll(`[data-acc="${id}"]`).forEach((x) => x.remove()));
     const sel = selEls(); if (sel.length !== 1 || sel[0].type !== 'table') return; const e = sel[0];
     const cont = P.querySelector('[data-acc="cont"]'); if (!cont) return;
     FIELDS._tx1 = [['rows', 'Linhas', 'num', 1], ['cols', 'Colunas', 'num', 1], ['header', 'Cabeçalho (separe por vírgula)', 'list'], ['side', 'Primeira coluna (separe por vírgula)', 'list']];
     FIELDS._tx2 = [['font', 'Fonte', 'font'], ['size', 'Tamanho (pt)', 'num', 0.5], ['color', 'Cor do texto', 'color']];
-    FIELDS._tx3 = [['stroke', 'Cor das linhas', 'colorN'], ['sw', 'Espessura (mm)', 'num', 0.05], ['lnStyle', 'Tipo de linha', 'sel', LN.OPTS, null, 'solid'], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['gridH', 'Linhas horizontais', 'chk', 0, null, true], ['gridV', 'Linhas verticais', 'chk', 0, null, true], ['cellBorder', 'Contorno das células', 'sides'],
+    FIELDS._tx3 = [['stroke', 'Cor das linhas', 'colorN'], ['sw', 'Espessura (mm)', 'num', 0.05], ['lnStyle', 'Tipo de linha', 'sel', LN.OPTS, null, 'solid'], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['gridH', 'Linhas horizontais', 'chk', 0, null, true], ['gridV', 'Linhas verticais', 'chk', 0, null, true], ['cellBorder', 'Contorno da tabela', 'sides'],
       ['cellGap', 'Espaço entre células (mm)', 'num', 0.2], ['cellFill', 'Fundo das células', 'colorN'], ['cellFill2', 'Cor alternada (linhas)', 'colorN']];
     const fx = (type) => fieldsHTML(Object.assign({}, e, { type }));
     const t = TS() && TS().id === e.id ? TS() : null, L = lay(e), nm = r2, H4 = (x) => `<h4 class="tsh">${x}</h4>`;
@@ -406,7 +409,7 @@
     } else {
       const q = rng(t), a = clampRC(e, t.a[0], t.a[1]), cl = cellOf(e, a[0], a[1]) || {}, st = cellStyle(e, a[0], a[1]), n = cellKeys(e, t).length, bd = cl.bd || {};
       const allLockedCells = cellKeys(e, t).every(([r, c]) => (cellOf(e, r, c) || {}).lock), allR = (() => { for (let r = q.r0; r <= q.r1; r++) if (!(e.lockR && e.lockR[r])) return false; return true; })(), allC = (() => { for (let c = q.c0; c <= q.c1; c++) if (!(e.lockC && e.lockC[c])) return false; return true; })();
-      const sidesBtn = (mode) => `<div class="sides tsides">${[['A', 'Todos os lados', 'cellBorder'], ['T', 'Em cima', 'cbT'], ['R', 'À direita', 'cbR'], ['B', 'Embaixo', 'cbB'], ['L', 'À esquerda', 'cbL']].map(([s2, tt, ic]) => `<button type="button" class="sdb${mode === 'x' ? ' tx' : ''}" data-tb="${mode}${s2}" title="${tt}">${sideIco(ic)}</button>`).join('')}</div>`;
+      const sidesBtn = () => `<div class="sides tsides">${[['A', 'Todos os lados', 'cellBorder'], ['T', 'Em cima', 'cbT'], ['R', 'À direita', 'cbR'], ['B', 'Embaixo', 'cbB'], ['L', 'À esquerda', 'cbL']].map(([s2, tt, ic]) => { const on = bdTargets(e, t, s2).every(([r, c, sd]) => bdOn(e, r, c, sd)); return `<button type="button" class="sdb${on ? ' on' : ''}" data-tb="${s2}" aria-pressed="${on}" title="${tt} (clique para ${on ? 'tirar' : 'aplicar'})">${sideIco(ic)}</button>`; }).join('')}</div>`;
       const seg = (name, opts, cur) => `<div class="segf tseg">${opts.map(([v, tt]) => `<button type="button" class="${cur === v ? 'on' : ''}" data-tal="${name}:${v}" title="${tt}">${tt}</button>`).join('')}</div>`;
       body += `<div class="tselh"><b>${esc(label(e, t))}</b><small>${n} célula${n > 1 ? 's' : ''} · ativa ${colName(a[1])}${a[0] + 1}</small><button type="button" class="btn sm ghost" data-ta="off">Sair</button></div>
         <div class="tinsdel">${[['Linha', [['insrowA', 'up', '＋', 'Inserir linha acima da seleção'], ['delrowT', 'up', '−', 'Excluir a linha de cima da seleção'], ['insrowB', 'down', '＋', 'Inserir linha abaixo da seleção'], ['delrowB', 'down', '−', 'Excluir a linha de baixo da seleção']]], ['Coluna', [['inscolA', 'left', '＋', 'Inserir coluna à esquerda da seleção'], ['delcolL', 'left', '−', 'Excluir a coluna da esquerda da seleção'], ['inscolB', 'right', '＋', 'Inserir coluna à direita da seleção'], ['delcolR', 'right', '−', 'Excluir a coluna da direita da seleção']]]].map(([nmz, bs]) => `<div class="tid"><span>${nmz}</span>${bs.map(([ac, dir, sg, tt]) => `<button type="button" class="btn sm tidb${sg === '−' ? ' danger' : ''}" data-ta="${ac}" title="${tt}" aria-label="${tt}"><svg viewBox="0 0 10 10" width="9" height="9" fill="currentColor">${{ up: '<path d="M5 2l4 5H1z"/>', down: '<path d="M5 8L1 3h8z"/>', left: '<path d="M2 5l5-4v8z"/>', right: '<path d="M8 5L3 1v8z"/>' }[dir]}</svg>${sg}</button>`).join('')}</div>`).join('')}</div>
@@ -420,9 +423,9 @@
         <div class="row"><label class="chk"><input type="checkbox" data-tf="italic"${st.italic ? ' checked' : ''}> Itálico</label><label class="chk"><input type="checkbox" data-tf="under"${st.under ? ' checked' : ''}> Sublinhado</label></div>
         <h5 class="tsh2">Alinhamento</h5>
         <div class="fgrid"><div class="pfield"><span>Horizontal</span>${seg('al', [['left', 'Esq.'], ['center', 'Centro'], ['right', 'Dir.']], st.al)}</div><div class="pfield"><span>Vertical</span>${seg('va', [['top', 'Topo'], ['middle', 'Meio'], ['bottom', 'Base']], st.va)}</div></div>
-        ${H4('Bordas da seleção')}<div class="fgrid"><label class="pfield"><span>Cor</span>${cf('tbColor', (bd.T && bd.T.c) || e.stroke, false)}</label><label class="pfield"><span>Espessura (mm)</span><input type="number" step="0.05" min="0.05" data-tbk="w" value="${(bd.T && bd.T.w) || e.sw || 0.3}"></label></div>
+        ${H4('Contorno da célula')}<div class="fgrid"><label class="pfield"><span>Cor</span>${cf('tbColor', (bd.T && bd.T.c) || e.stroke, false)}</label><label class="pfield"><span>Espessura (mm)</span><input type="number" step="0.05" min="0.05" data-tbk="w" value="${(bd.T && bd.T.w) || e.sw || 0.3}"></label></div>
         <label class="pfield"><span>Tipo de linha</span><select data-tbk="s">${LN.OPTS.map(([v, tt]) => `<option value="${v}"${v === ((bd.T && bd.T.s) || e.lnStyle || 'solid') ? ' selected' : ''}>${tt}</option>`).join('')}</select></label>
-        <div class="pfield"><span>Aplicar borda em</span>${sidesBtn('a')}</div><div class="pfield"><span>Remover borda de</span>${sidesBtn('x')}</div><button type="button" class="btn sm ghost" data-ta="bdreset">Voltar às bordas da tabela</button>`;
+        <div class="pfield"><span>Lados da seleção (clique liga ou desliga)</span>${sidesBtn()}</div><button type="button" class="btn sm ghost" data-ta="bdreset">Voltar ao contorno da tabela</button>`;
       after = `${H4('Fórmulas')}<p class="hint">Comece o texto da célula com <b>=</b>: <code>=SOMA(B2:B5)</code>, <code>=B2*C2</code>, <code>=MEDIA(A1:A4)</code>, <code>=MIN</code>, <code>=MAX</code>, <code>=MULT</code>, <code>=CONT</code>, <code>=ARRED(B2;1)</code>. Separe argumentos com ponto e vírgula. A1 é a primeira célula (a do cabeçalho, se houver).</p>`;
     }
     body += H4('Texto da tabela') + fx('_tx2') + H4('Linhas e células') + fx('_tx3') + after;
@@ -468,11 +471,10 @@
     on('[data-tset]', 'click', (x) => { const k = x.dataset.tset, v = x.dataset.v; if (k === 'tcFill') fmtApply((z, r, c) => setCell(z, r, c, { fill: v === 'none' ? 'none' : v })); else if (k === 'tcColor') tf('color', v); else if (k === 'tbColor') { const i = w.querySelector('[data-tk="tbColor"]'); if (i) i.value = v; } });
     // bordas
     on('[data-tb]', 'click', (x) => {
-      const m = x.dataset.tb[0], s2 = x.dataset.tb[1], sides = s2 === 'A' ? ['T', 'R', 'B', 'L'] : [s2], q = rng(t);
+      const s2 = x.dataset.tb, tg = bdTargets(e, t, s2), turnOn = !tg.every(([r, c, sd]) => bdOn(e, r, c, sd));
       const spec = { w: parseFloat(w.querySelector('[data-tbk="w"]').value) || 0.3, c: colorOf('tbColor') || e.stroke, s: w.querySelector('[data-tbk="s"]').value || 'solid' };
-      fmtApply((z, r, c) => { const cur = Object.assign({}, (cellOf(z, r, c) || {}).bd || {}); sides.forEach((sd) => {
-        const edge = (sd === 'T' && r !== q.r0) || (sd === 'B' && r !== q.r1) || (sd === 'L' && c !== q.c0) || (sd === 'R' && c !== q.c1);
-        if (s2 !== 'A' && edge) return; cur[sd] = m === 'a' ? Object.assign({}, spec) : 0; }); setCell(z, r, c, { bd: cur }); });
+      const by = {}; tg.forEach(([r, c, sd]) => { (by[key(r, c)] = by[key(r, c)] || []).push(sd); });
+      fmtApply((z, r, c) => { const sds = by[key(r, c)]; if (!sds) return; const cur = Object.assign({}, (cellOf(z, r, c) || {}).bd || {}); sds.forEach((sd) => { cur[sd] = turnOn ? Object.assign({}, spec) : 0; }); setCell(z, r, c, { bd: cur }); });
     });
   }
   const sep = window.setElProp;

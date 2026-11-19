@@ -359,3 +359,8 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Inserir/excluir no painel: linha = ▲＋ ▲− ▼＋ ▼−; coluna = ◀＋ ◀− ▶＋ ▶− (relativo à seleção: ＋ insere desse lado, − exclui a linha/coluna desse lado da seleção).
 - Corrigido: largura/altura (e travas) no painel não funcionavam fora do modo "Editar células", e o painel não atualizava após Enter no campo.
 - Cache `estudio-miolos-v75`.
+
+## Ajuste 70 · Contornos da tabela
+- "Aplicar borda em" e "Remover borda de" viraram uma linha só, **Contorno da célula**: cada lado liga/desliga com um clique (botão aceso = lado com borda; "todos os lados" inclui as divisões internas da seleção).
+- O contorno geral passou a se chamar **Contorno da tabela** (vale para todas as células); "Voltar ao contorno da tabela" desfaz os ajustes da seleção.
+- Cache `estudio-miolos-v76`.
