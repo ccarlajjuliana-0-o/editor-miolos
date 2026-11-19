@@ -26,7 +26,7 @@
   /* contexto do campo: aceita "sem cor" / gradiente? */
   function ctxOf(el) {
     const inP = !!(el.closest && el.closest('#props')), cf = el.closest && el.closest('.cfield');
-    return { inP, none: inP && !!(cf && cf.querySelector('.sw.none')), grad: inP && el.dataset.gr === '1' };
+    return { inP, none: !!(cf && cf.querySelector('.sw.none')), grad: el.dataset.gr === '1' };
   }
   /* aplica um valor de texto (gradiente) pelo mesmo caminho dos campos de cor da barra lateral */
   function applyVal(val, type) { const el = resolve(); if (!el) return; if (val) el.dataset.gv = val; else delete el.dataset.gv; el.dispatchEvent(new Event(type, { bubbles: true })); }

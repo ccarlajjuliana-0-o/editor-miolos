@@ -9,6 +9,7 @@
   const KIND = {
     wgt: { n: 'Widget', pl: 'Widgets', ic: '▦', where: 'Widgets → Salvos' },
     bdr: { n: 'Borda', pl: 'Bordas', ic: '▢', where: 'Bordas → Minhas bordas' },
+    pat: { f: 'o', n: 'Padrão', pl: 'Padrões', ic: '▒', where: 'Bordas → Padrão' },
     tema: { n: 'Tema', pl: 'Temas', ic: '◐', where: 'Modelos → Temas' },
     wsty: { n: 'Estilo', pl: 'Estilos', ic: '✦', where: 'Estilo dos widgets → Meus estilos' },
     stk: { f: 'o', n: 'Adesivo', pl: 'Adesivos', ic: '♡', where: 'Adesivos → Do ModuLab' },
@@ -16,8 +17,8 @@
     tipos: { f: 'a', n: 'Configuração de texto', pl: 'Textos', ic: 'Aa', where: 'Texto → Fontes → Minhas configurações' },
     outro: { n: 'Outro', pl: 'Outros', ic: '＋', where: 'a definir' },
   };
-  const ORDER = ['wgt', 'bdr', 'tema', 'wsty', 'stk', 'tipos', 'colecao', 'outro'];
-  const LISTK = ['wgt', 'bdr', 'tema', 'wsty', 'stk', 'sticker', 'tipos', 'colecao', 'outro'];
+  const ORDER = ['wgt', 'bdr', 'pat', 'tema', 'wsty', 'stk', 'tipos', 'colecao', 'outro'];
+  const LISTK = ['wgt', 'bdr', 'pat', 'tema', 'wsty', 'stk', 'sticker', 'tipos', 'colecao', 'outro'];
   const mine = (k) => S.lib.filter((x) => x.kind === k);
   const TOK = [['@a', 'Cor A do tema'], ['@b', 'Cor B do tema'], ['@ink', 'Tinta'], ['@soft', 'Suave'], ['@soft2', 'Suave 2'], ['@line', 'Linha'], ['@text', 'Texto'], ['none', 'Sem cor']];
   const isHex = (v) => /^#[0-9a-f]{6}$/i.test(v || '');
@@ -220,6 +221,7 @@
     try {
       if (it.kind === 'wgt' || it.kind === 'stk') boxPrev(cv, it.els, bw, bh);
       else if (it.kind === 'bdr') bdrPrev(cv, it.border, bw, bh);
+      else if (it.kind === 'pat') patPrev(cv, it, bw, bh);
       else if (it.kind === 'wsty') wstyPrev(cv, it.spec, null, bw, bh);
       else if (it.kind === 'tema') temaPrev(cv, it, bw, bh);
       else if (it.kind === 'tipos' && window.Textos) Textos.prev(cv, it, bw, bh);
@@ -428,6 +430,81 @@
         $$('[data-prop]', b).forEach((x) => x.onclick = () => { const p = props[+x.dataset.prop]; if (kind === 'colecao') ED.apply(s, p); else ED.apply(s, p); props = []; render(true); toast('Proposta carregada. Ajuste o que quiser. 🌸'); });
       };
       wire(); paint();
+    }, true);
+  }
+
+
+  /* =====================================================================
+     Padrões (estampas para a borda ou a página toda) — editor de imagem
+     ===================================================================== */
+  function patPrev(cv, it, bw, bh) {
+    const d = window.devicePixelRatio || 1; cv.width = bw * d; cv.height = bh * d; const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height);
+    const im = getImg(it.src); if (!im) { setTimeout(() => { try { patPrev(cv, it, bw, bh); } catch (e) { /* */ } }, 400); return; }
+    const pt = c.createPattern(im, 'repeat'), k = (cv.width / 6) / (im.naturalWidth || 1); if (pt && pt.setTransform) pt.setTransform(new DOMMatrix().scale(k, k)); c.fillStyle = pt || '#eee'; c.fillRect(0, 0, cv.width, cv.height);
+  }
+  const PD = () => ({ name: 'Meu padrão', z: 1, x: 0, y: 0, rot: 0, fx: false, fy: false, br: 100, ct: 100, sa: 100, bg: 'none', mir: false, ps: 20 });
+  function patRender(c, im, o, N) {
+    c.clearRect(0, 0, N, N); if (o.bg && o.bg !== 'none') { c.fillStyle = o.bg; c.fillRect(0, 0, N, N); }
+    if (!im) return;
+    const draw = (g, S0, ox, oy, flipX, flipY) => {
+      g.save(); g.translate(ox + S0 / 2, oy + S0 / 2); if (flipX) g.scale(-1, 1); if (flipY) g.scale(1, -1);
+      g.beginPath(); g.rect(-S0 / 2, -S0 / 2, S0, S0); g.clip();
+      g.translate(o.x * S0 / 100, o.y * S0 / 100); g.rotate(o.rot * Math.PI / 180); g.scale(o.fx ? -1 : 1, o.fy ? -1 : 1);
+      const iw = im.naturalWidth, ih = im.naturalHeight, k = (S0 / Math.min(iw, ih)) * o.z; try { g.filter = `brightness(${o.br}%) contrast(${o.ct}%) saturate(${o.sa}%)`; } catch (e) { /* sem filtro */ }
+      g.drawImage(im, -iw * k / 2, -ih * k / 2, iw * k, ih * k); g.restore();
+    };
+    if (!o.mir) draw(c, N, 0, 0, false, false);
+    else { const h = N / 2; draw(c, h, 0, 0, false, false); draw(c, h, h, 0, true, false); draw(c, h, 0, h, false, true); draw(c, h, h, h, true, true); }
+  }
+  function openPat(item) {
+    const o = Object.assign(PD(), item && item.ed ? clone(item.ed) : {}, item ? { name: item.name, ps: item.ps || 20 } : {});
+    let im = null, file = null, origSrc = item ? item.orig || item.src : null;
+    const lib = S.lib.filter((x) => ['sticker', 'border', 'widget', 'background', 'pat'].includes(x.kind) && x.src);
+    modal(`<div class="mlx patx"><h2>${item ? 'Editar' : 'Novo'} padrão</h2>
+      <label class="f">Nome<input type="text" id="paN" value="${esc(o.name)}"></label>
+      <div class="patcols"><div class="patl"><canvas id="paCv" width="320" height="320"></canvas><small>Padrão repetido (como vai ficar na borda)</small><canvas id="paRep" width="320" height="160"></canvas></div>
+      <div class="patr">
+        <div class="row"><span class="btn sm upl">Enviar imagem<input type="file" id="paF" accept=".png,.jpg,.jpeg,image/png,image/jpeg"></span></div>
+        ${lib.length ? `<div class="pfield"><span>Ou usar uma imagem dos Uploads</span><div class="litems patlib">${lib.slice(0, 24).map((it) => `<div class="litem"><div class="im" data-pl="${it.id}" role="button" tabindex="0" title="${esc(it.name || '')}"><img src="${esc(srcUrl(it.src))}" alt=""></div></div>`).join('')}</div></div>` : ''}
+        <label class="f">Zoom <span id="paZv"></span><input type="range" id="paZ" min="0.3" max="4" step="0.05" value="${o.z}"></label>
+        <div class="fgrid"><label class="f">Mover ← →<input type="range" id="paX" min="-100" max="100" value="${o.x}"></label><label class="f">Mover ↑ ↓<input type="range" id="paY" min="-100" max="100" value="${o.y}"></label></div>
+        <label class="f">Girar <span id="paRv"></span><input type="range" id="paR" min="-180" max="180" value="${o.rot}"></label>
+        <div class="row"><button type="button" class="btn sm" id="paR90">Girar 90°</button><button type="button" class="btn sm${o.fx ? ' pri' : ''}" id="paFx">Espelhar ↔</button><button type="button" class="btn sm${o.fy ? ' pri' : ''}" id="paFy">Espelhar ↕</button></div>
+        <div class="fgrid"><label class="f">Brilho<input type="range" id="paB" min="40" max="160" value="${o.br}"></label><label class="f">Contraste<input type="range" id="paC" min="40" max="160" value="${o.ct}"></label><label class="f">Saturação<input type="range" id="paS" min="0" max="200" value="${o.sa}"></label></div>
+        <label class="chk"><input type="checkbox" id="paM"${o.mir ? ' checked' : ''}> Sem emenda (espelha nos cantos para o padrão ficar contínuo)</label>
+        <label class="pfield"><span>Fundo atrás da imagem</span>${colorField('pabg', o.bg, true)}</label>
+        <label class="f">Tamanho padrão na página (mm)<input type="number" id="paP" min="2" max="150" value="${o.ps}"></label>
+      </div></div><p class="hint" id="paMsg"></p>
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" id="paGo">Salvar padrão</button></div></div>`, (b, close) => {
+      const cv = $('#paCv', b), rep = $('#paRep', b);
+      const paint = () => {
+        const c = cv.getContext('2d'), N = 320; c.save(); c.fillStyle = '#fff'; c.fillRect(0, 0, N, N); const g = Math.round(N / 16); for (let y = 0; y < N; y += g) for (let x = (y / g) % 2 ? g : 0; x < N; x += g * 2) { c.fillStyle = '#f1ecf3'; c.fillRect(x, y, g, g); } c.restore();
+        const t = document.createElement('canvas'); t.width = t.height = 320; patRender(t.getContext('2d'), im, o, 320); c.drawImage(t, 0, 0);
+        const r = rep.getContext('2d'); r.fillStyle = '#fff'; r.fillRect(0, 0, 320, 160); const pt = r.createPattern(t, 'repeat'); if (pt && pt.setTransform) pt.setTransform(new DOMMatrix().scale(0.25, 0.25)); r.fillStyle = pt || '#eee'; r.fillRect(0, 0, 320, 160);
+        $('#paZv', b).textContent = '×' + o.z.toFixed(2); $('#paRv', b).textContent = Math.round(o.rot) + '°';
+      };
+      const setIm = async (src, blob) => { const i2 = await loadImg(src); if (!i2) { toast('Não consegui abrir essa imagem.'); return; } im = i2; if (blob) file = blob; origSrc = blob ? null : src; paint(); };
+      if (origSrc) setIm(origSrc, null); else paint();
+      $('#paF', b).onchange = (e) => { const f = e.target.files[0]; if (!f) return; const u = URL.createObjectURL(f); const i2 = new Image(); i2.onload = () => { im = i2; file = f; origSrc = null; paint(); }; i2.onerror = () => toast('Envie PNG ou JPEG.'); i2.src = u; };
+      $$('[data-pl]', b).forEach((x) => x.onclick = () => { const it = S.lib.find((y) => y.id === x.dataset.pl); if (it) setIm(it.src, null); });
+      const bind = (id, k, num) => { $(id, b).oninput = (e) => { o[k] = num === false ? e.target.checked : +e.target.value; paint(); }; };
+      bind('#paZ', 'z'); bind('#paX', 'x'); bind('#paY', 'y'); bind('#paR', 'rot'); bind('#paB', 'br'); bind('#paC', 'ct'); bind('#paS', 'sa'); bind('#paM', 'mir', false);
+      $('#paR90', b).onclick = () => { o.rot = ((o.rot + 90 + 180) % 360) - 180; $('#paR', b).value = o.rot; paint(); };
+      $('#paFx', b).onclick = (e) => { o.fx = !o.fx; e.target.classList.toggle('pri', o.fx); paint(); }; $('#paFy', b).onclick = (e) => { o.fy = !o.fy; e.target.classList.toggle('pri', o.fy); paint(); };
+      const bgi = $('input[data-k="pabg"]', b); if (bgi) { bgi.oninput = () => { o.bg = bgi.dataset.gv || bgi.value; paint(); }; bgi.onchange = bgi.oninput; }
+      $$('[data-cset="pabg"]', b).forEach((x) => x.onclick = () => { o.bg = x.dataset.v; paint(); });
+      $('#paGo', b).onclick = async () => {
+        if (!im) { $('#paMsg', b).textContent = 'Escolha uma imagem primeiro.'; return; }
+        const go = $('#paGo', b); go.disabled = true; go.textContent = 'Salvando…';
+        try {
+          o.name = ($('#paN', b).value || '').trim() || 'Meu padrão'; o.ps = num(+$('#paP', b).value, 2, 150, 20);
+          const out = document.createElement('canvas'); out.width = out.height = 512; patRender(out.getContext('2d'), im, o, 512);
+          const blob = await new Promise((res) => out.toBlob(res, 'image/png')); const src = await Store.upload(blob, 'image/png');
+          let orig = origSrc; if (!orig && file) orig = await Store.upload(file, file.type || 'image/png');
+          const it = { id: item ? item.id : uid('l'), kind: 'pat', name: o.name, src, orig, ps: o.ps, ed: { z: o.z, x: o.x, y: o.y, rot: o.rot, fx: o.fx, fy: o.fy, br: o.br, ct: o.ct, sa: o.sa, bg: o.bg, mir: o.mir }, createdAt: item ? item.createdAt : Date.now(), updatedAt: Date.now() };
+          await put(it); sync(); close(); toast('Padrão salvo no ModuLab. Ele aparece em Bordas → Padrão. 💜'); ModuLab.refresh(); if (S.view === 'editor' && typeof renderPanel === 'function') renderPanel();
+        } catch (e) { $('#paMsg', b).textContent = 'Não consegui salvar agora.'; go.disabled = false; go.textContent = 'Salvar padrão'; }
+      };
     }, true);
   }
 
@@ -699,13 +776,13 @@
       <h2 class="mlh2">Minhas criações</h2><div class="chips mlf">${[['todos', 'Tudo']].concat(LISTK.filter((k) => k !== 'sticker').map((k) => [k, KIND[k].pl])).map(([k, n]) => `<button class="chip${filt.k === k ? ' on' : ''}" data-f="${k}">${n}</button>`).join('')}</div>
       ${all.length ? `<div class="mlgrid">${all.map((it) => `<div class="mlcard" data-id="${it.id}"><div class="mlpv"><canvas data-pc="${it.id}"></canvas></div><div class="mlb"><span class="mlbadge">${(KIND[it.kind] || { n: 'Adesivo (imagem)' }).n}</span><b>${esc(it.name || 'Sem nome')}</b>${it.kind === 'colecao' ? `<small>${(it.items || []).length} itens</small>` : ''}<div class="ac">${it.kind === 'sticker' ? '' : `<button class="btn sm" data-ed="${it.id}">Editar</button><button class="btn sm ghost" data-dp="${it.id}">Duplicar</button>`}<button class="btn sm ghost danger" data-rm="${it.id}">Excluir</button></div></div></div>`).join('')}</div>` : '<p class="hint">Nada por aqui ainda. Escolha um tipo acima para criar o primeiro. 🌸</p>'}`;
     $('#mlIa', box).onclick = () => iaModal();
-    $$('[data-new]', box).forEach((b) => b.onclick = () => { const k = b.dataset.new; if (['wgt', 'stk', 'bdr'].includes(k)) chooseModal(k); else if (k === 'tipos') Textos.openTipos(null); else openEditor(k, null); });
+    $$('[data-new]', box).forEach((b) => b.onclick = () => { const k = b.dataset.new; if (['wgt', 'stk', 'bdr'].includes(k)) chooseModal(k); else if (k === 'tipos') Textos.openTipos(null); else if (k === 'pat') openPat(null); else openEditor(k, null); });
     const fb = $('#mlFree', box); if (fb) fb.onclick = freeModal;
     $$('[data-od]', box).forEach((b) => b.onclick = () => { const d = S.drafts.find((x) => x.id === b.dataset.od); if (d && !S.projects.some((x) => x.id === d.id)) S.projects.push(d); openProject(b.dataset.od); });
     $$('[data-dd]', box).forEach((b) => b.onclick = async () => { if (!b.dataset.cf) { b.dataset.cf = 1; b.textContent = 'Confirmar'; setTimeout(() => { if (b.isConnected) { delete b.dataset.cf; b.textContent = 'Excluir'; } }, 4000); return; } const d = S.drafts.find((x) => x.id === b.dataset.dd); try { await Store.delProject(b.dataset.dd, d ? d.order || [] : []); S.drafts = S.drafts.filter((x) => x.id !== b.dataset.dd); mount(box); } catch (e) { toast('Não consegui excluir.'); } });
     $$('[data-f]', box).forEach((b) => b.onclick = () => { filt.k = b.dataset.f; mount(box); });
     $$('canvas[data-pc]', box).forEach((cv) => { const it = S.lib.find((x) => x.id === cv.dataset.pc); if (it) itemPrev(cv, it, 190, 120); });
-    $$('[data-ed]', box).forEach((b) => b.onclick = () => { const it = S.lib.find((x) => x.id === b.dataset.ed); if (!it) return; if (it.kind === 'wgt' || it.kind === 'stk') openFree(it.kind, it); else if (it.kind === 'tipos') Textos.openTipos(it); else openEditor(it.kind, it); });
+    $$('[data-ed]', box).forEach((b) => b.onclick = () => { const it = S.lib.find((x) => x.id === b.dataset.ed); if (!it) return; if (it.kind === 'wgt' || it.kind === 'stk') openFree(it.kind, it); else if (it.kind === 'tipos') Textos.openTipos(it); else if (it.kind === 'pat') openPat(it); else openEditor(it.kind, it); });
     $$('[data-dp]', box).forEach((b) => b.onclick = async () => { const it = S.lib.find((x) => x.id === b.dataset.dp); if (!it) return; const c = clone(it); c.id = uid('l'); c.name = (it.name || '') + ' (cópia)'; c.createdAt = c.updatedAt = Date.now(); await put(c); sync(); mount(box); });
     $$('[data-rm]', box).forEach((b) => b.onclick = async () => { if (!b.dataset.cf) { b.dataset.cf = 1; b.textContent = 'Confirmar exclusão'; setTimeout(() => { if (b.isConnected) { delete b.dataset.cf; b.textContent = 'Excluir'; } }, 4000); return; }
       const it = S.lib.find((x) => x.id === b.dataset.rm); if (!it) return; try { await Store.delLib(it); S.lib = S.lib.filter((x) => x !== it); S.lib.forEach((c) => { if (c.kind === 'colecao' && (c.items || []).includes(it.id)) { c.items = c.items.filter((y) => y !== it.id); Store.saveLib(c); } }); sync(); mount(box); toast('Excluído.'); } catch (e) { toast('Não consegui excluir.'); } });
@@ -799,6 +876,6 @@
     const lh2 = window.loadHome; if (typeof lh2 === 'function' && !lh2._ml2) { const w = async function () { const r = await lh2.apply(this, arguments); dock(); return r; }; w._ml = 1; w._ml2 = 1; window.loadHome = w; }
     sync();
   }
-  window.ModuLab = { soltar, piecesOf, openFree, freeModal, dock, mount, sync, openEditor, themeModal, IA, refresh() { const b = $('#mlBox'); if (b && $('#vModulab') && !$('#vModulab').hidden) mount(b); }, applyTheme, colorsFromText, dominant, palFrom };
+  window.ModuLab = { openPat, soltar, piecesOf, openFree, freeModal, dock, mount, sync, openEditor, themeModal, IA, refresh() { const b = $('#mlBox'); if (b && $('#vModulab') && !$('#vModulab').hidden) mount(b); }, applyTheme, colorsFromText, dominant, palFrom };
   boot();
 })();

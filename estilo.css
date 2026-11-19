@@ -905,3 +905,8 @@ body.qm-on #qbar{display:none!important}
 .cp-b.sm{font-size:11px;padding:2px 7px;white-space:nowrap}
 .cp-secrow{display:flex;align-items:center;gap:12px}
 .cp-none{width:22px;height:22px;border-radius:50%;border:1px solid rgba(62,53,80,.25);padding:0;cursor:pointer;background:linear-gradient(135deg,#fff 44%,#B4436C 44%,#B4436C 56%,#fff 56%)}
+
+.patcols{display:grid;grid-template-columns:minmax(0,320px) 1fr;gap:16px}.patl canvas{width:100%;max-width:320px;border:1px solid var(--line);border-radius:12px;display:block;margin-bottom:6px}.patl small{color:var(--muted);display:block;margin-bottom:6px}
+.patr{display:grid;gap:8px;align-content:start}.patr label span{float:right;color:var(--muted)}.patlib{max-height:110px;overflow:auto}
+@media(max-width:760px){.patcols{grid-template-columns:1fr}}
+.bdtabs{margin-bottom:8px}.bdtabs button{flex:1}

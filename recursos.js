@@ -26,7 +26,7 @@ function readScope(b,px){const v=$(`#${px}Sc`,b).value,n=S.order.length,cur=curP
 
 /* ---------- bordas ---------- */
 const BORDER_PRESETS=[['moldura','Moldura inteira'],['embaixo','Só embaixo'],['topo','Só em cima'],['topo-baixo','Em cima e embaixo'],['laterais','Só as laterais'],['externa','Só a lateral de fora'],['interna','Só a lateral da encadernação'],['meio-h','Faixa no meio (deitada)'],['meio-v','Faixa no meio (em pé)']];
-const BORDER_DEF={preset:'moldura',kind:'cor',color:'#C398C8',width:2,inset:6,style:'solid',radius:3,opacity:1,src:null};
+const BORDER_DEF={preset:'moldura',kind:'padrao',color:'#C398C8',width:2,inset:6,style:'solid',radius:3,opacity:1,src:null,area:'borda',ps:20,span:'continuo'};
 function bandRects(pg,b){const W=pg.w,H=pg.h,t=b.width,i=b.inset,n=(S.order.indexOf(pg.id)+1)||1,odd=n%2===1;
   const top={x:i,y:i,w:W-2*i,h:t,vert:false},bot={x:i,y:H-i-t,w:W-2*i,h:t,vert:false},lef={x:i,y:i,w:t,h:H-2*i,vert:true},rig={x:W-i-t,y:i,w:t,h:H-2*i,vert:true};
   switch(b.preset){case 'embaixo':return[bot];case 'topo':return[top];case 'topo-baixo':return[top,bot];case 'laterais':return[lef,rig];
@@ -43,8 +43,15 @@ function lineBand(c,r,b){const t=b.width;c.save();c.strokeStyle=b.color;c.fillSt
   else if(b.style==='dot'){c.lineCap='round';c.setLineDash([0,t*2]);along(t/2,t)}
   else if(b.style==='double'){along(t/6,t/3);along(t-t/6,t/3)}
   else c.fillRect(r.x,r.y,r.w,r.h);c.restore()}
-function drawBorder(c,pg){const b=pg.border;if(!b||!b.preset)return;c.save();c.globalAlpha=b.opacity??1;
-  if(b.kind==='imagem'){const im=getImg(b.src);if(im)for(const r of bandRects(pg,b))tileStrip(c,im,r)}
+function patFill(c,pg,b,rects){const im=getImg(b.src);if(!im)return;const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;if(!iw||!ih)return;
+  const ps=Math.max(2,b.ps||20),sx=ps/iw,sy=(ps*ih/iw)/ih,idx=S.order.indexOf(pg.id),right=idx>=0&&(idx+1)%2===1,pt=c.createPattern(im,'repeat');if(!pt)return;
+  if(pt.setTransform&&window.DOMMatrix){let m=new DOMMatrix();if(right&&b.span==='invertido')m=m.translate(pg.w,0).scale(-sx,sy);else if(right)m=m.translate(-pg.w,0).scale(sx,sy);else m=m.scale(sx,sy);pt.setTransform(m)}
+  c.fillStyle=pt;c.beginPath();if(rects)rects.forEach(q=>c.rect(q.x,q.y,q.w,q.h));else c.rect(0,0,pg.w,pg.h);c.fill()}
+function drawBorder(c,pg){const b=pg.border;if(!b||(!b.preset&&b.area!=='pagina'))return;window.__fb={w:pg.w,h:pg.h};c.save();c.globalAlpha=b.opacity??1;const whole=b.area==='pagina';
+  if(b.kind==='padrao'){if(whole)patFill(c,pg,b,null);else patFill(c,pg,b,bandRects(pg,b))}
+  else if(b.kind==='imagem'){const im=getImg(b.src);if(im)for(const r of bandRects(pg,b))tileStrip(c,im,r)}
+  else if(!b.color||b.color==='none'){}
+  else if(whole){c.fillStyle=b.color;c.fillRect(0,0,pg.w,pg.h)}
   else if(b.preset==='moldura'){const t=b.width,i=b.inset,x=i+t/2,y=i+t/2,w=pg.w-2*i-t,h=pg.h-2*i-t,rad=Math.max(0,b.radius||0);c.strokeStyle=b.color;c.lineCap='butt';
     const frame=(dx,lw,rd)=>{rr(c,x+dx,y+dx,w-2*dx,h-2*dx,rd);c.lineWidth=lw;c.stroke()};
     if(b.style==='dash'){c.setLineDash([t*3,t*2]);frame(0,t,rad)}else if(b.style==='dot'){c.lineCap='round';c.setLineDash([0,t*2]);frame(0,t,rad)}
@@ -54,6 +61,7 @@ function drawBorder(c,pg){const b=pg.border;if(!b||!b.preset)return;c.save();c.g
 function borderEdit(){if(!S.bordaEdit){const p=curPage();S.bordaEdit=Object.assign({},BORDER_DEF,p&&p.border?clone(p.border):{})}return S.bordaEdit}
 function applyBorder(ids,border){change(ids,()=>ids.forEach(id=>{S.pages[id].border=border?clone(border):null}));redraw();refreshThumbs();renderProps()}
 const BORDER_IMGS=()=>S.lib.filter(x=>['border','sticker','widget','background'].includes(x.kind)&&x.src);
+const BORDER_PATS=()=>S.lib.filter(x=>x.kind==='pat'&&x.src);
 
 /* ---------- repetir elementos em outras páginas ---------- */
 function addUnit(iso,unit,n){const d=fromIso(iso);if(!d||!n)return iso;if(unit==='mes')d.setMonth(d.getMonth()+n);else d.setDate(d.getDate()+n*(unit==='semana'?7:1));return isoOf(d)}
@@ -190,27 +198,41 @@ function mountGridControls(P){if(!$('#gRul',P))return;$('#gSpan',P).onclick=e=>{
   if($('#gAllG',P))$('#gAllG',P).onclick=()=>{const gs=clone(p.guides||[]);change(S.order.slice(),()=>S.order.forEach(id=>{S.pages[id].guides=clone(gs)}));redraw();toast('Guias copiadas para todas as páginas.')}}
 
 /* ---------- aba Bordas ---------- */
-PANELS.bordas={html(){const b=borderEdit(),p=curPage(),imgs=BORDER_IMGS();
-  return `<h2>Bordas</h2><p class="hint">Uma moldura ou faixa nas páginas: cor lisa ou imagem repetida. Escolha o desenho, o estilo e onde aplicar.</p>
-  <h3>DESENHO</h3><div class="wgrid">${BORDER_PRESETS.map(([k,n])=>`<button class="wbtn${b.preset===k?' on':''}" data-bp="${k}" style="${b.preset===k?'border-color:var(--accent)':''}"><canvas data-bpc="${k}" style="width:54px;height:72px"></canvas>${n}</button>`).join('')}</div>
-  <h3>ESTILO</h3><div class="segf"><button data-bk="cor" class="${b.kind==='cor'?'on':''}">Cor lisa</button><button data-bk="imagem" class="${b.kind==='imagem'?'on':''}">Imagem</button></div>
-  ${b.kind==='cor'?`<label class="pfield"><span>Cor</span>${colorField('bcor',b.color,false)}</label><label class="pfield"><span>Traço</span><select id="bSty"><option value="solid"${b.style==='solid'?' selected':''}>Contínuo</option><option value="dash"${b.style==='dash'?' selected':''}>Tracejado</option><option value="dot"${b.style==='dot'?' selected':''}>Pontilhado</option><option value="double"${b.style==='double'?' selected':''}>Linha dupla</option></select></label>`
-   :`<p class="hint">Escolha a imagem que se repete ao longo da borda (PNG com fundo transparente fica lindo).</p>${imgs.length?`<div class="litems">${imgs.map(it=>`<div class="litem${b.src===it.src?' on':''}" style="${b.src===it.src?'outline:2px solid var(--accent)':''}"><div class="im" data-bi="${it.id}" role="button" tabindex="0" title="${esc(it.name||'')}"><img src="${esc(srcUrl(it.src))}" alt="${esc(it.name||'')}" loading="lazy"></div></div>`).join('')}</div>`:'<p class="hint">Você ainda não enviou imagens.</p>'}
-   <span class="btn sm upl">Enviar imagem de borda<input type="file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" data-up="border" aria-label="Enviar imagem de borda"></span>`}
-  <div class="fgrid"><label class="pfield"><span>Espessura (mm)</span><input type="number" id="bW" min="0.3" max="40" step="0.5" value="${b.width}"></label><label class="pfield"><span>Distância da borda (mm)</span><input type="number" id="bI" min="0" max="60" step="0.5" value="${b.inset}"></label>
-   ${b.preset==='moldura'&&b.kind==='cor'?`<label class="pfield"><span>Cantos (mm)</span><input type="number" id="bR" min="0" max="30" step="0.5" value="${b.radius||0}"></label>`:''}<label class="pfield"><span>Opacidade</span><input type="range" id="bO" min="0.1" max="1" step="0.05" value="${b.opacity??1}"></label></div>
+PANELS.bordas={html(){const b=borderEdit(),p=curPage(),imgs=BORDER_IMGS(),pats=BORDER_PATS(),pad=b.kind==='padrao'||b.kind==='imagem',whole=b.area==='pagina';
+  const item=(it,tag)=>`<div class="litem${b.src===it.src?' on':''}" style="${b.src===it.src?'outline:2px solid var(--accent)':''}"><div class="im" data-bi="${it.id}" data-bt2="${tag}" role="button" tabindex="0" title="${esc(it.name||'')}"><img src="${esc(srcUrl(it.src))}" alt="${esc(it.name||'')}"></div></div>`;
+  const seg=(k,v,l)=>`<button type="button" data-bs="${k}:${v}" class="${(b[k]||({area:'borda',span:'continuo'})[k])===v?'on':''}">${l}</button>`;
+  return `<h2>Bordas</h2><p class="hint">Uma moldura, faixa ou estampa nas páginas. Escolha um padrão (imagem que se repete) ou um preenchimento de cor, e diga onde aplicar.</p>
+  <div class="segf bdtabs"><button type="button" data-bm="pat" class="${pad?'on':''}">Padrão</button><button type="button" data-bm="fill" class="${pad?'':'on'}">Preenchimento</button></div>
+  <div class="pfield"><span>Onde</span><div class="segf">${seg('area','borda','Só a borda')}${seg('area','pagina','Página toda')}</div></div>
+  ${pad?`<h3>PADRÕES E IMAGENS</h3>
+   ${pats.length||imgs.length?`<div class="litems">${pats.map(it=>item(it,'pat')).join('')}${imgs.map(it=>item(it,'img')).join('')}</div>`:'<p class="hint">Ainda não há padrões. Crie um no ModuLab ou envie uma imagem.</p>'}
+   <div class="row"><button type="button" class="btn sm pri" id="bdMk">Criar padrão no ModuLab</button><span class="btn sm upl">Enviar imagem<input type="file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" data-up="border" aria-label="Enviar imagem de borda"></span></div>
+   ${whole?'':`<div class="pfield"><span>Repetição</span><div class="segf"><button type="button" data-bk="padrao" class="${b.kind==='padrao'?'on':''}">Estampa (ladrilho)</button><button type="button" data-bk="imagem" class="${b.kind==='imagem'?'on':''}">Faixa ao longo da borda</button></div></div>`}
+   ${b.kind==='padrao'?`<label class="pfield"><span>Tamanho do padrão (mm)</span><input type="number" id="bPs" min="2" max="150" step="1" value="${b.ps||20}"></label>`:''}
+   <div class="pfield"><span>Duas páginas lado a lado</span><div class="segf">${seg('span','continuo','Contínuo')}${seg('span','invertido','Invertido')}</div></div>`
+  :`<h3>PREENCHIMENTO</h3><label class="pfield"><span>Cor ou gradiente</span>${colorField('bcor',b.color,true)}</label>
+   ${whole?'':`<label class="pfield"><span>Traço</span><select id="bSty"><option value="solid"${b.style==='solid'?' selected':''}>Contínuo</option><option value="dash"${b.style==='dash'?' selected':''}>Tracejado</option><option value="dot"${b.style==='dot'?' selected':''}>Pontilhado</option><option value="double"${b.style==='double'?' selected':''}>Duplo</option></select></label>`}`}
+  ${whole?'':`<h3>DESENHO</h3><div class="wgrid">${BORDER_PRESETS.map(([k,n])=>`<button class="wbtn${b.preset===k?' on':''}" data-bp="${k}" style="${b.preset===k?'border-color:var(--accent)':''}"><canvas data-bpc="${k}" style="width:54px;height:72px"></canvas>${n}</button>`).join('')}</div>
+   <div class="fgrid"><label class="pfield"><span>Espessura (mm)</span><input type="number" id="bW" min="0.3" max="40" step="0.5" value="${b.width}"></label><label class="pfield"><span>Distância da borda (mm)</span><input type="number" id="bI" min="0" max="60" step="0.5" value="${b.inset}"></label>
+   ${b.preset==='moldura'&&b.kind==='cor'?`<label class="pfield"><span>Cantos (mm)</span><input type="number" id="bR" min="0" max="30" step="0.5" value="${b.radius||0}"></label>`:''}</div>`}
+  <label class="pfield"><span>Opacidade</span><input type="range" id="bO" min="0.1" max="1" step="0.05" value="${b.opacity??1}"></label>
   <div class="pgrp"><h3>APLICAR</h3>${scopeHTML('bd',true)}<div class="row"><button class="btn pri" id="bdGo">Aplicar</button><button class="btn ghost danger" id="bdRm">Remover borda</button></div><p class="hint" id="bdMsg">${p.border?'Esta página já tem uma borda.':''}</p></div>`},
  mount(P){const b=borderEdit(),p=curPage();const redo=()=>renderPanel();
-  const paint=()=>{$$('[data-bpc]',P).forEach(cv=>{const W=60,H=84,k=cv.clientWidth?0:0,d=devicePixelRatio||1;cv.width=54*d;cv.height=72*d;const c=cv.getContext('2d'),s=Math.min(54*d/W,72*d/H);c.setTransform(s,0,0,s,(54*d-W*s)/2,(72*d-H*s)/2);
-    const pg={id:'_pv',w:W,h:H,bg:'#fff',els:[],border:Object.assign({},b,{preset:cv.dataset.bpc,width:Math.max(b.width*.7,1.2),inset:Math.min(b.inset,8)})};c.fillStyle='#fff';c.fillRect(0,0,W,H);c.strokeStyle='#E7DCE8';c.lineWidth=.6;c.strokeRect(0,0,W,H);drawBorder(c,pg)})};
+  const paint=()=>{$$('[data-bpc]',P).forEach(cv=>{const W=60,H=84,d=devicePixelRatio||1;cv.width=54*d;cv.height=72*d;const c=cv.getContext('2d'),s=Math.min(54*d/W,72*d/H);c.setTransform(s,0,0,s,(54*d-W*s)/2,(72*d-H*s)/2);
+    const pg={id:'_pv',w:W,h:H,bg:'#fff',els:[],border:Object.assign({},b,{preset:cv.dataset.bpc,area:'borda',width:Math.max(b.width*.7,1.2),inset:Math.min(b.inset,8),ps:Math.min(b.ps||20,10)})};c.fillStyle='#fff';c.fillRect(0,0,W,H);c.strokeStyle='#E7DCE8';c.lineWidth=.6;c.strokeRect(0,0,W,H);drawBorder(c,pg)})};
   paint();S.panelRepaint=paint;
+  $$('[data-bm]',P).forEach(x=>x.onclick=()=>{if(x.dataset.bm==='pat'){if(b.kind==='cor')b.kind=b.src?'padrao':'padrao'}else b.kind='cor';redo()});
+  $$('[data-bs]',P).forEach(x=>x.onclick=()=>{const[k,v]=x.dataset.bs.split(':');b[k]=v;redo()});
   $$('[data-bp]',P).forEach(x=>x.onclick=()=>{b.preset=x.dataset.bp;redo()});$$('[data-bk]',P).forEach(x=>x.onclick=()=>{b.kind=x.dataset.bk;redo()});
-  $$('[data-cset="bcor"]',P).forEach(x=>x.onclick=()=>{b.color=x.dataset.v;redo()});const ci=$('input[data-k="bcor"]',P);if(ci)ci.oninput=()=>{b.color=ci.value;paint()};
+  $$('[data-cset="bcor"]',P).forEach(x=>x.onclick=()=>{b.color=x.dataset.v;redo()});const ci=$('input[data-k="bcor"]',P);if(ci){ci.oninput=()=>{b.color=ci.dataset.gv||ci.value;paint()};ci.onchange=()=>{b.color=ci.dataset.gv||ci.value;redo()}}
   if($('#bSty',P))$('#bSty',P).onchange=e=>{b.style=e.target.value;paint()};
-  $$('[data-bi]',P).forEach(x=>x.onclick=()=>{const it=S.lib.find(o=>o.id===x.dataset.bi);if(it){b.src=it.src;redo()}});
-  $('#bW',P).onchange=e=>{b.width=cl(+e.target.value||2,.3,40);paint()};$('#bI',P).onchange=e=>{b.inset=cl(+e.target.value||0,0,60);paint()};if($('#bR',P))$('#bR',P).onchange=e=>{b.radius=cl(+e.target.value||0,0,30)};$('#bO',P).oninput=e=>{b.opacity=+e.target.value};
+  $$('[data-bi]',P).forEach(x=>x.onclick=()=>{const it=S.lib.find(o=>o.id===x.dataset.bi);if(it){b.src=it.src;if(it.ps)b.ps=it.ps;if(!['padrao','imagem'].includes(b.kind))b.kind='padrao';if(b.kind==='padrao'&&b.width<6)b.width=8;if(it.kind==='pat'&&b.kind==='imagem'&&b.area==='pagina')b.kind='padrao';redo()}});
+  if($('#bPs',P))$('#bPs',P).onchange=e=>{b.ps=cl(+e.target.value||20,2,150)};
+  if($('#bdMk',P))$('#bdMk',P).onclick=()=>{if(window.ModuLab&&ModuLab.openPat)ModuLab.openPat(null);else toast('Abra o ModuLab para criar padrões.')};
+  if($('#bW',P)){$('#bW',P).onchange=e=>{b.width=cl(+e.target.value||2,.3,40);paint()};$('#bI',P).onchange=e=>{b.inset=cl(+e.target.value||0,0,60);paint()};if($('#bR',P))$('#bR',P).onchange=e=>{b.radius=cl(+e.target.value||0,0,30)}}
+  $('#bO',P).oninput=e=>{b.opacity=+e.target.value};
   mountScope(P,'bd');mountLib(P,'border');
-  $('#bdGo',P).onclick=()=>{if(b.kind==='imagem'&&!b.src){$('#bdMsg',P).textContent='Escolha uma imagem para a borda.';return}const ids=readScope(P,'bd');if(!ids.length){$('#bdMsg',P).textContent='Escolha pelo menos uma página.';return}
+  $('#bdGo',P).onclick=()=>{if((b.kind==='padrao'||b.kind==='imagem')&&!b.src){$('#bdMsg',P).textContent='Escolha um padrão ou imagem para a borda.';return}const ids=readScope(P,'bd');if(!ids.length){$('#bdMsg',P).textContent='Escolha pelo menos uma página.';return}
     applyBorder(ids,b);$('#bdMsg',P).textContent=`Borda aplicada em ${ids.length} página${ids.length===1?'':'s'}. 🌸`};
   $('#bdRm',P).onclick=()=>{const ids=readScope(P,'bd');applyBorder(ids,null);$('#bdMsg',P).textContent=`Borda removida de ${ids.length} página${ids.length===1?'':'s'}.`}}};
 const _setCur=setCur;setCur=function(...a){S.bordaEdit=null;return _setCur.apply(this,a)};
