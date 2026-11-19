@@ -997,3 +997,6 @@ body.qm-on #qbar{display:none!important}
 .tinsdel{display:grid;gap:6px;margin:8px 0}
 .tid{display:flex;align-items:center;gap:5px;flex-wrap:wrap}.tid>span{width:48px;font:700 11px var(--f-title);color:#9168A0}
 .tidb{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;min-width:0}.tidb svg{flex:none}
+.crow .pfield>span,.fgrid .pfield>span{white-space:normal;overflow-wrap:anywhere;line-height:1.15}
+.crow>*{min-width:0}
+.tpan .crow .pfield>span{white-space:normal;line-height:1.15;min-height:27px;display:flex;align-items:flex-end}

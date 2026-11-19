@@ -364,3 +364,9 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - "Aplicar borda em" e "Remover borda de" viraram uma linha só, **Contorno da célula**: cada lado liga/desliga com um clique (botão aceso = lado com borda; "todos os lados" inclui as divisões internas da seleção).
 - O contorno geral passou a se chamar **Contorno da tabela** (vale para todas as células); "Voltar ao contorno da tabela" desfaz os ajustes da seleção.
 - Cache `estudio-miolos-v76`.
+
+## Ajuste 71 · Fundo das células: "do todo" x exceções
+- Selecionar a tabela toda (ou todas as células do corpo) e escolher uma cor define o **fundo da tabela** (cabeçalho junto quando incluído) e limpa as cores individuais; a cor alternada é desligada para valer em todas.
+- Selecionar parte das células cria **exceções** só nelas. "Sem cor"/"Tirar cor" numa exceção devolve a célula ao fundo da tabela.
+- Textos dos campos lado a lado no painel da tabela não se sobrepõem mais (quebram linha); fundo e cor alternada ficam juntos.
+- Cache `estudio-miolos-v77`.

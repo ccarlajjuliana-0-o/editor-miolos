@@ -373,6 +373,16 @@
     const hd = w.querySelector('.wah'); hd.onclick = () => { w.classList.toggle('open'); const on = w.classList.contains('open'); hd.setAttribute('aria-expanded', on); Pref.acc = Pref.acc || {}; Pref.acc[id] = on; try { savePref(); } catch (er) { /* */ } };
     return w;
   };
+  /* fundo: seleção = tabela toda → vira a cor "do todo"; seleção parcial → exceção só dessas células; "sem cor" numa exceção devolve a célula ao todo */
+  function fillCore(z, t, v) {
+    const q = rng(t), y0 = hasH(z) ? 1 : 0, allBody = q.c0 === 0 && q.c1 === z.cols - 1 && q.r0 <= y0 && q.r1 === nR(z) - 1, withHead = hasH(z) && q.r0 === 0;
+    const free = (r, c) => !(cellOf(z, r, c) || {}).lock;
+    if (allBody) {
+      if (v === 'none' || v === null) { z.cellFill = 'none'; z.cellFill2 = 'none'; if (withHead) z.headFill = 'none'; } else { z.cellFill = v; z.cellFill2 = 'none'; if (withHead) z.headFill = v; }
+      cellKeys(z, t).forEach(([r, c]) => { if (free(r, c)) setCell(z, r, c, { fill: undefined }); });
+    } else cellKeys(z, t).forEach(([r, c]) => { if (free(r, c)) setCell(z, r, c, { fill: v === 'none' || v === null ? undefined : v }); });
+  }
+  const applyFill = (v) => { const t = TS(); if (t) mutate((z) => fillCore(z, t, v)); };
   /* contorno da célula: um único botão por lado liga/desliga (lados internos entram só em "todos") */
   const bdTargets = (e, t, s2) => { const q = rng(t), sides = s2 === 'A' ? ['T', 'R', 'B', 'L'] : [s2], out = []; cellKeys(e, t).forEach(([r, c]) => sides.forEach((sd) => { const inner = (sd === 'T' && r !== q.r0) || (sd === 'B' && r !== q.r1) || (sd === 'L' && c !== q.c0) || (sd === 'R' && c !== q.c1); if (s2 !== 'A' && inner) return; out.push([r, c, sd]); })); return out; };
   const bdOn = (e, r, c, sd) => { const bd = (cellOf(e, r, c) || {}).bd, v = bd && bd[sd]; if (v !== undefined) return !!v; if (e.cellGap > 0 || e.cellR > 0) return e.cellBorder !== false && cellSides(e).includes(sd.toLowerCase()); return sd === 'T' || sd === 'B' ? e.gridH !== false : e.gridV !== false; };
@@ -383,7 +393,7 @@
     FIELDS._tx1 = [['rows', 'Linhas', 'num', 1], ['cols', 'Colunas', 'num', 1], ['header', 'Cabeçalho (separe por vírgula)', 'list'], ['side', 'Primeira coluna (separe por vírgula)', 'list']];
     FIELDS._tx2 = [['font', 'Fonte', 'font'], ['size', 'Tamanho (pt)', 'num', 0.5], ['color', 'Cor do texto', 'color']];
     FIELDS._tx3 = [['stroke', 'Cor das linhas', 'colorN'], ['sw', 'Espessura (mm)', 'num', 0.05], ['lnStyle', 'Tipo de linha', 'sel', LN.OPTS, null, 'solid'], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['gridH', 'Linhas horizontais', 'chk', 0, null, true], ['gridV', 'Linhas verticais', 'chk', 0, null, true], ['cellBorder', 'Contorno da tabela', 'sides'],
-      ['cellGap', 'Espaço entre células (mm)', 'num', 0.2], ['cellFill', 'Fundo das células', 'colorN'], ['cellFill2', 'Cor alternada (linhas)', 'colorN']];
+      ['cellFill', 'Fundo das células', 'colorN'], ['cellFill2', 'Cor alternada (linhas)', 'colorN'], ['cellGap', 'Espaço entre células (mm)', 'num', 0.2]];
     const fx = (type) => fieldsHTML(Object.assign({}, e, { type }));
     const t = TS() && TS().id === e.id ? TS() : null, L = lay(e), nm = r2, H4 = (x) => `<h4 class="tsh">${x}</h4>`;
     const sizes = () => {
@@ -415,7 +425,7 @@
         <div class="tinsdel">${[['Linha', [['insrowA', 'up', '＋', 'Inserir linha acima da seleção'], ['delrowT', 'up', '−', 'Excluir a linha de cima da seleção'], ['insrowB', 'down', '＋', 'Inserir linha abaixo da seleção'], ['delrowB', 'down', '−', 'Excluir a linha de baixo da seleção']]], ['Coluna', [['inscolA', 'left', '＋', 'Inserir coluna à esquerda da seleção'], ['delcolL', 'left', '−', 'Excluir a coluna da esquerda da seleção'], ['inscolB', 'right', '＋', 'Inserir coluna à direita da seleção'], ['delcolR', 'right', '−', 'Excluir a coluna da direita da seleção']]]].map(([nmz, bs]) => `<div class="tid"><span>${nmz}</span>${bs.map(([ac, dir, sg, tt]) => `<button type="button" class="btn sm tidb${sg === '−' ? ' danger' : ''}" data-ta="${ac}" title="${tt}" aria-label="${tt}"><svg viewBox="0 0 10 10" width="9" height="9" fill="currentColor">${{ up: '<path d="M5 2l4 5H1z"/>', down: '<path d="M5 8L1 3h8z"/>', left: '<path d="M2 5l5-4v8z"/>', right: '<path d="M8 5L3 1v8z"/>' }[dir]}</svg>${sg}</button>`).join('')}</div>`).join('')}</div>
         <div class="row tbtn"><button type="button" class="btn sm${allLockedCells ? ' pri' : ''}" data-ta="lockcell">${allLockedCells ? 'Destravar' : 'Travar'} célula(s)</button><button type="button" class="btn sm${allR ? ' pri' : ''}" data-ta="lockrow">${allR ? 'Destravar' : 'Travar'} altura da linha</button><button type="button" class="btn sm${allC ? ' pri' : ''}" data-ta="lockcol">${allC ? 'Destravar' : 'Travar'} largura da coluna</button></div>
         <p class="hint">Célula travada não muda texto nem formato. Linha travada mantém a altura e coluna travada mantém a largura, mesmo ao esticar a tabela.</p>${sizes()}
-        ${H4('Formato da seleção')}<h5 class="tsh2">Fundo</h5><div class="pfield">${cf('tcFill', cl.fill === undefined ? 'none' : cl.fill, true)}</div><button type="button" class="btn sm ghost" data-ta="fillreset">Voltar ao padrão da tabela</button>
+        ${H4('Formato da seleção')}<h5 class="tsh2">Fundo</h5><div class="pfield">${cf('tcFill', cl.fill === undefined ? 'none' : cl.fill, true)}</div><button type="button" class="btn sm ghost" data-ta="fillreset">Tirar cor (volta ao fundo da tabela)</button>
         <h5 class="tsh2">Texto</h5>
         <label class="pfield"><span>Fonte</span><select data-tf="font">${fontList().map((f) => `<option${f === st.font ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select></label>
         <div class="fgrid"><label class="pfield"><span>Tamanho (pt)</span><input type="number" step="0.5" min="2" data-tf="size" value="${st.size}"></label><label class="pfield"><span>Cor</span>${cf('tcColor', st.color, false)}</label></div>
@@ -447,7 +457,7 @@
       else if (a === 'lockcell') { const all = cellKeys(e, t).every(([r, c]) => (cellOf(e, r, c) || {}).lock); mutate((z) => { cellKeys(z, t).forEach(([r, c]) => setCell(z, r, c, { lock: all ? undefined : true })); }); }
       else if (a === 'lockrow') { const q = rng(t); mutate((z) => { let all = true; for (let r = q.r0; r <= q.r1; r++) if (!(z.lockR && z.lockR[r])) all = false; bake(z); z.lockR = z.lockR || {}; for (let r = q.r0; r <= q.r1; r++) { if (all) delete z.lockR[r]; else z.lockR[r] = true; } }); }
       else if (a === 'lockcol') { const q = rng(t); mutate((z) => { let all = true; for (let c = q.c0; c <= q.c1; c++) if (!(z.lockC && z.lockC[c])) all = false; bake(z); z.lockC = z.lockC || {}; for (let c = q.c0; c <= q.c1; c++) { if (all) delete z.lockC[c]; else z.lockC[c] = true; } }); }
-      else if (a === 'fillreset') fmtApply((z, r, c) => setCell(z, r, c, { fill: undefined }));
+      else if (a === 'fillreset') applyFill('none');
       else if (a === 'bdreset') fmtApply((z, r, c) => setCell(z, r, c, { bd: undefined }));
     });
     on('[data-tsz]', 'change', (x) => { x.blur(); const ax = x.dataset.tsz[0], i = +x.dataset.tsz.slice(1), v = parseFloat(x.value); if (!(v > 0)) return; mutate((z) => { const ok = ax === 'c' ? sizeCol(z, i, v, false) : sizeRow(z, i, v, false); if (!ok) { toast(ax === 'c' ? 'Coluna travada.' : 'Linha travada.'); return false; } }); });
@@ -467,8 +477,8 @@
     on('[data-tal]', 'click', (x) => { const [k, v] = x.dataset.tal.split(':'); tf(k, v); });
     // cores
     const colorOf = (k) => { const i = w.querySelector(`[data-tk="${k}"]`); return i ? (i.dataset.gv || i.value) : null; };
-    w.querySelectorAll('input[type=color][data-tk]').forEach((i) => { const k = i.dataset.tk; i.addEventListener('change', (E) => { E.stopPropagation(); const v = i.value; if (k === 'tcFill') fmtApply((z, r, c) => setCell(z, r, c, { fill: v })); else if (k === 'tcColor') tf('color', v); }); i.addEventListener('input', (E) => E.stopPropagation()); });
-    on('[data-tset]', 'click', (x) => { const k = x.dataset.tset, v = x.dataset.v; if (k === 'tcFill') fmtApply((z, r, c) => setCell(z, r, c, { fill: v === 'none' ? 'none' : v })); else if (k === 'tcColor') tf('color', v); else if (k === 'tbColor') { const i = w.querySelector('[data-tk="tbColor"]'); if (i) i.value = v; } });
+    w.querySelectorAll('input[type=color][data-tk]').forEach((i) => { const k = i.dataset.tk; i.addEventListener('change', (E) => { E.stopPropagation(); const v = i.value; if (k === 'tcFill') applyFill(v); else if (k === 'tcColor') tf('color', v); }); i.addEventListener('input', (E) => E.stopPropagation()); });
+    on('[data-tset]', 'click', (x) => { const k = x.dataset.tset, v = x.dataset.v; if (k === 'tcFill') applyFill(v); else if (k === 'tcColor') tf('color', v); else if (k === 'tbColor') { const i = w.querySelector('[data-tk="tbColor"]'); if (i) i.value = v; } });
     // bordas
     on('[data-tb]', 'click', (x) => {
       const s2 = x.dataset.tb, tg = bdTargets(e, t, s2), turnOn = !tg.every(([r, c, sd]) => bdOn(e, r, c, sd));
@@ -509,7 +519,7 @@
       const b = ev.target.closest('button[data-tq]'); if (!b) return; ev.stopPropagation(); const a = b.dataset.tq, e = curEl(), t = TS(); if (!e || !t) return;
       if (a === 'exit') { exit(); return; }
       if (a.startsWith('ti:al:')) { mutate((z) => { if (!(z.wx && z.wx.hd)) return false; z.wx.hd.align = a.slice(6); }); return; }
-      if (a === 'nofill') fmtApply((z, r, c) => setCell(z, r, c, { fill: 'none' }));
+      if (a === 'nofill') applyFill('none');
       else if (a === 'bold') { const A = clampRC(e, t.a[0], t.a[1]), on = +cellStyle(e, A[0], A[1]).weight >= 600; fmtApply((z, r, c) => setCell(z, r, c, { weight: on ? 400 : 700 })); }
       else if (a === 'italic') { const A = clampRC(e, t.a[0], t.a[1]), on = cellStyle(e, A[0], A[1]).italic; fmtApply((z, r, c) => setCell(z, r, c, { italic: on ? undefined : true })); }
       else if (a.startsWith('al:') || a.startsWith('va:')) { const [k, v] = a.split(':'); fmtApply((z, r, c) => setCell(z, r, c, { [k]: v })); }
@@ -519,7 +529,7 @@
       const i = ev.target; const a = i.dataset && i.dataset.tq; if (!a || i.type !== 'color') return; ev.stopPropagation(); const e = curEl(), t = TS(), p = curPage(); if (!e || !t || !p) return;
       qhist = qhist || snapOf([p.id]); const v = i.value;
       if (a === 'ti:fill' || a === 'ti:c') { if (e.wx && e.wx.hd) e.wx.hd[a.slice(3)] = v; }
-      else cellKeys(e, t).forEach(([r, c]) => { const cl = cellOf(e, r, c); if (cl && cl.lock) return; setCell(e, r, c, a === 'fill' ? { fill: v } : { color: v }); });
+      else if (a === 'fill') fillCore(e, t, v); else cellKeys(e, t).forEach(([r, c]) => { const cl = cellOf(e, r, c); if (cl && cl.lock) return; setCell(e, r, c, { color: v }); });
       const sw = i.parentNode.querySelector('b'); if (sw) sw.style.background = v; scheduleRedraw();
     });
     QBAR.addEventListener('change', (ev) => {
