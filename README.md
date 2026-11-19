@@ -252,3 +252,6 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 
 ## Ajuste 49
 - As molduras "Só cantos" e "Vintage" agora acompanham o arredondamento dos cantos (antes só algumas molduras acompanhavam).
+
+## Ajuste 50
+- Tabelas (e widgets que usam tabela, como os financeiros) seguem as mesmas regras de células do calendário: seções "Cabeçalho da tabela" (fonte, tamanho, cor, peso, alinhamento, espaço entre letras, faixa, linhas, divisórias, cantos) e "Células e grade" (espaço, cantos, fundo, cor alternada, linhas horizontais/verticais). O fundo do widget só pinta dentro das células.

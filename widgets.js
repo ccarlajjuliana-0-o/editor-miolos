@@ -155,6 +155,13 @@
   }
   /* registro: tipo de widget -> função que devolve as células (coordenadas da caixa externa) quando há espaço entre elas */
   const CELLS = {
+    table(e, L) {
+      if (!(e.cellGap > 0 || e.cellR > 0)) return null;
+      const hasH = Array.isArray(e.header) && e.header.length > 0, rows = e.rows + (hasH ? 1 : 0), rh = L.ih / rows, cw = colWidths(Object.assign({}, e, { w: L.iw })), out = [];
+      const cg = Math.min(e.cellGap || 0, rh * 0.5, Math.min(...cw) * 0.5), hr = e.hdR > 0 ? e.hdR : (e.hdR === 0 ? 0 : Math.min(1.6, rh / 4)); let x = 0;
+      for (let k = 0; k < e.cols; k++) { for (let r = 0; r < rows; r++) out.push({ x: L.ix + x + cg / 2, y: L.iy + r * rh + cg / 2, w: cw[k] - cg, h: rh - cg, r: hasH && r === 0 ? hr : (e.cellR || 0) }); x += cw[k]; }
+      return out;
+    },
     calendar(e, L) {
       if (!(e.wdGap > 0 || e.cellGap > 0 || e.cellR > 0)) return null;
       const ie = Object.assign({}, e, { w: L.iw, h: L.ih }), K = calLayout(ie), out = [], ox = L.ix, oy = L.iy;

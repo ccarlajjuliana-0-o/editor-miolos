@@ -280,6 +280,21 @@
     w.innerHTML = `<button class="wah" type="button" aria-expanded="${open}"><i class="wtri"></i><b>Texto em curva</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><p class="hint">Aumente a altura da caixa para a curva caber. Com abertura em 360° o texto dá a volta num círculo.</p><div class="pgrp">${fieldsHTML(Object.assign({}, e, { type: '_cv' }))}</div></div>`;
     anchor.parentNode.insertBefore(w, anchor.nextSibling);
   }
+  function tableSection(P) {
+    P.querySelectorAll('[data-acc="thead"],[data-acc="tcells"]').forEach((x) => x.remove());
+    const sel = selEls(); if (sel.length !== 1 || sel[0].type !== 'table') return;
+    const e = sel[0], anchor = P.querySelector('[data-acc="cont"]'); if (!anchor) return;
+    FIELDS._th = [['hdFont', 'Fonte', 'font', 0, null, (x) => x.font], ['hdSize', 'Tamanho (pt)', 'num', 0.5], ['headFill', 'Cor da faixa', 'colorN'], ['hdColor', 'Cor do texto', 'color', 0, null, (x) => x.color],
+      ['hdWeight', 'Peso', 'sel', [[400, 'Normal'], [600, 'Semi-negrito'], [700, 'Negrito']], null, 600], ['hdAlign', 'Alinhamento', 'sel', [['center', 'Centro'], ['left', 'Esquerda'], ['right', 'Direita']], null, 'center'],
+      ['hdLs', 'Espaço entre letras', 'num', 0.01], ['hdLine', 'Linhas do cabeçalho', 'sel', [['none', 'Nenhuma'], ['bottom', 'Embaixo'], ['top', 'Em cima'], ['both', 'Em cima e embaixo'], ['sides', 'Laterais'], ['box', 'Contorno todo']], null, 'none'],
+      ['hdLc', 'Cor das linhas', 'colorN', 0, null, (x) => x.stroke], ['hdLw', 'Espessura (mm)', 'num', 0.05], ['hdGrid', 'Divisórias entre colunas', 'chk'], ['hdR', 'Cantos arredondados (mm)', 'num', 0.5]];
+    FIELDS._tc = [['cellGap', 'Espaço entre células (mm)', 'num', 0.2], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['cellFill', 'Fundo das células', 'colorN'], ['cellFill2', 'Cor alternada (linhas)', 'colorN'], ['gridH', 'Linhas horizontais', 'chk', 0, null, true], ['gridV', 'Linhas verticais', 'chk', 0, null, true]];
+    const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
+    const mk = (id, title, hint, type) => { const open = !(Pref.acc && Pref.acc[id] === false), w = document.createElement('div'); w.className = 'wacc' + (open ? ' open' : ''); w.dataset.acc = id;
+      w.innerHTML = `<button class="wah" type="button" aria-expanded="${open}"><i class="wtri"></i><b>${title}</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><p class="hint">${hint}</p><div class="pgrp">${fieldsHTML(Object.assign({}, e, { type }))}</div></div>`; return w; };
+    const a = mk('thead', 'Cabeçalho da tabela', '0 em tamanho ou espessura deixa automático.', '_th'), b = mk('tcells', 'Células e grade', 'Com espaço ou cantos arredondados, cada célula vira um quadradinho individual e o fundo do widget só pinta dentro delas. Linhas e fundos usam as cores acima.', '_tc');
+    anchor.parentNode.insertBefore(a, anchor.nextSibling); a.parentNode.insertBefore(b, a.nextSibling);
+  }
   function cellSection(P) {
     P.querySelectorAll('[data-acc="dcells"]').forEach((x) => x.remove());
     const sel = selEls(); if (sel.length !== 1 || sel[0].type !== 'calendar') return;
@@ -302,6 +317,8 @@
     switch (id) {
       case 'cont': return F(e.type).concat(e.type === 'calendar' || e.type === 'yearcal' ? ['headFill'] : []).filter((k) => !(['calendar', 'yearcal'].includes(e.type) && /^(wd|cell)/.test(k)));
       case 'wdays': return ['headFill', 'wdFmt', 'wdH', 'wdColor', 'wdFont', 'wdSize', 'wdWeight', 'wdAlign', 'wdLs', 'wdLine', 'wdLc', 'wdLw', 'wdGrid', 'wdGap', 'wdR'];
+      case 'thead': return ['headFill', 'hdFont', 'hdSize', 'hdColor', 'hdWeight', 'hdAlign', 'hdLs', 'hdLine', 'hdLc', 'hdLw', 'hdGrid', 'hdR'];
+      case 'tcells': return ['cellGap', 'cellR', 'cellFill', 'cellFill2', 'gridH', 'gridV'];
       case 'curva': return ['cvOn', 'cvDir', 'cvR', 'cvSpan', 'cvStart', 'cvLs'];
       case 'dcells': return ['cellGap', 'cellR', 'cellFill', 'cellHide'];
       case 'mark': return ['box', 'mk', 'mfill', 'mfc', 'msize'];
@@ -311,7 +328,7 @@
       default: return null;
     }
   };
-  const ACCS = ['cont', 'curva', 'wdays', 'dcells', 'mark', 'hd', 'bg', 'fr', 'sty', 'size'];
+  const ACCS = ['cont', 'thead', 'tcells', 'curva', 'wdays', 'dcells', 'mark', 'hd', 'bg', 'fr', 'sty', 'size'];
   const modified = (e, keys) => !!e._b && keys.some((k) => JSON.stringify(getP(e, k)) !== JSON.stringify(getP(e._b, k)));
   function restore(id) {
     const p = curPage(), e = selEls()[0]; if (!p || !e || !e._b) return; const keys = keysFor(e, id); if (!keys || !modified(e, keys)) { toast('Já está como no original.'); return; }
@@ -339,7 +356,7 @@
   function boot() {
     addElements(); wireDbl(); wireGs(); wireLock(); wireZoom(); wireRs();
     if (typeof renderProps === 'function' && !renderProps._rp) {
-      const r0 = renderProps, f = function () { const out = r0.apply(this, arguments); const P = document.getElementById('props'); if (P && S.meta) { try { section(P); curvaSection(P); wdSection(P); cellSection(P); restoreUI(P); } catch (e) { console.warn(e); } } return out; }; f._rp = 1; f._lv = r0._lv; renderProps = f;
+      const r0 = renderProps, f = function () { const out = r0.apply(this, arguments); const P = document.getElementById('props'); if (P && S.meta) { try { section(P); curvaSection(P); tableSection(P); wdSection(P); cellSection(P); restoreUI(P); } catch (e) { console.warn(e); } } return out; }; f._rp = 1; f._lv = r0._lv; renderProps = f;
     }
   }
   window.Rapido = { boot, openQM };
