@@ -876,3 +876,4 @@ body.qm-on #qbar{display:none!important}
 .zmenu button{border:0;background:none;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer;font:600 14px var(--f-title);color:var(--ink)}.zmenu button:hover,.zmenu button.on{background:var(--surface2)}.zchk{padding:8px 10px;font-size:13px;border-top:1px solid var(--line);margin-top:4px;display:flex;gap:6px;align-items:center}
 .fsub{gap:8px;margin:6px 0 10px}.fsub .btn{flex:1}
 .crow{display:flex;gap:12px;align-items:flex-start}.crow .pfield{flex:1;min-width:0}
+.crow .pfield>span,.pfield.nw>span{white-space:nowrap}

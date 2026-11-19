@@ -83,7 +83,7 @@
     for (let i = 0; i < n; i++) mark(c, e.mk || 'star', i * (s + gap) + s / 2, e.h / 2, s * 0.9, { stroke: e.color, fill: e.mfc || e.color, mode: e.mfill || 'none', sw: e.sw || 0.3, num: i + 1, font: e.font });
   };
   Object.assign(TYPE_NAME, { progress: 'Barras de progresso', numgrid: 'Grade numerada', rate: 'Sequência de símbolos' });
-  FIELDS.checklist = [['n', 'Itens', 'num', 1], ['items', 'Texto dos itens (um por linha)', 'lines'], ['font', 'Fonte', 'font'], ['size', 'Tamanho do texto (pt, 0 = automático)', 'num', 0.5], ['lines', 'Linha para escrever', 'chk'], ['textColor', 'Cor do texto', 'color'], ['stroke', 'Cor das linhas', 'colorN'], ['sw', 'Espessura (mm)', 'num', 0.05]];
+  FIELDS.checklist = [['n', 'Itens', 'num', 1], ['items', 'Texto dos itens (um por linha)', 'lines'], ['font', 'Fonte', 'font'], ['size', 'Tamanho do texto (pt, 0 = automático)', 'num', 0.5], ['lines', 'Linha para escrever', 'chk'], ['textColor', 'Texto', 'color'], ['stroke', 'Linhas', 'colorN'], ['sw', 'Espessura (mm)', 'num', 0.05]];
   FIELDS.progress = [['labels', 'Nomes (um por linha)', 'lines'], ['rows', 'Barras', 'num', 1], ['segs', 'Divisões', 'num', 1], ['labelW', 'Largura dos nomes (0–0,6)', 'num', 0.02], ['font', 'Fonte', 'font'], ['color', 'Texto', 'color'], ['accent', 'Preenchimento', 'color'], ['stroke', 'Contorno', 'colorN']];
   FIELDS.numgrid = [['n', 'Quantidade', 'num', 1], ['cols', 'Colunas', 'num', 1], ['start', 'Começa em', 'num', 1], ['numbers', 'Mostrar números', 'chk'], ['font', 'Fonte', 'font'], ['textColor', 'Cor dos números', 'color'], ['sw', 'Espessura (mm)', 'num', 0.05]];
   FIELDS.rate = [['n', 'Quantidade', 'num', 1], ['sw', 'Espessura (mm)', 'num', 0.05]];
@@ -140,9 +140,11 @@
   function layout(e) {
     const w = e.wx, f = w.fr || { k: 'none' };
     const off = f.k === 'offset' ? Math.max(0.6, f.gap || 1.4) : 0, bw = e.w - off, bh = e.h - off;
-    const hd = w.hd && w.hd.on ? Math.min(w.hd.h || 7, bh * 0.6) : 0;
-    const ex = f.k === 'scallop' ? (f.bump || 4.5) * 0.5 : 0, pad = (w.pad || 0) + ex;
-    return { f, off, bw, bh, hd, pad, ex, ix: pad, iy: hd + pad, iw: Math.max(2, bw - 2 * pad), ih: Math.max(2, bh - hd - 2 * pad) };
+    const ex = f.k === 'scallop' ? (f.bump || 4.5) * 0.5 : 0, ft = Math.max(0.05, f.w || 0.4), fg = f.gap ?? ft * 2.5;
+    /* a moldura ocupa espaço: o conteúdo é empurrado para dentro e nunca fica sob a borda */
+    const fi = !f.k || f.k === 'none' || f.k === 'scallop' ? 0 : f.k === 'double' || f.k === 'notch' ? ft + fg + 0.4 : f.k === 'bold' ? ft + fg * 0.7 + 0.4 : ft + 0.4, pad = (w.pad || 0) + ex + fi;
+    const hd = w.hd && w.hd.on ? Math.min(w.hd.h || 7, bh * 0.6) + fi : 0, pin = pad - fi;
+    return { f, off, bw, bh, hd, pad, ex, fi, ix: pad, iy: hd ? hd + pin : pad, iw: Math.max(2, bw - 2 * pad), ih: Math.max(2, bh - (hd ? hd + pin : pad) - pad) };
   }
   function drawWx(c, e, fn) {
     const w = e.wx, L = layout(e), f = L.f;
@@ -164,9 +166,9 @@
       c.restore();
       if (hd.line) { c.beginPath(); c.moveTo(L.ex, L.hd); c.lineTo(L.bw - L.ex, L.hd); strokeIf(c, tok(hd.lc || '@ink'), hd.lw || 0.3); }
       if (hd.text) {
-        const fs = Math.min((hd.size || 8) * PT, L.hd * 0.78), ax = hd.align === 'left' ? 2.2 + L.ex : hd.align === 'right' ? L.bw - 2.2 - L.ex : L.bw / 2;
+        const fs = Math.min((hd.size || 8) * PT, (L.hd - L.fi) * 0.78), ax = hd.align === 'left' ? 2.2 + L.ex : hd.align === 'right' ? L.bw - 2.2 - L.ex : L.bw / 2;
         font(c, fs, fnt(hd.font), hd.weight || 600); setLS(c, (hd.ls || 0) * fs * F); c.fillStyle = tok(hd.c || '@ink');
-        T(c, fitText(c, hd.text, L.bw - 5 - 2 * L.ex), ax, L.hd / 2 + fs * 0.04, hd.align || 'center', 'middle'); setLS(c, 0);
+        T(c, fitText(c, hd.text, L.bw - 5 - 2 * L.ex), ax, (L.fi + L.hd) / 2 + fs * 0.04, hd.align || 'center', 'middle'); setLS(c, 0);
       }
     }
     c.save(); c.translate(L.ix, L.iy);

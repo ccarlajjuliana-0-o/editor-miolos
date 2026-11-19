@@ -60,7 +60,7 @@
     const { e, ix, iy, iw, ih, L, ly } = loc, t = e.type, hd = e.wx && e.wx.hd;
     if (hd && hd.on && L && L.hd && ly < L.hd) {
       return { kind: 'hd', label: 'Título do widget', get: () => hd.text || '', set: (v) => { hd.text = v; },
-        geo: () => ({ x: 0, y: 0, w: L.bw, h: L.hd, fs: Math.min((hd.size || 8) * PT, L.hd * 0.78), al: hd.align || 'center', outer: true, wt: hd.weight || 600 }),
+        geo: () => ({ x: 0, y: L.fi, w: L.bw, h: L.hd - L.fi, fs: Math.min((hd.size || 8) * PT, (L.hd - L.fi) * 0.78), al: hd.align || 'center', outer: true, wt: hd.weight || 600 }),
         font: { get: () => hd.font || '@title', set: (v) => { hd.font = v; }, tokens: true }, size: { get: () => hd.size || 8, set: (v) => { hd.size = v; } },
         color: { get: () => toHex(hd.c || '@ink'), set: (v) => { hd.c = v; } }, bold: { get: () => (hd.weight || 600) >= 600, set: (v) => { hd.weight = v ? 700 : 400; } },
         align: { get: () => hd.align || 'center', set: (v) => { hd.align = v; } }, acts: [{ t: 'Ocultar título', f: () => { hd.on = false; } }] };

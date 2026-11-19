@@ -221,3 +221,7 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Checklist com "Linha para escrever": a linha fica inteira sob o texto (não é mais empurrada).
 - Cores consecutivas no painel direito (ex.: Cor do texto + Cor das linhas) ficam na mesma linha.
 - Cor do texto da barra rápida reforçada (input + change).
+
+## Ajuste 42
+- A moldura (borda) de qualquer widget/objeto decorado agora ocupa espaço: o conteúdo e o título ficam sempre dentro dela, sem invadir.
+- Rótulos de cor encurtados ("Texto", "Linhas", "Texto do título", "Fundo do título") para alinhar os seletores.

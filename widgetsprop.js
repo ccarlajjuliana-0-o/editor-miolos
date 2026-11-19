@@ -53,7 +53,7 @@
     s += inTxt(e, 'wx.hd.text', 'Texto do título') + inFont(e, 'wx.hd.font', 'Fonte do título') + `<div class="fgrid">${inNum(e, 'wx.hd.size', 'Tamanho (pt)', 0.5, 4, 40)}${inNum(e, 'wx.hd.h', 'Altura (mm)', 0.5, 3, 30)}</div>`
       + inSeg(e, 'wx.hd.align', 'Alinhamento', [['left', 'Esquerda'], ['center', 'Centro'], ['right', 'Direita']])
       + inSeg(e, 'wx.hd.weight', 'Peso', [[400, 'Normal'], [600, 'Médio'], [700, 'Negrito']])
-      + inCol(e, 'wx.hd.c', 'Cor do texto do título', false) + inCol(e, 'wx.hd.fill', 'Cor de fundo do título', true)
+      + inCol(e, 'wx.hd.c', 'Texto do título', false) + inCol(e, 'wx.hd.fill', 'Fundo do título', true)
       + inChk(e, 'wx.hd.line', 'Linha própria embaixo do título (borda diferente do todo)', !!h.line);
     if (h.line) s += inCol(e, 'wx.hd.lc', 'Cor da linha do título', false) + inNum(e, 'wx.hd.lw', 'Espessura da linha (mm)', 0.05, 0.1, 3);
     return s;
