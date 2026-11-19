@@ -368,56 +368,60 @@
     const hd = w.querySelector('.wah'); hd.onclick = () => { w.classList.toggle('open'); const on = w.classList.contains('open'); hd.setAttribute('aria-expanded', on); Pref.acc = Pref.acc || {}; Pref.acc[id] = on; try { savePref(); } catch (er) { /* */ } };
     return w;
   };
-  const TIDS = ['tcel', 'tfmt', 'tbrd', 'tfor'];
   function panel(P) {
-    TIDS.forEach((id) => P.querySelectorAll(`[data-acc="${id}"]`).forEach((x) => x.remove()));
+    ['tab', 'tcel', 'tfmt', 'tbrd', 'tfor', 'tcells'].forEach((id) => P.querySelectorAll(`[data-acc="${id}"]`).forEach((x) => x.remove()));
     const sel = selEls(); if (sel.length !== 1 || sel[0].type !== 'table') return; const e = sel[0];
-    let ref = P.querySelector('[data-acc="cont"]'); if (!ref) return;
-    const t = TS() && TS().id === e.id ? TS() : null, L = lay(e), nm = r2, blocks = [];
+    const cont = P.querySelector('[data-acc="cont"]'); if (!cont) return;
+    FIELDS._tx1 = [['rows', 'Linhas', 'num', 1], ['cols', 'Colunas', 'num', 1], ['header', 'Cabeçalho (separe por vírgula)', 'list'], ['side', 'Primeira coluna (separe por vírgula)', 'list']];
+    FIELDS._tx2 = [['font', 'Fonte', 'font'], ['size', 'Tamanho (pt)', 'num', 0.5], ['color', 'Cor do texto', 'color']];
+    FIELDS._tx3 = [['stroke', 'Cor das linhas', 'colorN'], ['sw', 'Espessura (mm)', 'num', 0.05], ['lnStyle', 'Tipo de linha', 'sel', LN.OPTS, null, 'solid'], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['gridH', 'Linhas horizontais', 'chk', 0, null, true], ['gridV', 'Linhas verticais', 'chk', 0, null, true], ['cellBorder', 'Contorno das células', 'sides'],
+      ['cellGap', 'Espaço entre células (mm)', 'num', 0.2], ['cellFill', 'Fundo das células', 'colorN'], ['cellFill2', 'Cor alternada (linhas)', 'colorN']];
+    const fx = (type) => fieldsHTML(Object.assign({}, e, { type }));
+    const t = TS() && TS().id === e.id ? TS() : null, L = lay(e), nm = r2, H4 = (x) => `<h4 class="tsh">${x}</h4>`;
     const sizes = () => {
       const q = t && !t.title ? rng(t) : null, full = e.cols <= 10 && nR(e) <= 14, rs = [], cs = [];
       for (let c = 0; c < e.cols; c++) if (full || (q && c >= q.c0 && c <= q.c1)) cs.push(c);
       for (let r = 0; r < nR(e); r++) if (full || (q && r >= q.r0 && r <= q.r1)) rs.push(r);
       const row = (ax, i, v, lk) => `<div class="tsz"><span>${ax === 'c' ? colName(i) : i + 1}</span><input type="number" step="0.5" min="1" data-tsz="${ax}${i}" value="${nm(v)}"><label class="tlkb" title="Travar"><input type="checkbox" data-tlk="${ax}${i}"${lk ? ' checked' : ''}><i>${ico('lock')}</i></label></div>`;
-      return `<h4 class="tsh">Largura das colunas (mm)</h4><div class="tszg">${cs.map((c) => row('c', c, L.cw[c], e.lockC && e.lockC[c])).join('') || '<small class="hint">Selecione células para ver.</small>'}</div>
-        <h4 class="tsh">Altura das linhas (mm)</h4><div class="tszg">${rs.map((r) => row('r', r, L.rh[r], e.lockR && e.lockR[r])).join('') || '<small class="hint">Selecione células para ver.</small>'}</div>
+      return `<h5 class="tsh2">Largura das colunas (mm)</h5><div class="tszg">${cs.map((c) => row('c', c, L.cw[c], e.lockC && e.lockC[c])).join('') || '<small class="hint">Selecione células para ver.</small>'}</div>
+        <h5 class="tsh2">Altura das linhas (mm)</h5><div class="tszg">${rs.map((r) => row('r', r, L.rh[r], e.lockR && e.lockR[r])).join('') || '<small class="hint">Selecione células para ver.</small>'}</div>
         <div class="row tbtn"><button type="button" class="btn sm" data-ta="eqc">Igualar larguras</button><button type="button" class="btn sm" data-ta="eqr">Igualar alturas</button></div>`;
     };
+    let body = H4('Estrutura') + fx('_tx1'), after = '';
     if (!t) {
-      blocks.push(block('tcel', 'Células, linhas e colunas', `<button type="button" class="btn sm pri" data-ta="on">Editar células</button><p class="hint">Ou dê dois cliques na tabela. Selecione células, linhas ou colunas como numa planilha, arraste as divisões para mudar tamanhos e use ＋ e − nas divisões para inserir ou excluir.</p>${sizes()}`));
+      body += `<button type="button" class="btn sm pri" data-ta="on">Editar células</button><p class="hint">Ou dê dois cliques na tabela: selecione células, linhas ou colunas como numa planilha, arraste as divisões para mudar tamanhos e use ＋ e − nelas para inserir ou excluir.</p>${sizes()}`;
     } else if (t.title) {
-      const hd = (e.wx && e.wx.hd) || {}, tk = (v, d) => tokc(v, d), al = hd.align || 'center';
-      blocks.push(block('tcel', 'Linha do título do widget', `<div class="tselh"><b>Título</b><small>linha T</small><button type="button" class="btn sm ghost" data-ta="off">Sair</button></div>
+      const hd = (e.wx && e.wx.hd) || {}, al = hd.align || 'center';
+      body += `<div class="tselh"><b>Título</b><small>linha T</small><button type="button" class="btn sm ghost" data-ta="off">Sair</button></div>
         <label class="pfield"><span>Texto do título</span><input type="text" data-ti="text" value="${esc(hd.text || '')}"></label>
         <div class="tsz"><span>Alt.</span><input type="number" step="0.5" min="3" data-ti="h" value="${nm(hd.h || 7)}"><label class="tlkb" title="Travar a altura e o texto da linha do título"><input type="checkbox" data-ti="lock"${hd.lock ? ' checked' : ''}><i>${ico('lock')}</i></label></div>
         <div class="pfield"><span>Alinhamento</span><div class="segf tseg">${[['left', 'Esq.'], ['center', 'Centro'], ['right', 'Dir.']].map(([v, tt]) => `<button type="button" class="${al === v ? 'on' : ''}" data-ti="align:${v}">${tt}</button>`).join('')}</div></div>
-        <div class="fgrid"><label class="pfield"><span>Cor do texto</span><input type="color" data-ti="c" value="${tk(hd.c, '#3E3550')}"></label><label class="pfield"><span>Fundo</span><input type="color" data-ti="fill" value="${tk(hd.fill, '#F7E5E7')}"></label></div>
-        <p class="hint">Fonte, peso e linha própria estão em "Título do widget". Dois cliques no título editam o texto; arraste a divisão de baixo para mudar a altura.</p>`));
+        <div class="fgrid"><label class="pfield"><span>Cor do texto</span><input type="color" data-ti="c" value="${tokc(hd.c, '#3E3550')}"></label><label class="pfield"><span>Fundo</span><input type="color" data-ti="fill" value="${tokc(hd.fill, '#F7E5E7')}"></label></div>
+        <p class="hint">Fonte, peso e linha própria estão em "Título do widget". Dois cliques no título editam o texto; arraste a divisão de baixo para mudar a altura.</p>${sizes()}`;
     } else {
       const q = rng(t), a = clampRC(e, t.a[0], t.a[1]), cl = cellOf(e, a[0], a[1]) || {}, st = cellStyle(e, a[0], a[1]), n = cellKeys(e, t).length, bd = cl.bd || {};
       const allLockedCells = cellKeys(e, t).every(([r, c]) => (cellOf(e, r, c) || {}).lock), allR = (() => { for (let r = q.r0; r <= q.r1; r++) if (!(e.lockR && e.lockR[r])) return false; return true; })(), allC = (() => { for (let c = q.c0; c <= q.c1; c++) if (!(e.lockC && e.lockC[c])) return false; return true; })();
       const sidesBtn = (mode) => `<div class="sides tsides">${[['A', 'Todos os lados', 'cellBorder'], ['T', 'Em cima', 'cbT'], ['R', 'À direita', 'cbR'], ['B', 'Embaixo', 'cbB'], ['L', 'À esquerda', 'cbL']].map(([s2, tt, ic]) => `<button type="button" class="sdb${mode === 'x' ? ' tx' : ''}" data-tb="${mode}${s2}" title="${tt}">${sideIco(ic)}</button>`).join('')}</div>`;
       const seg = (name, opts, cur) => `<div class="segf tseg">${opts.map(([v, tt]) => `<button type="button" class="${cur === v ? 'on' : ''}" data-tal="${name}:${v}" title="${tt}">${tt}</button>`).join('')}</div>`;
-      blocks.push(block('tcel', 'Seleção, tamanhos e travas', `<div class="tselh"><b>${esc(label(e, t))}</b><small>${n} célula${n > 1 ? 's' : ''} · ativa ${colName(a[1])}${a[0] + 1}</small><button type="button" class="btn sm ghost" data-ta="off">Sair</button></div>
-        <h4 class="tsh">Inserir e excluir</h4>
+      body += `<div class="tselh"><b>${esc(label(e, t))}</b><small>${n} célula${n > 1 ? 's' : ''} · ativa ${colName(a[1])}${a[0] + 1}</small><button type="button" class="btn sm ghost" data-ta="off">Sair</button></div>
         <div class="row tbtn"><button type="button" class="btn sm" data-ta="insrowA">＋ Linha acima</button><button type="button" class="btn sm" data-ta="insrowB">＋ Linha abaixo</button><button type="button" class="btn sm" data-ta="inscolA">＋ Coluna à esq.</button><button type="button" class="btn sm" data-ta="inscolB">＋ Coluna à dir.</button><button type="button" class="btn sm danger" data-ta="delrows">− Linha(s)</button><button type="button" class="btn sm danger" data-ta="delcols">− Coluna(s)</button></div>
-        <h4 class="tsh">Travas</h4><div class="row tbtn"><button type="button" class="btn sm${allLockedCells ? ' pri' : ''}" data-ta="lockcell">${allLockedCells ? 'Destravar' : 'Travar'} célula(s)</button><button type="button" class="btn sm${allR ? ' pri' : ''}" data-ta="lockrow">${allR ? 'Destravar' : 'Travar'} altura da linha</button><button type="button" class="btn sm${allC ? ' pri' : ''}" data-ta="lockcol">${allC ? 'Destravar' : 'Travar'} largura da coluna</button></div>
-        <p class="hint">Célula travada não muda texto nem formato. Linha travada mantém a altura e coluna travada mantém a largura, mesmo ao esticar a tabela.</p>
-        ${sizes()}`));
-      blocks.push(block('tfmt', 'Formato da célula', `<h4 class="tsh">Fundo</h4><div class="pfield">${cf('tcFill', cl.fill === undefined ? 'none' : cl.fill, true)}</div><button type="button" class="btn sm ghost" data-ta="fillreset">Voltar ao padrão da tabela</button>
-        <h4 class="tsh">Texto</h4>
+        <div class="row tbtn"><button type="button" class="btn sm${allLockedCells ? ' pri' : ''}" data-ta="lockcell">${allLockedCells ? 'Destravar' : 'Travar'} célula(s)</button><button type="button" class="btn sm${allR ? ' pri' : ''}" data-ta="lockrow">${allR ? 'Destravar' : 'Travar'} altura da linha</button><button type="button" class="btn sm${allC ? ' pri' : ''}" data-ta="lockcol">${allC ? 'Destravar' : 'Travar'} largura da coluna</button></div>
+        <p class="hint">Célula travada não muda texto nem formato. Linha travada mantém a altura e coluna travada mantém a largura, mesmo ao esticar a tabela.</p>${sizes()}
+        ${H4('Formato da seleção')}<h5 class="tsh2">Fundo</h5><div class="pfield">${cf('tcFill', cl.fill === undefined ? 'none' : cl.fill, true)}</div><button type="button" class="btn sm ghost" data-ta="fillreset">Voltar ao padrão da tabela</button>
+        <h5 class="tsh2">Texto</h5>
         <label class="pfield"><span>Fonte</span><select data-tf="font">${fontList().map((f) => `<option${f === st.font ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select></label>
         <div class="fgrid"><label class="pfield"><span>Tamanho (pt)</span><input type="number" step="0.5" min="2" data-tf="size" value="${st.size}"></label><label class="pfield"><span>Cor</span>${cf('tcColor', st.color, false)}</label></div>
         <div class="fgrid"><label class="pfield"><span>Peso</span><select data-tf="weight">${[[400, 'Normal'], [600, 'Semi-negrito'], [700, 'Negrito']].map(([v, tt]) => `<option value="${v}"${+st.weight === v ? ' selected' : ''}>${tt}</option>`).join('')}</select></label><label class="pfield"><span>Espaço entre letras</span><input type="number" step="0.01" data-tf="ls" value="${st.ls || 0}"></label></div>
         <div class="row"><label class="chk"><input type="checkbox" data-tf="italic"${st.italic ? ' checked' : ''}> Itálico</label><label class="chk"><input type="checkbox" data-tf="under"${st.under ? ' checked' : ''}> Sublinhado</label></div>
-        <h4 class="tsh">Alinhamento</h4>
-        <div class="fgrid"><div class="pfield"><span>Horizontal</span>${seg('al', [['left', 'Esq.'], ['center', 'Centro'], ['right', 'Dir.']], st.al)}</div><div class="pfield"><span>Vertical</span>${seg('va', [['top', 'Topo'], ['middle', 'Meio'], ['bottom', 'Base']], st.va)}</div></div>`));
-      blocks.push(block('tbrd', 'Bordas da célula', `<div class="fgrid"><label class="pfield"><span>Cor</span>${cf('tbColor', (bd.T && bd.T.c) || e.stroke, false)}</label><label class="pfield"><span>Espessura (mm)</span><input type="number" step="0.05" min="0.05" data-tbk="w" value="${(bd.T && bd.T.w) || e.sw || 0.3}"></label></div>
+        <h5 class="tsh2">Alinhamento</h5>
+        <div class="fgrid"><div class="pfield"><span>Horizontal</span>${seg('al', [['left', 'Esq.'], ['center', 'Centro'], ['right', 'Dir.']], st.al)}</div><div class="pfield"><span>Vertical</span>${seg('va', [['top', 'Topo'], ['middle', 'Meio'], ['bottom', 'Base']], st.va)}</div></div>
+        ${H4('Bordas da seleção')}<div class="fgrid"><label class="pfield"><span>Cor</span>${cf('tbColor', (bd.T && bd.T.c) || e.stroke, false)}</label><label class="pfield"><span>Espessura (mm)</span><input type="number" step="0.05" min="0.05" data-tbk="w" value="${(bd.T && bd.T.w) || e.sw || 0.3}"></label></div>
         <label class="pfield"><span>Tipo de linha</span><select data-tbk="s">${LN.OPTS.map(([v, tt]) => `<option value="${v}"${v === ((bd.T && bd.T.s) || e.lnStyle || 'solid') ? ' selected' : ''}>${tt}</option>`).join('')}</select></label>
-        <div class="pfield"><span>Aplicar borda em</span>${sidesBtn('a')}</div><div class="pfield"><span>Remover borda de</span>${sidesBtn('x')}</div><button type="button" class="btn sm ghost" data-ta="bdreset">Voltar às bordas da tabela</button>`));
-      blocks.push(block('tfor', 'Fórmulas', `<p class="hint">Comece o texto da célula com <b>=</b>: <code>=SOMA(B2:B5)</code>, <code>=B2*C2</code>, <code>=MEDIA(A1:A4)</code>, <code>=MIN</code>, <code>=MAX</code>, <code>=MULT</code>, <code>=CONT</code>, <code>=ARRED(B2;1)</code>. Separe argumentos com ponto e vírgula. A1 é a primeira célula (a do cabeçalho, se houver).</p>`, false));
+        <div class="pfield"><span>Aplicar borda em</span>${sidesBtn('a')}</div><div class="pfield"><span>Remover borda de</span>${sidesBtn('x')}</div><button type="button" class="btn sm ghost" data-ta="bdreset">Voltar às bordas da tabela</button>`;
+      after = `${H4('Fórmulas')}<p class="hint">Comece o texto da célula com <b>=</b>: <code>=SOMA(B2:B5)</code>, <code>=B2*C2</code>, <code>=MEDIA(A1:A4)</code>, <code>=MIN</code>, <code>=MAX</code>, <code>=MULT</code>, <code>=CONT</code>, <code>=ARRED(B2;1)</code>. Separe argumentos com ponto e vírgula. A1 é a primeira célula (a do cabeçalho, se houver).</p>`;
     }
-    blocks.forEach((b) => { ref.after(b); ref = b; wire(b, e, t); });
+    body += H4('Texto da tabela') + fx('_tx2') + H4('Linhas e células') + fx('_tx3') + after;
+    const w = block('tab', 'Tabela', body); cont.replaceWith(w); wire(w, e, t);
   }
   function wire(w, e, t) {
     const on = (sel, ev, fn) => w.querySelectorAll(sel).forEach((x) => x.addEventListener(ev, (E) => { E.stopPropagation(); fn(x, E); }));
@@ -461,10 +465,6 @@
         if (s2 !== 'A' && edge) return; cur[sd] = m === 'a' ? Object.assign({}, spec) : 0; }); setCell(z, r, c, { bd: cur }); });
     });
   }
-  const rp = window.renderProps;
-  window.renderProps = function () { const out = rp.apply(this, arguments); const P = document.getElementById('props'); if (P && S.meta) { try { panel(P); } catch (er) { console.warn(er); } } return out; };
-  window.renderProps._rp = 1;
-
   const sep = window.setElProp;
   if (typeof sep === 'function') window.setElProp = function (e, k, v) { const r = sep.apply(this, arguments); if (e && e.type === 'table') { if (k === 'cols') { e.cwm = null; e.lockC = {}; } if (k === 'rows') { e.rh = null; e.lockR = {}; } } return r; };
 
@@ -517,5 +517,5 @@
     });
   }
 
-  window.Tabela = { bar: barHTML, sig: barSig, lay, disp, raw, evalF, insRow, delRow, insCol, delCol, enter, exit, colName };
+  window.Tabela = { panel, bar: barHTML, sig: barSig, lay, disp, raw, evalF, insRow, delRow, insCol, delCol, enter, exit, colName };
 })();

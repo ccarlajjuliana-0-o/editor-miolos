@@ -347,3 +347,9 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Painel: "Conteúdo" ganhou "Cantos arredondados"; linhas/espessura foram para "Células e grade"; cabeçalho reagrupado (texto, faixa, linhas); edição de células em blocos: Seleção/tamanhos/travas, Formato, Bordas, Fórmulas (todos com ocultar/expandir).
 - Barra rápida no modo células: cor de fundo e cor do texto mostram a cor atual com seletor, "sem cor", tamanho, negrito, itálico, alinhamentos, travar.
 - Cache `estudio-miolos-v73`.
+
+## Ajuste 68 · Painel da tabela unificado e nova ordem
+- Tabela: Conteúdo + Células e grade + Células/linhas/colunas + Formato + Bordas viraram um só bloco "Tabela" (Estrutura, Formato/Bordas da seleção, Texto da tabela, Linhas e células, Fórmulas). Seleção, tamanhos e travas ficam junto da estrutura; "Cantos arredondados" fica ao lado de cor, espessura e tipo de linha.
+- Ordem do painel em todos os widgets: 1 Título do widget, 2 Cabeçalho (da tabela / dos dias da semana, quando existir), 3 conteúdo principal e demais (marcadores, células dos dias etc.).
+- "Restaurar" do bloco Tabela cobre tudo (inclusive tamanhos, travas e formatos por célula).
+- Cache `estudio-miolos-v74`.

@@ -294,8 +294,8 @@
     const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
     const mk = (id, title, hint, type) => { const open = !(Pref.acc && Pref.acc[id] === false), w = document.createElement('div'); w.className = 'wacc' + (open ? ' open' : ''); w.dataset.acc = id;
       w.innerHTML = `<button class="wah" type="button" aria-expanded="${open}"><i class="wtri"></i><b>${title}</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><p class="hint">${hint}</p><div class="pgrp">${fieldsHTML(Object.assign({}, e, { type }))}</div></div>`; return w; };
-    const a = mk('thead', 'Cabeçalho da tabela', '0 em tamanho ou espessura deixa automático.', '_th'), b = mk('tcells', 'Células e grade', 'Linhas, contorno, espaço e fundo das células. Com espaço ou cantos arredondados (em Conteúdo), cada célula vira um quadradinho individual.', '_tc');
-    anchor.parentNode.insertBefore(a, anchor.nextSibling); a.parentNode.insertBefore(b, a.nextSibling);
+    const a = mk('thead', 'Cabeçalho da tabela', '0 em tamanho ou espessura deixa automático.', '_th');
+    anchor.parentNode.insertBefore(a, anchor.nextSibling);
   }
   function cellSection(P) {
     P.querySelectorAll('[data-acc="dcells"]').forEach((x) => x.remove());
@@ -309,6 +309,14 @@
   }
 
 
+  /* ordem do painel de widgets: 1 Título do widget, 2 Cabeçalho (da tabela / dos dias), 3 conteúdo principal e demais */
+  function orderPanel(P) {
+    const g = (id) => P.querySelector(`[data-acc="${id}"]`), main = g('tab') || g('cont'), hd = g('hd'); if (!main) return;
+    const head = g('thead') || g('wdays');
+    if (hd && hd !== main.previousElementSibling) main.before(hd);
+    if (head) main.before(head);
+  }
+
   /* ---------- restaurar (por seção e total) ---------- */
   const SKIP = ['id', 'x', 'y', 'g', 'gb', 'locked', 'hidden', '_b'];
   const getP = (o, p) => p.split('.').reduce((a, k) => (a == null ? undefined : a[k]), o);
@@ -320,6 +328,7 @@
       case 'cont': return F(e.type).concat(e.type === 'calendar' || e.type === 'yearcal' ? ['headFill'] : []).filter((k) => !(['calendar', 'yearcal'].includes(e.type) && /^(wd|cell)/.test(k)));
       case 'wdays': return ['headFill', 'wdFmt', 'wdH', 'wdColor', 'wdFont', 'wdSize', 'wdWeight', 'wdAlign', 'wdLs', 'wdLine', 'wdLc', 'wdLw', 'wdLnStyle', 'wdGrid', 'wdGap', 'wdR'];
       case 'thead': return ['headFill', 'hdFont', 'hdSize', 'hdColor', 'hdWeight', 'hdAlign', 'hdLs', 'hdLine', 'hdLc', 'hdLw', 'hdLnStyle', 'hdGrid', 'hdR'];
+      case 'tab': return ['rows', 'cols', 'header', 'side', 'font', 'size', 'color', 'stroke', 'sw', 'lnStyle', 'cellR', 'gridH', 'gridV', 'cellBorder', 'cbT', 'cbR', 'cbB', 'cbL', 'cellGap', 'cellFill', 'cellFill2', 'cells', 'rh', 'cwm', 'cw', 'lockR', 'lockC'];
       case 'tcells': return ['cellGap', 'cellR', 'cellFill', 'cellFill2', 'gridH', 'gridV', 'lnStyle', 'cellBorder', 'cbT', 'cbR', 'cbB', 'cbL'];
       case 'curva': return ['cvOn', 'cvDir', 'cvR', 'cvSpan', 'cvStart', 'cvLs'];
       case 'dcells': return ['cellGap', 'cellR', 'cellFill', 'cellHide', 'lnStyle', 'cellBorder', 'cbT', 'cbR', 'cbB', 'cbL'];
@@ -330,7 +339,7 @@
       default: return null;
     }
   };
-  const ACCS = ['cont', 'thead', 'tcells', 'curva', 'wdays', 'dcells', 'mark', 'hd', 'bg', 'fr', 'sty', 'size'];
+  const ACCS = ['cont', 'tab', 'thead', 'tcells', 'curva', 'wdays', 'dcells', 'mark', 'hd', 'bg', 'fr', 'sty', 'size'];
   const modified = (e, keys) => !!e._b && keys.some((k) => JSON.stringify(getP(e, k)) !== JSON.stringify(getP(e._b, k)));
   function restore(id) {
     const p = curPage(), e = selEls()[0]; if (!p || !e || !e._b) return; const keys = keysFor(e, id); if (!keys || !modified(e, keys)) { toast('Já está como no original.'); return; }
@@ -368,7 +377,7 @@
   function boot() {
     addElements(); wireDbl(); wireGs(); wireLock(); wireZoom(); wireRs();
     if (typeof renderProps === 'function' && !renderProps._rp) {
-      const r0 = renderProps, f = function () { const out = r0.apply(this, arguments); const P = document.getElementById('props'); if (P && S.meta) { try { section(P); curvaSection(P); tableSection(P); wdSection(P); cellSection(P); restoreUI(P); } catch (e) { console.warn(e); } } return out; }; f._rp = 1; f._lv = r0._lv; renderProps = f;
+      const r0 = renderProps, f = function () { const out = r0.apply(this, arguments); const P = document.getElementById('props'); if (P && S.meta) { try { section(P); curvaSection(P); tableSection(P); wdSection(P); cellSection(P); if (window.Tabela && Tabela.panel) Tabela.panel(P); orderPanel(P); restoreUI(P); } catch (e) { console.warn(e); } } return out; }; f._rp = 1; f._lv = r0._lv; renderProps = f;
     }
   }
   window.Rapido = { boot, openQM };
