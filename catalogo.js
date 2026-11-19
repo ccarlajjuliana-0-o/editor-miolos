@@ -14,7 +14,7 @@
     ['planners', 'Planners e cadernos', ['planner'], null],
     ['modelos', 'Modelos de página', ['template'], null],
   ];
-  const UPK = [['widget', 'Widget (PNG/JPEG)'], ['sticker', 'Adesivo (PNG/JPEG)'], ['border', 'Borda (PNG/JPEG)'], ['background', 'Fundo de página (PNG/JPEG)'], ['font', 'Fonte (TTF/OTF)']];
+  const UPK = [['widget', 'Widget (PNG/JPEG)'], ['sticker', 'Adesivo (PNG/JPEG)'], ['border', 'Borda (PNG/JPEG)'], ['background', 'Fundo de página (PNG/JPEG)'], ['font', 'Fonte (TTF/OTF)'], ['vecw', 'Widget vetorizado (PNG sem fundo)'], ['pdf', 'PDF → modelos de página']];
   const KN = { widget: 'Widget', wgt: 'Widget', wsty: 'Estilo de widget', sticker: 'Adesivo', stk: 'Adesivo', border: 'Borda', bdr: 'Borda', pat: 'Padrão', background: 'Fundo', font: 'Fonte', tipos: 'Tipografia', tema: 'Tema', colecao: 'Coleção', outro: 'Outro', template: 'Modelo', planner: 'Planner/caderno', logo: 'Logo' };
   const SKIP = ['hist', 'config'];
   const st = { view: 'cat', cat: 'todos', hf: 'todos', up: 'widget' };
@@ -47,6 +47,8 @@
     const p = demoPg(); return { w: Math.round(p.w / 25.4 * 150), h: Math.round(p.h / 25.4 * 150), why: 'cobrir uma página do tamanho da atual a 150 dpi' };
   }
   async function upload(files, kind) {
+    if (kind === 'vecw') { for (const f of files) await new Promise((r) => Vetorizar.openWidget(f, r)); refresh(); return; }
+    if (kind === 'pdf') { for (const f of files) await new Promise((r) => Vetorizar.openPdf(f, r)); refresh(); return; }
     const ok = [], rule = minFor(kind);
     for (const f of files) {
       if (kind === 'font') { ok.push(f); continue; }
@@ -179,7 +181,7 @@
     html() {
       const tab = (k, n) => `<button type="button" data-cv="${k}" class="${st.view === k ? 'on' : ''}">${n}</button>`;
       const chips = st.view === 'hist' ? '' : `<div class="bdchips cgchips">${[['todos', 'Tudo'], ...CATS.map((c) => [c[0], c[1]])].map(([k, n]) => `<button type="button" class="chip${st.cat === k ? ' on' : ''}" data-cc="${k}">${n}</button>`).join('')}</div>`;
-      const up = st.view === 'cat' ? section('up', 'Enviar ao catálogo', `<div class="fgrid"><label class="pfield"><span>Tipo</span><select id="cgUk">${UPK.map(([k, n]) => `<option value="${k}"${st.up === k ? ' selected' : ''}>${n}</option>`).join('')}</select></label></div><span class="btn sm upl">Escolher arquivos<input type="file" id="cgUf" multiple accept="${st.up === 'font' ? '.ttf,.otf' : '.png,.jpg,.jpeg,image/png,image/jpeg'}" aria-label="Enviar ao catálogo"></span><p class="hint">${st.up === 'font' ? 'Fontes ficam disponíveis em todos os textos.' : 'Tamanho mínimo: ' + (st.up === 'sticker' || st.up === 'widget' ? '300 px no lado maior' : 'o suficiente para cobrir uma página a 150 dpi') + '. Se for menor, aviso antes de guardar.'}</p>`, true) : '';
+      const up = st.view === 'cat' ? section('up', 'Enviar ao catálogo', `<div class="fgrid"><label class="pfield"><span>Tipo</span><select id="cgUk">${UPK.map(([k, n]) => `<option value="${k}"${st.up === k ? ' selected' : ''}>${n}</option>`).join('')}</select></label></div><span class="btn sm upl">Escolher arquivos<input type="file" id="cgUf" multiple accept="${st.up === 'font' ? '.ttf,.otf' : st.up === 'pdf' ? 'application/pdf,.pdf' : '.png,.jpg,.jpeg,image/png,image/jpeg'}" aria-label="Enviar ao catálogo"></span><p class="hint">${st.up === 'font' ? 'Fontes ficam disponíveis em todos os textos.' : st.up === 'vecw' ? 'A imagem vira formas vetoriais por cor, editáveis no ModuLab. Funciona melhor com PNG de fundo transparente e poucas cores.' : st.up === 'pdf' ? 'Textos, formas e imagens do PDF viram elementos editáveis, guardados como modelos de página ou como um planner.' : 'Tamanho mínimo: ' + (st.up === 'sticker' || st.up === 'widget' ? '300 px no lado maior' : 'o suficiente para cobrir uma página a 150 dpi') + '. Se for menor, aviso antes de guardar.'}</p>`, true) : '';
       return `<p class="hint">Os itens padrão do app e tudo que você guardar aqui são lidos pelo editor e pelo ModuLab. O que você envia pelas outras abas fica em “Minhas coisas”.</p>
         <div class="segf bdtabs cgtabs">${tab('cat', 'Catálogo')}${tab('mine', 'Minhas coisas')}${tab('hist', 'Histórico')}</div>${chips}${up}
         ${st.view === 'hist' ? histHTML() : listHTML(st.view === 'mine')}

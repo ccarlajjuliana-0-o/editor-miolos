@@ -427,5 +427,5 @@
   };
   document.addEventListener('dragover', (e) => { if (e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files')) e.preventDefault(); });
   document.addEventListener('drop', (e) => { const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name))) { e.preventDefault(); start(f); } });
-  window.Importar = { start, convertPage };
+  window.Importar = { start, convertPage, makeCtx, fitTexts, loadLib, parseRange, fmtErr };
 })();

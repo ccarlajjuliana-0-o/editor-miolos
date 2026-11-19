@@ -318,3 +318,8 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Nova categoria **Planners e cadernos**: "Salvar um projeto no catálogo" guarda uma cópia (todas as páginas) como modelo, e o "Planner de exemplo" do app aparece como padrão.
 - **Usar** cria um projeto novo (cópia totalmente editável, com links entre páginas refeitos) e o original do catálogo nunca muda. O projeto novo guarda de qual modelo veio.
 - Salvar e usar aparecem no Histórico.
+
+## Ajuste 64 — Catálogo: vetorização de PNG e PDF
+- Em "Enviar ao catálogo": **Widget vetorizado (PNG sem fundo)** — escolha cores (2–12) e detalhe (1–5), veja a prévia ao lado do original e guarde. Cada cor vira uma forma editável (abre no ModuLab como widget).
+- **PDF → modelos de página**: textos, formas e imagens viram elementos editáveis, guardados como um modelo por página ou como um planner/caderno completo (usa o mesmo leitor do "Importar PDF").
+- Tudo roda no navegador, sem enviar nada para fora.
