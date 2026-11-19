@@ -272,3 +272,7 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Linha tracejada/pontilhada: quantidade de tracinhos, pontas arredondadas ou retas e ondulação (mm).
 - Seletor de cores: botão "Sem cor" (campos que aceitam) e "Gradiente ›" (preenchimento dos elementos): segunda janela com direção, 2 a 4 cores, saturação e opacidade, botões Voltar e Fechar. No PDF o gradiente sai como cor média.
 - linhas.js agora carrega antes do app.js.
+
+## Ajuste 55
+- Seletor de cores: "Sem cor" virou o símbolo ⊘ na linha de "Cores na página"; botão "Gradiente ›" menor.
+- Gradiente disponível em todos os preenchimentos/fundos e bordas/molduras (preenchimento, cor das formas, cabeçalhos, células, faixa de fim de semana, fundo e borda do widget, linhas do título). Funciona via fillStyle/strokeStyle 'g|…'; no PDF sai como cor média.

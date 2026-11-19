@@ -12,7 +12,7 @@
   const okHex = (s) => { s = String(s || '').trim(); if (s[0] !== '#') s = '#' + s; if (/^#[0-9a-f]{3}$/i.test(s)) s = '#' + s[1] + s[1] + s[2] + s[2] + s[3] + s[3]; return /^#[0-9a-f]{6}$/i.test(s) ? s.toLowerCase() : null; };
 
   let st = null; // { el, sig, h, s, v, hex, dirty }
-  const sigOf = (el) => JSON.stringify(Object.assign({}, el.dataset, { id: el.id }));
+  const sigOf = (el) => JSON.stringify(Object.assign({}, el.dataset, { id: el.id }, { gv: undefined }));
   function resolve() {
     if (!st) return null; if (st.el.isConnected) return st.el;
     const f = [...document.querySelectorAll('input[type=color]')].find((e) => sigOf(e) === st.sig); if (f) st.el = f; return f || null;
@@ -25,22 +25,19 @@
   const sw = (c, k) => `<button type="button" class="cps" data-c="${c}" style="background:${c}" title="${c}" aria-label="${c}"></button>`;
   /* contexto do campo: aceita "sem cor" / gradiente? */
   function ctxOf(el) {
-    const key = el.dataset && el.dataset.k, inP = !!(el.closest && el.closest('#props')), cf = el.closest && el.closest('.cfield');
-    let e = null; try { e = selEls()[0]; } catch (x) { /* sem seleção */ }
-    return { key, inP, e, none: inP && !!(cf && cf.querySelector('.sw.none')), grad: inP && key === 'fill' && !!e && ['rect', 'ellipse', 'shape', 'path'].includes(e.type) };
+    const inP = !!(el.closest && el.closest('#props')), cf = el.closest && el.closest('.cfield');
+    return { inP, none: inP && !!(cf && cf.querySelector('.sw.none')), grad: inP && el.dataset.gr === '1' };
   }
-  function applyVal(key, val, live) {
-    const p = curPage(); if (!p) return; selEls().forEach((e) => { e[key] = val; });
-    if (live) { redraw(); return; } redraw(); renderProps(); thumbRefresh(p.id);
-  }
+  /* aplica um valor de texto (gradiente) pelo mesmo caminho dos campos de cor da barra lateral */
+  function applyVal(val, type) { const el = resolve(); if (!el) return; if (val) el.dataset.gv = val; else delete el.dataset.gv; el.dispatchEvent(new Event(type, { bubbles: true })); }
   function html() {
     const pc = pageColors(), br = (typeof window.BRAND_COLORS !== 'undefined' ? window.BRAND_COLORS : []);
     const cx = ctxOf(st.el);
-    return `<div class="cp-h"><span>Sólido</span><span class="cp-hb">${cx.none ? '<button type="button" class="cp-b" id="cpNone" title="Sem preenchimento">Sem cor</button>' : ''}${cx.grad ? '<button type="button" class="cp-b" id="cpGrad" title="Preencher com gradiente">Gradiente ›</button>' : ''}<button type="button" class="cp-x" id="cpX" title="Fechar" aria-label="Fechar">✕</button></span></div>
+    return `<div class="cp-h"><span>Sólido</span><span class="cp-hb">${cx.grad ? '<button type="button" class="cp-b sm" id="cpGrad" title="Preencher com gradiente">Gradiente ›</button>' : ''}<button type="button" class="cp-x" id="cpX" title="Fechar" aria-label="Fechar">✕</button></span></div>
       <div class="cp-sv" id="cpSV"><i id="cpSVk"></i></div>
       <div class="cp-hue" id="cpH"><i id="cpHk"></i></div>
       <div class="cp-row"><span class="cp-f">HEX</span><input id="cpHex" type="text" spellcheck="false" maxlength="7" aria-label="Código HEX"><button type="button" id="cpEye" title="Conta-gotas: copiar uma cor da tela" aria-label="Conta-gotas"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l4 4M4 20l1-4 9-9a2.1 2.1 0 013 3l-9 9zM16 4l4 4"/></svg></button></div>
-      <div class="cp-sec">Cores na página</div><div class="cp-sws">${pc.length ? pc.map(sw).join('') : '<small>Nenhuma ainda</small>'}</div>
+      <div class="cp-sec cp-secrow"><span>Cores na página</span>${cx.none ? '<button type="button" class="cp-none" id="cpNone" title="Sem cor / sem preenchimento" aria-label="Sem cor"></button>' : ''}</div><div class="cp-sws">${pc.length ? pc.map(sw).join('') : '<small>Nenhuma ainda</small>'}</div>
       ${br.length ? `<div class="cp-sec">Cores da marca</div><div class="cp-sws">${br.map(sw).join('')}</div>` : ''}`;
   }
   function paint() {
@@ -53,7 +50,7 @@
   function send(type) {
     const el = resolve(); if (!el) return;
     if (type === 'input' && el.value.toLowerCase() === st.hex) return;
-    el.value = st.hex; el.dispatchEvent(new Event(type, { bubbles: true })); if (type === 'input') st.dirty = true;
+    delete el.dataset.gv; el.value = st.hex; el.dispatchEvent(new Event(type, { bubbles: true })); if (type === 'input') st.dirty = true;
   }
   const commit = () => { if (st && st.dirty) { send('change'); st.dirty = false; } };
   function setHex(h, live) { const [r, g, b] = hex2rgb(h); [st.h, st.s, st.v] = rgb2hsv(r, g, b); if (!st.s) st.h = st.h0 || 0; paint(); send('input'); if (!live) commit(); }
@@ -69,7 +66,7 @@
     const h = okHex(el.value) || '#c398c8', [r, g, b] = hex2rgb(h), v = rgb2hsv(r, g, b);
     st = { el, sig: sigOf(el), h: v[0], h0: v[0], s: v[1], v: v[2], hex: h, dirty: false };
     pop.classList.remove('cp-g'); gs = null; pop.innerHTML = html(); pop.hidden = false; paint(); place(el);
-    { const cx = ctxOf(el); if (!noAuto && cx.grad && cx.e && GR.is(cx.e[cx.key])) { openGrad(); return; } noAuto = false; }
+    { if (!noAuto && ctxOf(el).grad && GR.is(el.dataset.gv)) { openGrad(); return; } noAuto = false; }
     drag(pop.querySelector('#cpSV'), (x, y) => { st.s = x; st.v = 1 - y; paint(); send('input'); });
     drag(pop.querySelector('#cpH'), (x) => { st.h = st.h0 = x * 359.99; paint(); send('input'); });
     const hx = pop.querySelector('#cpHex');
@@ -78,7 +75,7 @@
     pop.querySelectorAll('.cps').forEach((b) => { b.onclick = () => setHex(b.dataset.c); });
     pop.querySelector('#cpEye').onclick = eyedrop;
     pop.querySelector('#cpX').onclick = close;
-    const nb = pop.querySelector('#cpNone'); if (nb) nb.onclick = () => { const c0 = ctxOf(st.el), sn = snapOf([curPage().id]); applyVal(c0.key, 'none'); pushHist(sn, snapOf([curPage().id])); close(); };
+    const nb = pop.querySelector('#cpNone'); if (nb) nb.onclick = () => { const el = resolve(), b = el && el.closest('.cfield') && el.closest('.cfield').querySelector('.sw.none'); st.dirty = false; if (b) b.click(); close(); };
     const gb = pop.querySelector('#cpGrad'); if (gb) gb.onclick = () => openGrad();
   }
   /* ---------- segunda janela: gradiente (2 a 4 cores) ---------- */
@@ -109,12 +106,12 @@
     pop.querySelectorAll('.gch').forEach((b) => { b.onclick = () => { gs.act = +b.dataset.i; gs.hsv = rgb2hsv(...hex2rgb(g.cols[gs.act])); gPaint(); }; });
     const ad = pop.querySelector('#gAdd'); if (ad) ad.onclick = () => { g.cols.push(g.cols[g.cols.length - 1]); gs.act = g.cols.length - 1; gPaint(true); };
     const dl = pop.querySelector('#gDel'); if (dl) dl.onclick = () => { g.cols.splice(gs.act, 1); gs.act = Math.min(gs.act, g.cols.length - 1); gs.hsv = rgb2hsv(...hex2rgb(g.cols[gs.act])); gPaint(true); };
-    applyVal(gs.key, GR.enc(g), true);
+    applyVal(GR.enc(g), 'input');
   }
-  function gEnd() { if (!gs) return; const p = curPage(), n = snapOf([p.id]); try { pushHist(gs.snap, n); } catch (x) { /* sem histórico */ } renderProps(); thumbRefresh(p.id); gs = null; }
+  function gEnd() { if (!gs) return; applyVal(GR.enc(gs.g), 'change'); gs = null; }
   function openGrad() {
-    const cx = ctxOf(st.el), e = cx.e, cur = e[cx.key], g = GR.is(cur) ? GR.parse(cur) : { ang: 135, sat: 100, op: 100, cols: [okHex(cur) || st.hex || '#c398c8', '#f2bae8'] };
-    gs = { key: cx.key, g, act: 0, hsv: rgb2hsv(...hex2rgb(g.cols[0])), snap: snapOf([curPage().id]) };
+    const el0 = resolve(), cur = el0 && el0.dataset.gv, g = GR.is(cur) ? GR.parse(cur) : { ang: 135, sat: 100, op: 100, cols: [okHex(el0 && el0.value) || st.hex || '#c398c8', '#f2bae8'] };
+    gs = { g, act: 0, hsv: rgb2hsv(...hex2rgb(g.cols[0])) };
     pop.innerHTML = gradHTML(); pop.classList.add('cp-g');
     drag(pop.querySelector('#cpSV'), (x, y) => { gs.hsv[1] = x; gs.hsv[2] = 1 - y; gPaint(); });
     drag(pop.querySelector('#cpH'), (x) => { gs.hsv[0] = x * 359.99; gPaint(); });

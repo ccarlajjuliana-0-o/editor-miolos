@@ -901,3 +901,7 @@ body.qm-on #qbar{display:none!important}
 #cpop.cp-g{width:260px}
 .cfield.isgrad input[type=color]{opacity:0}.cfield.isgrad{position:relative}.cfield.isgrad::before{content:"";position:absolute;left:0;top:0;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--gr);pointer-events:none}
 .gsl label{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px}.gsl span{float:none}
+
+.cp-b.sm{font-size:11px;padding:2px 7px;white-space:nowrap}
+.cp-secrow{display:flex;align-items:center;gap:12px}
+.cp-none{width:22px;height:22px;border-radius:50%;border:1px solid rgba(62,53,80,.25);padding:0;cursor:pointer;background:linear-gradient(135deg,#fff 44%,#B4436C 44%,#B4436C 56%,#fff 56%)}

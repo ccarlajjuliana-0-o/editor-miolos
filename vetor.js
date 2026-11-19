@@ -228,7 +228,7 @@
   const colorCache = new Map();
   let colorCtx = null;
   function parseColor(s) {
-    let r = colorCache.get(s); if (r) return r;
+    let r = colorCache.get(s); if (r) return r; if (window.GR && GR.is(s)) { const o = GR.style({}, s, null); r = parseColor(o); colorCache.set(s, r); return r; }
     if (!colorCtx) colorCtx = document.createElement('canvas').getContext('2d');
     colorCtx.fillStyle = '#000000'; colorCtx.fillStyle = String(s);
     const v = colorCtx.fillStyle; let m;

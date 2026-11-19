@@ -28,8 +28,8 @@
     return fld(l, `<select ${A(path)} data-t="sel">${[['@title', 'Fonte de títulos do projeto'], ['@script', 'Fonte caligráfica do projeto'], ['@body', 'Fonte de texto do projeto']].map(([k, n]) => `<option value="${k}"${v === k ? ' selected' : ''}>${n}</option>`).join('')}${L.map((n) => `<option${n === v ? ' selected' : ''} style="font-family:'${esc(n)}'">${esc(n)}</option>`).join('')}</select>`);
   };
   function wc(path, v, none) {
-    const val = tok(v), hex = /^#[0-9a-f]{6}$/i.test(val || '') ? val : '#ffffff', isNone = !!none && (v === 'none' || !v);
-    return `<div class="cfield cc${isNone ? ' isnone' : ''}">${none ? `<button type="button" class="sw none${isNone ? ' cur' : ''}" data-wxc="${path}" data-r="${RT}" data-v="none" title="Sem cor" aria-label="Sem cor"></button>` : ''}<input type="color" ${A(path)} data-t="color" value="${hex}" aria-label="Cor atual. Clique para escolher qualquer cor"><button type="button" class="cct" title="Mostrar ou ocultar as cores da paleta" aria-label="Paleta de cores">▾</button>${['@a', '@b', '@ink', '@soft', '@line'].map((t) => `<button type="button" class="sw tk${v === t ? ' on' : ''}" data-wxc="${path}" data-r="${RT}" data-v="${t}" style="background:${tok(t)}" title="Cor da paleta" aria-label="Cor da paleta"></button>`).join('')}${BRAND.map((c) => `<button type="button" class="sw${v === c ? ' on' : ''}" data-wxc="${path}" data-r="${RT}" data-v="${c}" style="background:${c}" title="${c}" aria-label="${c}"></button>`).join('')}</div>`;
+    const val = tok(v), hex = /^#[0-9a-f]{6}$/i.test(val || '') ? val : '#ffffff', isNone = !!none && (v === 'none' || !v), isG = GR.is(v), gOk = /^wx\.(bg\.c|fr\.c|hd\.fill|hd\.lc)$/.test(path);
+    return `<div class="cfield cc${isNone ? ' isnone' : ''}${isG ? ' isgrad' : ''}"${isG ? ` style="--gr:${GR.css(v)}"` : ''}>${none ? `<button type="button" class="sw none${isNone ? ' cur' : ''}" data-wxc="${path}" data-r="${RT}" data-v="none" title="Sem cor" aria-label="Sem cor"></button>` : ''}<input type="color" ${A(path)} data-t="color" value="${hex}"${isG ? ` data-gv="${v}"` : ''}${gOk ? ' data-gr="1"' : ''} aria-label="Cor atual. Clique para escolher qualquer cor"><button type="button" class="cct" title="Mostrar ou ocultar as cores da paleta" aria-label="Paleta de cores">▾</button>${['@a', '@b', '@ink', '@soft', '@line'].map((t) => `<button type="button" class="sw tk${v === t ? ' on' : ''}" data-wxc="${path}" data-r="${RT}" data-v="${t}" style="background:${tok(t)}" title="Cor da paleta" aria-label="Cor da paleta"></button>`).join('')}${BRAND.map((c) => `<button type="button" class="sw${v === c ? ' on' : ''}" data-wxc="${path}" data-r="${RT}" data-v="${c}" style="background:${c}" title="${c}" aria-label="${c}"></button>`).join('')}</div>`;
   }
   const inCol = (o, path, l, none) => fld(l, wc(path, get(o, path), none));
   const openAcc = (id) => { Pref.acc = Pref.acc || { cont: true }; return !!Pref.acc[id]; };
@@ -176,7 +176,7 @@
     if (v === '' || v === undefined) delete cur[last]; else cur[last] = v;
   }
   const rootOf = (el) => (el.dataset.r === 'p' ? curPage() : selEls()[0]);
-  const parseV = (el) => { const t = el.dataset.t; if (t === 'num') return parseFloat(el.value) || 0; if (t === 'chk') return el.checked; return el.value; };
+  const parseV = (el) => { if (el.dataset.gv && el.type === 'color') return el.dataset.gv; const t = el.dataset.t; if (t === 'num') return parseFloat(el.value) || 0; if (t === 'chk') return el.checked; return el.value; };
   function applyEl(el, commit) {
     const p = curPage(), o = rootOf(el); if (!p || !o) return;
     wxB = wxB || snapOf([p.id]); let v = parseV(el);

@@ -78,6 +78,8 @@
     },
   };
   window.GR = GR;
+  /* qualquer fillStyle/strokeStyle 'g|…' vira gradiente do tamanho do elemento atual (window.__fb) */
+  ['fillStyle', 'strokeStyle'].forEach((k) => { const d = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, k); if (!d || d.__gr) return; Object.defineProperty(CanvasRenderingContext2D.prototype, k, { configurable: true, get() { return d.get.call(this); }, set(v) { d.set.call(this, GR.is(v) ? GR.style(this, v, window.__fb) : v); } }); });
   const DOPTS = OPTS.filter((o) => !['zigzag', 'wave', 'double', 'double2', 'triple'].includes(o[0]));
   window.LN = { OPTS, MOPTS, DOPTS, seg, rect, stroke, dashOf, sidesOf, sidesStr, sideLines };
 })();
