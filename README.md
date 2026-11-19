@@ -327,3 +327,14 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 ## Ajuste 65 — Catálogo: temas e coleções do app
 - **Temas** → PADRÃO DO APP: as 5 paletas (Lavanda, Sakura, Sálvia, Mel, Tinta) e as 4 combinações de fontes. "Copiar" cria uma cópia editável no catálogo/ModuLab; a paleta original continua intacta.
 - **Coleções e outros** → PADRÃO DO APP: as coleções de estilos de widgets e molduras do app, com quantidade e nomes dos estilos.
+
+## Ajuste 66 · Tabela estilo planilha
+- Novo `tabela.js`. Dois cliques na tabela (ou botão **Editar células**) entram no modo células; **Esc** sai.
+- Seleção individual ou em grupo (arrastar, Shift+clique, setas, letras das colunas / números das linhas, canto = tudo), sem usar "agrupar".
+- Cada coluna tem largura e cada linha tem altura próprias (arraste a divisão ou digite no painel). Shift ao arrastar mantém o tamanho total.
+- Travas: linha travada mantém a altura, coluna travada mantém a largura (ao esticar a tabela só as destravadas mudam); célula travada não aceita texto/formato.
+- Passando o mouse nas divisões aparecem ＋ (inserir) e − (excluir) de linhas e colunas.
+- Por célula/seleção: fundo, fonte, tamanho, cor, peso, itálico, sublinhado, espaço entre letras, alinhamento horizontal e vertical, bordas por lado (cor, espessura, tipo).
+- Fórmulas: `=SOMA(B2:B5)`, `=B2*C2`, `=MEDIA`, `=MIN`, `=MAX`, `=MULT`, `=CONT`, `=ARRED(x;n)`; referências acompanham inserção/exclusão. No PDF/PNG vai o resultado calculado.
+- Espaçamento entre células e cantos arredondados continuam valendo. Tabelas antigas não mudam.
+- Cache `estudio-miolos-v72`.

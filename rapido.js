@@ -162,6 +162,7 @@
     st.addEventListener('dblclick', (ev) => {
       const w = ev.target.closest('.pg'); if (!w || S.tool || S.ptEdit) return; const p = S.pages[w.dataset.id]; if (!p) return;
       const loc = locate(p, toMM(ev, w)); if (!loc || loc.e.locked) return;
+      if (loc.e.type === 'table' && window.Tabela) return;
       if (loc.e.type === 'text') { const hd = loc.e.wx && loc.e.wx.hd; if (!(hd && hd.on && loc.L && loc.L.hd && loc.ly < loc.L.hd)) return; }
       const tg = targetOf(loc); if (!tg) return;
       ev.stopImmediatePropagation(); ev.preventDefault(); S.sel = [loc.e.id]; redraw(); renderProps(); openQM(w, p, loc, tg);
