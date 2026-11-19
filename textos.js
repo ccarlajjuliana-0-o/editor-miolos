@@ -227,7 +227,18 @@
         x += it.w; }); y += lhs[li]; });
     setLS(c, 0);
   }
-  (function patchRuns() { if (typeof R === 'undefined' || R.text._runs) return; const prev = R.text; R.text = function (c, e) { if (e.runs && e.runs.length) { try { drawRuns(c, e); } catch (err) { console.warn(err); } return; } return prev.apply(this, arguments); }; R.text._runs = 1; R.text._ul = 1; })();
+  /* texto em curva (arco para cima/baixo ou círculo) */
+  function drawCurve(c, e) {
+    const txt = (e.runs && e.runs.length ? e.runs.map((r) => r.t).join('') : e.text || '').replace(/\n/g, ' '); if (!txt) return;
+    const fs = e.size * PT; font(c, fs, e.font, e.weight, e.italic); c.fillStyle = e.color;
+    const ch = [...txt], adv = ch.map((x) => M(c, x)), sum = adv.reduce((a, b) => a + b, 0), n = ch.length, up = (e.cvDir || 'up') === 'up';
+    const R = e.cvR > 0 ? e.cvR : Math.max(fs * 1.5, e.w / 2), span = e.cvSpan > 0 ? e.cvSpan * Math.PI / 180 : 0;
+    const gap = span ? (span * R - sum) / Math.max(1, n - 1) : (e.cvLs || 0) * fs, tot = sum + gap * (n - 1), st = (e.cvStart || 0) * Math.PI / 180;
+    const cx = e.w / 2, apex = e.h / 2 + fs * 0.35, cy = up ? apex + R : apex - R; let s = -tot / 2;
+    ch.forEach((g, i) => { const a = s + adv[i] / 2, ph = a / R + st; s += adv[i] + gap;
+      if (g === ' ') return; c.save(); c.translate(cx + R * Math.sin(ph), up ? cy - R * Math.cos(ph) : cy + R * Math.cos(ph)); c.rotate(up ? ph : -ph); T(c, g, 0, 0, 'center', 'alphabetic'); c.restore(); });
+  }
+  (function patchRuns() { if (typeof R === 'undefined' || R.text._runs) return; const prev = R.text; R.text = function (c, e) { if (e.cvOn) { try { drawCurve(c, e); } catch (err) { console.warn(err); } return; } if (e.runs && e.runs.length) { try { drawRuns(c, e); } catch (err) { console.warn(err); } return; } return prev.apply(this, arguments); }; R.text._runs = 1; R.text._ul = 1; })();
 
   const rgbHex = (s) => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(s || ''); return m ? '#' + [1, 2, 3].map((i) => (+m[i]).toString(16).padStart(2, '0')).join('') : null; };
   function runsFromDom(root, e) {

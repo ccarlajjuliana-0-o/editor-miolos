@@ -270,6 +270,16 @@
     cont.parentNode.insertBefore(w, cont.nextSibling);
   }
 
+  function curvaSection(P) {
+    P.querySelectorAll('[data-acc="curva"]').forEach((x) => x.remove());
+    const sel = selEls(); if (sel.length !== 1 || sel[0].type !== 'text') return;
+    const e = sel[0], anchor = P.querySelector('[data-acc="cont"]'); if (!anchor) return;
+    FIELDS._cv = [['cvOn', 'Curvar o texto', 'chk'], ['cvDir', 'Direção', 'sel', [['up', 'Arco (para cima)'], ['down', 'Taça (para baixo)']], 'cvOn', 'up'], ['cvR', 'Raio (mm, 0 = auto)', 'num', 1, 'cvOn'], ['cvSpan', 'Abertura (graus, 0 = pelo texto)', 'num', 5, 'cvOn'], ['cvStart', 'Ângulo inicial (graus)', 'num', 5, 'cvOn'], ['cvLs', 'Espaço entre letras (em)', 'num', 0.02, 'cvOn']];
+    const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
+    const open = !(Pref.acc && Pref.acc.curva === false), w = document.createElement('div'); w.className = 'wacc' + (open ? ' open' : ''); w.dataset.acc = 'curva';
+    w.innerHTML = `<button class="wah" type="button" aria-expanded="${open}"><i class="wtri"></i><b>Texto em curva</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><p class="hint">Aumente a altura da caixa para a curva caber. Com abertura em 360° o texto dá a volta num círculo.</p><div class="pgrp">${fieldsHTML(Object.assign({}, e, { type: '_cv' }))}</div></div>`;
+    anchor.parentNode.insertBefore(w, anchor.nextSibling);
+  }
   function cellSection(P) {
     P.querySelectorAll('[data-acc="dcells"]').forEach((x) => x.remove());
     const sel = selEls(); if (sel.length !== 1 || sel[0].type !== 'calendar') return;
@@ -292,6 +302,7 @@
     switch (id) {
       case 'cont': return F(e.type).concat(e.type === 'calendar' || e.type === 'yearcal' ? ['headFill'] : []).filter((k) => !(['calendar', 'yearcal'].includes(e.type) && /^(wd|cell)/.test(k)));
       case 'wdays': return ['headFill', 'wdFmt', 'wdH', 'wdColor', 'wdFont', 'wdSize', 'wdWeight', 'wdAlign', 'wdLs', 'wdLine', 'wdLc', 'wdLw', 'wdGrid', 'wdGap', 'wdR'];
+      case 'curva': return ['cvOn', 'cvDir', 'cvR', 'cvSpan', 'cvStart', 'cvLs'];
       case 'dcells': return ['cellGap', 'cellR', 'cellFill', 'cellHide'];
       case 'mark': return ['box', 'mk', 'mfill', 'mfc', 'msize'];
       case 'hd': return ['wx.hd']; case 'bg': return ['wx.bg']; case 'fr': return ['wx.fr']; case 'sty': return ['wx'];
@@ -300,7 +311,7 @@
       default: return null;
     }
   };
-  const ACCS = ['cont', 'wdays', 'dcells', 'mark', 'hd', 'bg', 'fr', 'sty', 'size'];
+  const ACCS = ['cont', 'curva', 'wdays', 'dcells', 'mark', 'hd', 'bg', 'fr', 'sty', 'size'];
   const modified = (e, keys) => !!e._b && keys.some((k) => JSON.stringify(getP(e, k)) !== JSON.stringify(getP(e._b, k)));
   function restore(id) {
     const p = curPage(), e = selEls()[0]; if (!p || !e || !e._b) return; const keys = keysFor(e, id); if (!keys || !modified(e, keys)) { toast('Já está como no original.'); return; }
@@ -328,7 +339,7 @@
   function boot() {
     addElements(); wireDbl(); wireGs(); wireLock(); wireZoom(); wireRs();
     if (typeof renderProps === 'function' && !renderProps._rp) {
-      const r0 = renderProps, f = function () { const out = r0.apply(this, arguments); const P = document.getElementById('props'); if (P && S.meta) { try { section(P); wdSection(P); cellSection(P); restoreUI(P); } catch (e) { console.warn(e); } } return out; }; f._rp = 1; f._lv = r0._lv; renderProps = f;
+      const r0 = renderProps, f = function () { const out = r0.apply(this, arguments); const P = document.getElementById('props'); if (P && S.meta) { try { section(P); curvaSection(P); wdSection(P); cellSection(P); restoreUI(P); } catch (e) { console.warn(e); } } return out; }; f._rp = 1; f._lv = r0._lv; renderProps = f;
     }
   }
   window.Rapido = { boot, openQM };

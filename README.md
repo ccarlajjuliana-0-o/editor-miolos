@@ -245,3 +245,7 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 
 ## Ajuste 47
 - Com espaço entre células (dias ou dias da semana), o fundo do widget só pinta dentro das células; os espaços mostram o fundo da página. Existe um registro (`CELLS` em widgets.js) para qualquer widget com células usar a mesma regra.
+
+## Ajuste 48
+- Moldura com cantos arredondados: o conteúdo recua e é recortado pela curva (vale para qualquer objeto com moldura).
+- Textos: nova seção "Texto em curva" (arco/taça, raio, abertura em graus, ângulo inicial, espaço entre letras).

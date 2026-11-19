@@ -142,7 +142,7 @@
     const off = f.k === 'offset' ? Math.max(0.6, f.gap || 1.4) : 0, bw = e.w - off, bh = e.h - off;
     const ex = f.k === 'scallop' ? (f.bump || 4.5) * 0.5 : 0, ft = Math.max(0.05, f.w || 0.4), fg = f.gap ?? ft * 2.5;
     /* a moldura ocupa espaço: o conteúdo é empurrado para dentro e nunca fica sob a borda */
-    const fi = !f.k || f.k === 'none' || f.k === 'scallop' ? 0 : f.k === 'double' || f.k === 'notch' ? ft + fg : f.k === 'bold' ? ft + fg * 0.7 : ft, pad = (w.pad || 0) + ex + fi;
+    const fi = !f.k || f.k === 'none' || f.k === 'scallop' ? 0 : f.k === 'double' || f.k === 'notch' ? ft + fg : f.k === 'bold' ? ft + fg * 0.7 : ft, rin = f.k === 'scallop' || !f.r ? 0 : 0.2929 * Math.min(f.r, bw / 2, bh / 2), pad = (w.pad || 0) + ex + fi + rin; /* cantos arredondados: o conteúdo recua para caber dentro da curva */
     const hd = w.hd && w.hd.on ? Math.min(w.hd.h || 7, bh * 0.6) + fi : 0, pin = pad - fi;
     return { f, off, bw, bh, hd, pad, ex, fi, ix: pad, iy: hd ? hd + pin : pad, iw: Math.max(2, bw - 2 * pad), ih: Math.max(2, bh - (hd ? hd + pin : pad) - pad) };
   }
@@ -193,7 +193,8 @@
         T(c, fitText(c, hd.text, av), ax, (L.fi + L.hd) / 2 + fs * 0.04, hd.align || 'center', 'middle'); setLS(c, 0);
       }
     }
-    c.save(); c.translate(L.ix, L.iy);
+    c.save(); if (f.r > 0 && f.k !== 'scallop') { shapePathF(c, 0, 0, L.bw, L.bh, f); c.clip(); }
+    c.translate(L.ix, L.iy);
     fn(c, Object.assign({}, e, { w: L.iw, h: L.ih }));
     c.restore();
     frame(c, 0, 0, L.bw, L.bh, f);
