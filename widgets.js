@@ -53,7 +53,7 @@
       const lb = Array.isArray(e.items) ? e.items[i] : '';
       const gap = mk === 'none' ? 0 : 1.6;
       let lx = bs + (mk === 'none' ? 0.4 : 1.8);
-      if (lb) { font(c, fsz, fam, 400); c.fillStyle = e.textColor || e.color; T(c, lb, bs + gap, e.lines ? by + bs - 0.5 : cy, 'left', e.lines ? 'alphabetic' : 'middle'); lx = bs + gap + M(c, lb) + 1.2; }
+      if (lb) { font(c, fsz, fam, 400); c.fillStyle = e.textColor || e.color; T(c, lb, bs + gap, e.lines ? by + bs - 0.5 : cy, 'left', e.lines ? 'alphabetic' : 'middle'); }
       if (e.lines && lx < e.w) { c.beginPath(); c.moveTo(lx, by + bs); c.lineTo(e.w, by + bs); strokeIf(c, e.stroke, sw * 0.85); }
     }
   };
@@ -83,7 +83,7 @@
     for (let i = 0; i < n; i++) mark(c, e.mk || 'star', i * (s + gap) + s / 2, e.h / 2, s * 0.9, { stroke: e.color, fill: e.mfc || e.color, mode: e.mfill || 'none', sw: e.sw || 0.3, num: i + 1, font: e.font });
   };
   Object.assign(TYPE_NAME, { progress: 'Barras de progresso', numgrid: 'Grade numerada', rate: 'Sequência de símbolos' });
-  FIELDS.checklist = [['n', 'Itens', 'num', 1], ['items', 'Texto dos itens (um por linha)', 'lines'], ['font', 'Fonte', 'font'], ['size', 'Tamanho do texto (pt, 0 = automático)', 'num', 0.5], ['textColor', 'Cor do texto', 'color'], ['lines', 'Linha para escrever', 'chk'], ['stroke', 'Linhas', 'colorN'], ['sw', 'Espessura (mm)', 'num', 0.05]];
+  FIELDS.checklist = [['n', 'Itens', 'num', 1], ['items', 'Texto dos itens (um por linha)', 'lines'], ['font', 'Fonte', 'font'], ['size', 'Tamanho do texto (pt, 0 = automático)', 'num', 0.5], ['lines', 'Linha para escrever', 'chk'], ['textColor', 'Cor do texto', 'color'], ['stroke', 'Cor das linhas', 'colorN'], ['sw', 'Espessura (mm)', 'num', 0.05]];
   FIELDS.progress = [['labels', 'Nomes (um por linha)', 'lines'], ['rows', 'Barras', 'num', 1], ['segs', 'Divisões', 'num', 1], ['labelW', 'Largura dos nomes (0–0,6)', 'num', 0.02], ['font', 'Fonte', 'font'], ['color', 'Texto', 'color'], ['accent', 'Preenchimento', 'color'], ['stroke', 'Contorno', 'colorN']];
   FIELDS.numgrid = [['n', 'Quantidade', 'num', 1], ['cols', 'Colunas', 'num', 1], ['start', 'Começa em', 'num', 1], ['numbers', 'Mostrar números', 'chk'], ['font', 'Fonte', 'font'], ['textColor', 'Cor dos números', 'color'], ['sw', 'Espessura (mm)', 'num', 0.05]];
   FIELDS.rate = [['n', 'Quantidade', 'num', 1], ['sw', 'Espessura (mm)', 'num', 0.05]];

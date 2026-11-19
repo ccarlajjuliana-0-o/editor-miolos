@@ -154,7 +154,7 @@
     };
     $('[data-qf]', bar).onchange = (x) => { tg.font.set(x.target.value); live(); focusEnd(); };
     const qs = $('[data-qs]', bar); if (qs) qs.oninput = (x) => { tg.size.set(x.target.value === '' ? undefined : Math.max(2, Math.min(80, +x.target.value || 8))); live(); };
-    $('[data-qc]', bar).oninput = (x) => { tg.color.set(x.target.value); live(); };
+    const cc = $('[data-qc]', bar); cc.oninput = cc.onchange = (x) => { tg.color.set(x.target.value); live(); };
     focusEnd();
   }
   function wireDbl() {
