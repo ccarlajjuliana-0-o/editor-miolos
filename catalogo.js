@@ -156,6 +156,12 @@
     if (key === 'widgets' && typeof WIDGETS !== 'undefined') return WIDGETS.map(([k, n]) => `<div class="ctile bi" data-cbw="${k}"><div class="cim"><canvas data-cbp="${k}"></canvas></div><div class="cnm">${esc(n)}</div></div>`).join('');
     if (key === 'adesivos' && typeof STICKERS !== 'undefined') return STICKERS.map((s, i) => `<div class="ctile bi" data-cbs="${i}"><div class="cim"><canvas data-cbq="${i}"></canvas></div><div class="cnm">${esc(SHAPES[s[0]] || 'Adesivo')}</div></div>`).join('');
     if (key === 'fontes' && typeof FONTS !== 'undefined') return `<div class="cfonts">${FONTS.map((f) => `<div class="cfont" style="font-family:'${esc(f[0])}'">${esc(f[0])}<small>${esc(f[1] || '')}</small></div>`).join('')}</div>`;
+    if (key === 'temas' && typeof PALS !== 'undefined') {
+      const pr = Object.entries(PALS).filter(([k]) => !k.startsWith('u_')).map(([k, p]) => `<div class="cfont cpalr"><span class="cpsw">${['a', 'b', 'soft', 'ink'].map((q) => `<i style="background:${esc(p[q])}"></i>`).join('')}</span><span class="cpn">${esc(p.nome || k)}</span><button type="button" class="btn sm ghost" data-ctm="${esc(k)}" title="Cria uma cópia editável no ModuLab">Copiar</button></div>`).join('');
+      const pa = typeof PAIRS !== 'undefined' ? Object.values(PAIRS).map((x) => `<div class="cfont" style="font-family:'${esc(x.script)}'">${esc(x.nome)}<small>${esc(x.script)} · ${esc(x.title)} · ${esc(x.body)}</small></div>`).join('') : '';
+      return `<div class="cfonts cthemes"><small class="cl">PALETAS</small>${pr}<small class="cl">COMBINAÇÕES DE FONTES</small>${pa}</div>`;
+    }
+    if (key === 'colecoes' && window.WX && WX.COLS) return `<div class="cfonts cthemes"><small class="cl">ESTILOS DE WIDGETS E MOLDURAS</small>${WX.COLS.map((c) => `<div class="cfont">${esc(c.n)}<small>${c.s.length} estilo${c.s.length === 1 ? '' : 's'}: ${esc(c.s.slice(0, 4).map((x) => x[1]).join(', '))}${c.s.length > 4 ? '…' : ''}</small></div>`).join('')}</div>`;
     if (key === 'planners') return `<div class="ctile bi" data-cbx="sample"><div class="cim"><span style="font-size:12px;color:var(--muted);padding:6px">3 meses · A5 · com divisórias e links</span></div><div class="cnm">Planner de exemplo</div><div class="cact"><span class="btn sm">Criar projeto</span></div></div>`;
     if (key === 'modelos' && typeof TPL !== 'undefined') return `<div class="cfonts">${Object.keys(TPL).map((k) => `<div class="cfont">${esc(TPL[k].nome || k)}<small>modelo do app</small></div>`).join('')}</div>`;
     return '';
@@ -191,6 +197,9 @@
       $$('[data-cv]', P).forEach((b) => b.onclick = () => { st.view = b.dataset.cv; refresh(); });
       $$('[data-cc]', P).forEach((b) => b.onclick = () => { st.cat = b.dataset.cc; refresh(); });
       $$('[data-cacc]', P).forEach((a) => { $('.wah', a).onclick = () => { const o = !a.classList.contains('open'); a.classList.toggle('open', o); Pref.acc = Pref.acc || {}; Pref.acc[a.dataset.cacc] = o; savePref(); }; });
+      $$('[data-ctm]', P).forEach((b) => b.onclick = async () => { const p = PALS[b.dataset.ctm]; if (!p) return; const pal = {}; ['a', 'b', 'ink', 'soft', 'soft2', 'line', 'text'].forEach((q) => { pal[q] = p[q]; });
+        const it = { id: uid('l'), kind: 'tema', cat: true, name: (p.nome || 'Tema') + ' (cópia)', pal, pair: 'assinatura', wst: '', frame: false, bdr: '', origem: 'padrão do app', createdAt: Date.now(), updatedAt: Date.now() };
+        await Store.saveLib(it); S.lib.push(it); if (window.ModuLab && ModuLab.sync) try { ModuLab.sync(); } catch (e) { /* */ } toast('Tema copiado para o catálogo. Edite no ModuLab. 💜'); refresh(); });
       const sp = $('#cgSavePl', P); if (sp) sp.onclick = savePlanner;
       $$('[data-cbx]', P).forEach((b) => b.onclick = async () => { await createSample(); });
       $$('canvas[data-cpl]', P).forEach((cv) => { const it = S.lib.find((x) => x.id === cv.dataset.cpl); const pg = it && it.pages && it.pages[it.order[0]]; if (pg) try { previewCanvas(cv, pg, pg.w, pg.h, 120, 78); } catch (e) { /* */ } });

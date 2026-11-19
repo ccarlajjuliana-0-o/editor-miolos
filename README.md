@@ -323,3 +323,7 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Em "Enviar ao catálogo": **Widget vetorizado (PNG sem fundo)** — escolha cores (2–12) e detalhe (1–5), veja a prévia ao lado do original e guarde. Cada cor vira uma forma editável (abre no ModuLab como widget).
 - **PDF → modelos de página**: textos, formas e imagens viram elementos editáveis, guardados como um modelo por página ou como um planner/caderno completo (usa o mesmo leitor do "Importar PDF").
 - Tudo roda no navegador, sem enviar nada para fora.
+
+## Ajuste 65 — Catálogo: temas e coleções do app
+- **Temas** → PADRÃO DO APP: as 5 paletas (Lavanda, Sakura, Sálvia, Mel, Tinta) e as 4 combinações de fontes. "Copiar" cria uma cópia editável no catálogo/ModuLab; a paleta original continua intacta.
+- **Coleções e outros** → PADRÃO DO APP: as coleções de estilos de widgets e molduras do app, com quantidade e nomes dos estilos.
