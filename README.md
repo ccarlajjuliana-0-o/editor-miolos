@@ -242,3 +242,6 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Botão "↺ Restaurar" em cada seção (seta) do painel direito: volta só aquela seção ao original (apagado quando nada mudou).
 - "Restaurar tudo ao original" no fim do painel: desfaz todas as personalizações do objeto (posição e grupo ficam). Ambos entram no histórico (Ctrl+Z).
 - O "original" é guardado na primeira vez que o objeto é selecionado (campo interno `_b`).
+
+## Ajuste 47
+- Com espaço entre células (dias ou dias da semana), o fundo do widget só pinta dentro das células; os espaços mostram o fundo da página. Existe um registro (`CELLS` em widgets.js) para qualquer widget com células usar a mesma regra.

@@ -146,11 +146,29 @@
     const hd = w.hd && w.hd.on ? Math.min(w.hd.h || 7, bh * 0.6) + fi : 0, pin = pad - fi;
     return { f, off, bw, bh, hd, pad, ex, fi, ix: pad, iy: hd ? hd + pin : pad, iw: Math.max(2, bw - 2 * pad), ih: Math.max(2, bh - (hd ? hd + pin : pad) - pad) };
   }
+  /* registro: tipo de widget -> função que devolve as células (coordenadas da caixa externa) quando há espaço entre elas */
+  const CELLS = {
+    calendar(e, L) {
+      if (!(e.wdGap > 0 || e.cellGap > 0 || e.cellR > 0)) return null;
+      const ie = Object.assign({}, e, { w: L.iw, h: L.ih }), K = calLayout(ie), out = [], ox = L.ix, oy = L.iy;
+      if (K.tH) out.push({ x: ox, y: oy, w: L.iw, h: K.tH });
+      const gap = Math.min(e.wdGap || 0, K.cw * 0.6), rb = e.wdR > 0 ? e.wdR : Math.min(1.6, K.hH / 3);
+      if (gap > 0) for (let i = 0; i < 7; i++) out.push({ x: ox + K.cw * i + gap / 2, y: oy + K.tH, w: K.cw - gap, h: K.hH, r: rb }); else out.push({ x: ox, y: oy + K.tH, w: L.iw, h: K.hH, r: rb });
+      if (e.cellGap > 0 || e.cellR > 0) {
+        const cg = Math.min(e.cellGap || 0, Math.min(K.cw, K.ch) * 0.5);
+        for (let i = 0; i < K.rows * 7; i++) { const d = i - K.off + 1; if (e.cellHide && (d < 1 || d > K.dim)) continue; out.push({ x: ox + (i % 7) * K.cw + cg / 2, y: oy + K.top + Math.floor(i / 7) * K.ch + cg / 2, w: K.cw - cg, h: K.ch - cg, r: e.cellR || 0 }); }
+      } else out.push({ x: ox, y: oy + K.top, w: L.iw, h: K.ch * K.rows });
+      return out;
+    }
+  };
   function drawWx(c, e, fn) {
     const w = e.wx, L = layout(e), f = L.f;
     c.save();
     if (w.sh) { c.save(); c.globalAlpha *= 0.16; c.fillStyle = '#3E3550'; rr(c, 0.9, 1.2, L.bw, L.bh, f.r || 0); c.fill(); c.restore(); }
     if (f.k === 'offset') { c.save(); rr(c, L.off, L.off, L.bw, L.bh, f.r || 0); c.fillStyle = tok(f.c || '@ink'); c.fill(); c.restore(); }
+    /* widgets com espaço entre células: o fundo só pinta dentro das células */
+    let clipped = false; const cf = CELLS[e.type], cl = cf ? cf(e, L) : null;
+    if (cl && cl.length) { c.save(); c.beginPath(); cl.forEach((q) => { const r = Math.max(0, Math.min(q.r || 0, q.w / 2, q.h / 2)); c.moveTo(q.x + r, q.y); c.arcTo(q.x + q.w, q.y, q.x + q.w, q.y + q.h, r); c.arcTo(q.x + q.w, q.y + q.h, q.x, q.y + q.h, r); c.arcTo(q.x, q.y + q.h, q.x, q.y, r); c.arcTo(q.x, q.y, q.x + q.w, q.y, r); c.closePath(); }); c.clip(); clipped = true; }
     const bg = w.bg;
     if (bg && bg.t === 'cor') { c.save(); c.globalAlpha *= (bg.op ?? 1); shapePathF(c, 0, 0, L.bw, L.bh, f); fillIf(c, tok(bg.c || '@soft')); c.restore(); }
     else if (bg && bg.t === 'img' && bg.src) {
@@ -159,6 +177,7 @@
       if (im) drawImgFit(c, im, 0, 0, L.bw, L.bh, bg.fit || 'cover'); else { c.fillStyle = 'rgba(195,152,200,.15)'; c.fillRect(0, 0, L.bw, L.bh); }
       c.restore();
     }
+    if (clipped) c.restore();
     const hd = w.hd;
     if (hd && hd.on && L.hd > 0) {
       c.save(); shapePathF(c, 0, 0, L.bw, L.bh, f); c.clip();
