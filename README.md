@@ -237,3 +237,8 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 ## Ajuste 45
 - Faixa dos dias: linhas também nas laterais ou em volta (contorno), divisórias da grade ligáveis, espaço entre células e cantos arredondados.
 - Nova seção "Células dos dias" no calendário mensal: espaço entre os dias, cantos arredondados, fundo de cada dia e ocultar células vazias — cada dia vira um quadradinho individual.
+
+## Ajuste 46
+- Botão "↺ Restaurar" em cada seção (seta) do painel direito: volta só aquela seção ao original (apagado quando nada mudou).
+- "Restaurar tudo ao original" no fim do painel: desfaz todas as personalizações do objeto (posição e grupo ficam). Ambos entram no histórico (Ctrl+Z).
+- O "original" é guardado na primeira vez que o objeto é selecionado (campo interno `_b`).

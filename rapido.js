@@ -281,10 +281,54 @@
     anchor.parentNode.insertBefore(w, anchor.nextSibling);
   }
 
+
+  /* ---------- restaurar (por seção e total) ---------- */
+  const SKIP = ['id', 'x', 'y', 'g', 'gb', 'locked', 'hidden', '_b'];
+  const getP = (o, p) => p.split('.').reduce((a, k) => (a == null ? undefined : a[k]), o);
+  const setP = (o, p, v) => { const ks = p.split('.'); let a = o; for (let i = 0; i < ks.length - 1; i++) { if (a[ks[i]] == null) { if (v === undefined) return; a[ks[i]] = {}; } a = a[ks[i]]; } const k = ks[ks.length - 1]; if (v === undefined) delete a[k]; else a[k] = clone(v); };
+  function ensureBase(e) { if (!e._b) { const b = clone(e); delete b._b; e._b = b; } }
+  const keysFor = (e, id) => {
+    const F = (t) => (FIELDS[t] || []).map((f) => f[0]);
+    switch (id) {
+      case 'cont': return F(e.type).concat(e.type === 'calendar' || e.type === 'yearcal' ? ['headFill'] : []).filter((k) => !(['calendar', 'yearcal'].includes(e.type) && /^(wd|cell)/.test(k)));
+      case 'wdays': return ['headFill', 'wdFmt', 'wdH', 'wdColor', 'wdFont', 'wdSize', 'wdWeight', 'wdAlign', 'wdLs', 'wdLine', 'wdLc', 'wdLw', 'wdGrid', 'wdGap', 'wdR'];
+      case 'dcells': return ['cellGap', 'cellR', 'cellFill', 'cellHide'];
+      case 'mark': return ['box', 'mk', 'mfill', 'mfc', 'msize'];
+      case 'hd': return ['wx.hd']; case 'bg': return ['wx.bg']; case 'fr': return ['wx.fr']; case 'sty': return ['wx'];
+      case 'size': return ['opacity', 'w', 'h'];
+      case 'all': return Array.from(new Set(Object.keys(e).concat(Object.keys(e._b || {})))).filter((k) => !SKIP.includes(k));
+      default: return null;
+    }
+  };
+  const ACCS = ['cont', 'wdays', 'dcells', 'mark', 'hd', 'bg', 'fr', 'sty', 'size'];
+  const modified = (e, keys) => !!e._b && keys.some((k) => JSON.stringify(getP(e, k)) !== JSON.stringify(getP(e._b, k)));
+  function restore(id) {
+    const p = curPage(), e = selEls()[0]; if (!p || !e || !e._b) return; const keys = keysFor(e, id); if (!keys || !modified(e, keys)) { toast('Já está como no original.'); return; }
+    change([p.id], () => { keys.forEach((k) => setP(e, k, getP(e._b, k))); if (e.wx && !Object.keys(e.wx).length && !(e._b.wx)) delete e.wx; });
+    redraw(); renderProps(); thumbRefresh(p.id); toast(id === 'all' ? 'Widget restaurado ao original. ↺' : 'Seção restaurada. ↺');
+  }
+  function restoreUI(P) {
+    P.querySelectorAll('.wrs,.rsall').forEach((x) => x.remove());
+    const sel = selEls(); if (sel.length !== 1 || S.tool) return; const e = sel[0]; if (!e || e.gb) return; ensureBase(e);
+    P.querySelectorAll('.wacc[data-acc]').forEach((w) => {
+      const id = w.dataset.acc; if (!ACCS.includes(id)) return; const keys = keysFor(e, id), h = w.querySelector('.wah'), c = h && h.querySelector('.wcol'); if (!keys || !h) return;
+      const s = document.createElement('span'); s.className = 'wrs' + (modified(e, keys) ? '' : ' dis'); s.dataset.rs = id; s.setAttribute('role', 'button'); s.tabIndex = 0; s.title = 'Restaurar esta seção ao original'; s.textContent = '↺ Restaurar';
+      h.insertBefore(s, c || null);
+    });
+    const d = document.createElement('div'); d.className = 'rsall'; d.innerHTML = `<button type="button" class="btn sm ghost${modified(e, keysFor(e, 'all')) ? '' : ' dis'}" data-rs="all">↺ Restaurar tudo ao original</button><p class="hint">Desfaz todas as personalizações deste objeto (posição e grupo ficam). Dá para desfazer com Ctrl+Z.</p>`;
+    P.appendChild(d);
+  }
+  function wireRs() {
+    const P0 = document.getElementById('props'); if (!P0 || P0._rs) return; P0._rs = 1;
+    const go = (ev) => { const b = ev.target.closest('[data-rs]'); if (!b || !P0.contains(b)) return false; ev.stopPropagation(); ev.preventDefault(); restore(b.dataset.rs); return true; };
+    P0.addEventListener('click', go, true);
+    P0.addEventListener('keydown', (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches && ev.target.matches('.wrs')) go(ev); }, true);
+  }
+
   function boot() {
-    addElements(); wireDbl(); wireGs(); wireLock(); wireZoom();
+    addElements(); wireDbl(); wireGs(); wireLock(); wireZoom(); wireRs();
     if (typeof renderProps === 'function' && !renderProps._rp) {
-      const r0 = renderProps, f = function () { const out = r0.apply(this, arguments); const P = document.getElementById('props'); if (P && S.meta) { try { section(P); wdSection(P); cellSection(P); } catch (e) { console.warn(e); } } return out; }; f._rp = 1; f._lv = r0._lv; renderProps = f;
+      const r0 = renderProps, f = function () { const out = r0.apply(this, arguments); const P = document.getElementById('props'); if (P && S.meta) { try { section(P); wdSection(P); cellSection(P); restoreUI(P); } catch (e) { console.warn(e); } } return out; }; f._rp = 1; f._lv = r0._lv; renderProps = f;
     }
   }
   window.Rapido = { boot, openQM };

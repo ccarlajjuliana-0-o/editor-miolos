@@ -881,3 +881,6 @@ body.qm-on #qbar{display:none!important}
 .crow{gap:8px}.crow .pfield{margin:0}
 #fldGrp .pfield select,#fldGrp .pfield input[type=number],#fldGrp .pfield input[type=text]{padding:5px 9px;font-size:13.5px;min-height:34px;border-radius:11px}
 #fldGrp .crow .pfield>span{white-space:normal;line-height:1.15;min-height:27px;display:flex;align-items:flex-end}
+
+.wrs{margin-left:auto;margin-right:6px;font:700 11.5px var(--f-title);color:var(--accent);padding:3px 8px;border-radius:999px;border:1px solid var(--line);cursor:pointer;white-space:nowrap}.wrs:hover{background:var(--surface2)}.wrs.dis,.rsall .btn.dis{opacity:.4}
+.rsall{margin:18px 0 24px;display:flex;flex-direction:column;gap:6px}.rsall .btn{align-self:stretch}
