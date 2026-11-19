@@ -19,7 +19,7 @@ const DIAX=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 const cellSides=e=>(e.cbT!==false?'t':'')+(e.cbR!==false?'r':'')+(e.cbB!==false?'b':'')+(e.cbL!==false?'l':'');
 function drawWeekBar(c,e,x,y,w,h,ws,autoFmt,autoSz,rad){const cw=w/7,gap=Math.min(e.wdGap||0,cw*.6),r=e.wdR>0?e.wdR:(e.wdR===0?0:rad);
   const lc=e.wdLc||e.stroke,lw=e.wdLw||e.sw||.3,ln=e.wdLine||'none',hasF=e.headFill&&e.headFill!=='none';
-  const lsty=e.wdLnStyle||e.lnStyle||'solid',lines=(X,W)=>{if(ln==='none')return;if(ln==='box'){LN.stroke(c,LN.rect(X,y,W,h,r),lsty,lc,lw);return}const P=[];if(ln==='top'||ln==='both')P.push(LN.seg(X,y,X+W,y));if(ln==='bottom'||ln==='both')P.push(LN.seg(X,y+h,X+W,y+h));if(ln==='sides'){P.push(LN.seg(X,y,X,y+h),LN.seg(X+W,y,X+W,y+h))}LN.stroke(c,P,lsty,lc,lw)};
+  const lsty=e.wdLnStyle||e.lnStyle||'solid',lines=(X,W)=>LN.sideLines(c,X,y,W,h,r,ln,lsty,lc,lw);
   if(gap>0){for(let i=0;i<7;i++){const X=x+cw*i+gap/2,W=cw-gap;if(hasF){rr(c,X,y,W,h,r);c.fillStyle=e.headFill;c.fill()}lines(X,W)}}
   else{if(hasF){rr(c,x,y,w,h,r);c.fillStyle=e.headFill;c.fill()}lines(x,w);if(e.wdGrid){const P=[];for(let i=1;i<7;i++)P.push(LN.seg(x+cw*i,y,x+cw*i,y+h));LN.stroke(c,P,lsty,lc,lw)}}
   const fmt=e.wdFmt&&e.wdFmt!=='auto'?e.wdFmt:autoFmt,N=fmt==='extenso'?DIAX:fmt==='abrev'?DIA3:DIA1,fam=e.wdFont||e.font,wt=e.wdWeight||600,al=e.wdAlign||'center',ls=e.wdLs||0;
@@ -142,7 +142,7 @@ const R={
   table(c,e){const hasH=Array.isArray(e.header)&&e.header.length>0,rows=e.rows+(hasH?1:0),rh=e.h/rows,cw=colWidths(e),cx=[];let xx=0;for(let i=0;i<e.cols;i++){cx.push(xx);xx+=cw[i]||0}
     const cm=e.cellGap>0||e.cellR>0,cg=cm?Math.min(e.cellGap||0,rh*.5,Math.min(...cw)*.5):0,sw=e.sw||.3,fs=Math.min((e.size||8)*PT,rh*.5),hasHF=e.headFill&&e.headFill!=='none';
     const hl=e.hdLine||'none',hlc=e.hdLc||e.stroke,hlw=e.hdLw||sw,hr=e.hdR>0?e.hdR:(e.hdR===0?0:Math.min(1.6,rh/4));
-    const hsty=e.hdLnStyle||e.lnStyle,hlines=(X,Y,W,Hh)=>{if(hl==='none')return;if(hl==='box'){LN.stroke(c,LN.rect(X,Y,W,Hh,hr),hsty,hlc,hlw);return}const P=[];if(hl==='top'||hl==='both')P.push(LN.seg(X,Y,X+W,Y));if(hl==='bottom'||hl==='both')P.push(LN.seg(X,Y+Hh,X+W,Y+Hh));if(hl==='sides')P.push(LN.seg(X,Y,X,Y+Hh),LN.seg(X+W,Y,X+W,Y+Hh));LN.stroke(c,P,hsty,hlc,hlw)};
+    const hsty=e.hdLnStyle||e.lnStyle,hlines=(X,Y,W,Hh)=>LN.sideLines(c,X,Y,W,Hh,hr,hl,hsty,hlc,hlw);
     if(cm){for(let r=0;r<rows;r++)for(let k=0;k<e.cols;k++){const X=cx[k]+cg/2,Y=r*rh+cg/2,W=cw[k]-cg,Hh=rh-cg,isH=hasH&&r===0;
         if(isH){if(hasHF){rr(c,X,Y,W,Hh,hr);c.fillStyle=e.headFill;c.fill()}hlines(X,Y,W,Hh)}
         else{const fl=(e.cellFill2&&e.cellFill2!=='none'&&(r-(hasH?1:0))%2===1)?e.cellFill2:(e.cellFill&&e.cellFill!=='none'?e.cellFill:null);const cr=Math.min(e.cellR||0,W/2,Hh/2);rr(c,X,Y,W,Hh,cr);if(fl){c.fillStyle=fl;c.fill()}if(e.cellBorder!==false)LN.stroke(c,LN.rect(X,Y,W,Hh,cr,cellSides(e)),e.lnStyle,e.stroke,sw)}}}
@@ -1054,11 +1054,13 @@ function colorField(k,v,none){const isNone=!!none&&(v==='none'||!v);const hex=/^
 const sideIco=(k,on)=>{const d={cbT:'M4 4h16',cbR:'M20 4v16',cbB:'M4 20h16',cbL:'M4 4v16',cellBorder:''}[k];return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1" stroke-dasharray="1.6 2.2" opacity=".5"/>${k==='cellBorder'?'<rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2.2"/>':`<path d="${d}" stroke="currentColor" stroke-width="2.6"/>`}</svg>`};
 function fieldsHTML(e){const F=(FIELDS[e.type]||[]).filter(f=>!f[4]||(typeof f[4]==='function'?f[4](e):e[f[4]])),sm=x=>x&&['sel','num','numa','font','color','colorN'].includes(x[2]),out=[],one=f=>{const o=f[5]!==undefined&&e[f[0]]===undefined?Object.assign({},e,{[f[0]]:typeof f[5]==='function'?f[5](e):f[5]}):e;return fieldHTML(f,o)};
   for(let i=0;i<F.length;i++){if(sm(F[i])&&sm(F[i+1])){out.push('<div class="crow">'+one(F[i])+one(F[i+1])+'</div>');i++}else out.push(one(F[i]))}return out.join('')}
-function fieldHTML(f,obj){const [k,l,t,x]=f,v=obj[k];let inner='';
+function fieldHTML(f,obj){const [k,l,t,x]=f,v=obj[k],k0=k;let inner='';
   if(t==='ta')inner=`<textarea data-k="${k}" data-t="text" rows="3">${esc(v)}</textarea>`;
   else if(t==='text')inner=`<input type="text" data-k="${k}" data-t="text" value="${esc(v)}">`;
   else if(t==='num'||t==='numa')inner=`<input type="number" data-k="${k}" data-t="${t}" step="${x}" value="${t==='numa'?(v??-1)+1:(v??0)}">`;
   else if(t==='date')inner=`<input type="date" data-k="${k}" data-t="text" value="${esc(v)}">`;
+  else if(t==='sidesl'){const S=LN.sidesOf(v),b=(s,tt)=>{const on=s==='A'?S==='TRBL':S.includes(s),k={A:'cellBorder',T:'cbT',R:'cbR',B:'cbB',L:'cbL'}[s];return `<button type="button" class="sdb${on?' on':''}" data-tl="${k0}:${s}" title="${tt}" aria-label="${tt}" aria-pressed="${on}">${sideIco(k)}</button>`};
+    return `<div class="pfield"><span>${l}</span><div class="sides">${b('A','Contorno todo')}<i></i>${b('T','Lado de cima')}${b('R','Lado direito')}${b('B','Lado de baixo')}${b('L','Lado esquerdo')}</div></div>`}
   else if(t==='sides'){const on=obj.cellBorder!==false,b=(k,tt)=>`<button type="button" class="sdb${obj[k]!==false&&(k==='cellBorder'||on)?' on':''}${k!=='cellBorder'&&!on?' off':''}" data-tg="${k}" title="${tt}" aria-label="${tt}" aria-pressed="${obj[k]!==false}">${sideIco(k)}</button>`;
     return `<div class="pfield"><span>${l}</span><div class="sides">${b('cellBorder','Contorno de todas as células (ligar/desligar)')}<i></i>${b('cbT','Lado de cima')}${b('cbR','Lado direito')}${b('cbB','Lado de baixo')}${b('cbL','Lado esquerdo')}</div></div>`}
   else if(t==='chk')return `<label class="chk"><input type="checkbox" data-k="${k}" data-t="chk"${v?' checked':''}> ${l}</label>`;

@@ -263,3 +263,6 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 ## Ajuste 52
 - Contorno das células agora é uma fileira de ícones (geral, cima, direita, baixo, esquerda), em calendários e tabelas.
 - Marcadores (checklist, hábitos, grade numerada, avaliação): contorno ligar/desligar e tipo de linha (pontilhada, tracejada, traço e ponto, dupla, dupla fina/grossa, tripla) no acordeão Marcadores; entra também no restaurar.
+
+## Ajuste 53
+- "Linhas da faixa" (dias da semana) e "Linhas do cabeçalho" agora usam a mesma fileira de ícones do contorno das células (geral, cima, direita, baixo, esquerda), com combinações livres de lados. Valores antigos continuam funcionando.

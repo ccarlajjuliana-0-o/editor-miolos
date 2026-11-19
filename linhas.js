@@ -52,5 +52,9 @@
   /* para formas quaisquer (marcadores): padrão de tracejado; dupla/tripla viram cópias da forma */
   const MOPTS = OPTS.filter((o) => !['zigzag', 'wave'].includes(o[0]));
   function dashOf(sty, lw) { const L = Math.max(lw, 0.22); switch (sty) { case 'dot': return { d: [0, L * 2.4], cap: 'round' }; case 'dash': return { d: [L * 4, L * 2.6], cap: 'butt' }; case 'long': return { d: [L * 9, L * 3.5], cap: 'butt' }; case 'dashdot': return { d: [L * 6, L * 2.2, 0.01, L * 2.2], cap: 'round' }; case 'dashdd': return { d: [L * 6, L * 2.2, 0.01, L * 2.2, 0.01, L * 2.2], cap: 'round' }; default: return { d: [], cap: 'butt' }; } }
-  window.LN = { OPTS, MOPTS, seg, rect, stroke, dashOf };
+  /* lados: aceita legados (none/top/bottom/both/sides/box) ou letras (T,R,B,L) */
+  function sidesOf(s) { s = s || 'none'; if (s === 'none') return ''; if (s === 'box') return 'TRBL'; if (s === 'top') return 'T'; if (s === 'bottom') return 'B'; if (s === 'both') return 'TB'; if (s === 'sides') return 'RL'; return String(s).replace(/[^TRBL]/g, ''); }
+  function sidesStr(set) { const o = ['T', 'R', 'B', 'L'].filter((k) => set.includes(k)).join(''); return o === 'TRBL' ? 'box' : o || 'none'; }
+  function sideLines(c, X, Y, W, H, r, s, sty, col, lw) { const S = sidesOf(s); if (!S) return; if (S === 'TRBL') { stroke(c, rect(X, Y, W, H, r), sty, col, lw); return; } const P = []; if (S.includes('T')) P.push(seg(X, Y, X + W, Y)); if (S.includes('B')) P.push(seg(X, Y + H, X + W, Y + H)); if (S.includes('L')) P.push(seg(X, Y, X, Y + H)); if (S.includes('R')) P.push(seg(X + W, Y, X + W, Y + H)); stroke(c, P, sty, col, lw); }
+  window.LN = { OPTS, MOPTS, seg, rect, stroke, dashOf, sidesOf, sidesStr, sideLines };
 })();

@@ -261,7 +261,7 @@
       ['headFill', 'Cor da faixa', 'colorN'], ['wdColor', 'Cor do texto', 'color', 0, null, (x) => x.color],
       ['wdFont', 'Fonte', 'font', 0, null, (x) => x.font], ['wdSize', 'Tamanho (pt)', 'num', 0.5],
       ['wdWeight', 'Peso', 'sel', [[400, 'Normal'], [600, 'Semi-negrito'], [700, 'Negrito']], null, 600], ['wdAlign', 'Alinhamento', 'sel', [['center', 'Centro'], ['left', 'Esquerda'], ['right', 'Direita']], null, 'center'],
-      ['wdLs', 'Espaço entre letras', 'num', 0.01], ['wdLine', 'Linhas da faixa', 'sel', [['none', 'Nenhuma'], ['bottom', 'Embaixo'], ['top', 'Em cima'], ['both', 'Em cima e embaixo'], ['sides', 'Laterais'], ['box', 'Contorno todo']], null, 'none'],
+      ['wdLs', 'Espaço entre letras', 'num', 0.01], ['wdLine', 'Linhas da faixa', 'sidesl', 0, null, 'none'],
       ['wdLc', 'Cor das linhas', 'colorN', 0, null, (x) => x.stroke], ['wdLw', 'Espessura (mm)', 'num', 0.05], ['wdLnStyle', 'Tipo de linha da faixa', 'sel', LN.OPTS, null, 'solid'],
       ['wdGrid', 'Divisórias entre os dias (grade)', 'chk'], ['wdGap', 'Espaço entre células (mm)', 'num', 0.2], ['wdR', 'Cantos arredondados (mm)', 'num', 0.5]];
     const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
@@ -286,7 +286,7 @@
     const e = sel[0], anchor = P.querySelector('[data-acc="cont"]'); if (!anchor) return;
     FIELDS._th = [['hdFont', 'Fonte', 'font', 0, null, (x) => x.font], ['hdSize', 'Tamanho (pt)', 'num', 0.5], ['headFill', 'Cor da faixa', 'colorN'], ['hdColor', 'Cor do texto', 'color', 0, null, (x) => x.color],
       ['hdWeight', 'Peso', 'sel', [[400, 'Normal'], [600, 'Semi-negrito'], [700, 'Negrito']], null, 600], ['hdAlign', 'Alinhamento', 'sel', [['center', 'Centro'], ['left', 'Esquerda'], ['right', 'Direita']], null, 'center'],
-      ['hdLs', 'Espaço entre letras', 'num', 0.01], ['hdLine', 'Linhas do cabeçalho', 'sel', [['none', 'Nenhuma'], ['bottom', 'Embaixo'], ['top', 'Em cima'], ['both', 'Em cima e embaixo'], ['sides', 'Laterais'], ['box', 'Contorno todo']], null, 'none'],
+      ['hdLs', 'Espaço entre letras', 'num', 0.01], ['hdLine', 'Linhas do cabeçalho', 'sidesl', 0, null, 'none'],
       ['hdLc', 'Cor das linhas', 'colorN', 0, null, (x) => x.stroke], ['hdLw', 'Espessura (mm)', 'num', 0.05], ['hdLnStyle', 'Tipo de linha do cabeçalho', 'sel', LN.OPTS, null, 'solid'], ['hdGrid', 'Divisórias entre colunas', 'chk'], ['hdR', 'Cantos arredondados (mm)', 'num', 0.5]];
     FIELDS._tc = [['cellGap', 'Espaço entre células (mm)', 'num', 0.2], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['cellFill', 'Fundo das células', 'colorN'], ['cellFill2', 'Cor alternada (linhas)', 'colorN'], ['gridH', 'Linhas horizontais', 'chk', 0, null, true], ['gridV', 'Linhas verticais', 'chk', 0, null, true], ['lnStyle', 'Tipo de linha', 'sel', LN.OPTS, null, 'solid'], ['cellBorder', 'Contorno das células', 'sides']];
     const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
@@ -353,6 +353,11 @@
       const b = ev.target.closest('[data-tg]'); if (!b || !P0.contains(b)) return; ev.stopPropagation(); ev.preventDefault();
       const p = curPage(), e = selEls()[0]; if (!p || !e) return; const k = b.dataset.tg; if (k !== 'cellBorder' && e.cellBorder === false) return;
       change([p.id], () => { e[k] = !(e[k] !== false); }); redraw(); renderProps(); thumbRefresh(p.id);
+    }, true);
+    P0.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-tl]'); if (!b || !P0.contains(b)) return; ev.stopPropagation(); ev.preventDefault();
+      const p = curPage(), e = selEls()[0]; if (!p || !e) return; const [k, s] = b.dataset.tl.split(':');
+      change([p.id], () => { let S = LN.sidesOf(e[k]); if (s === 'A') S = S === 'TRBL' ? '' : 'TRBL'; else S = S.includes(s) ? S.replace(s, '') : S + s; e[k] = LN.sidesStr(S); }); redraw(); renderProps(); thumbRefresh(p.id);
     }, true);
     P0.addEventListener('click', go, true);
     P0.addEventListener('keydown', (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches && ev.target.matches('.wrs')) go(ev); }, true);
