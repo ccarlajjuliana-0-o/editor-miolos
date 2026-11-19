@@ -162,7 +162,7 @@ const R={
     font(c,Math.min(rh*.42,cw*.62),e.font,600);c.fillStyle=e.color;for(let d=0;d<days;d++)T(c,String(d+1),lw+cw*d+cw/2,rh/2,'center','middle');
     c.beginPath();for(let r=1;r<=rows+1;r++){c.moveTo(0,r*rh);c.lineTo(e.w,r*rh)}strokeIf(c,e.stroke,.3);
     font(c,Math.min(rh*.42,3.6),e.font,400);c.fillStyle=e.color;const L=e.labels||[];for(let r=0;r<rows;r++)if(L[r])T(c,fitText(c,L[r],lw-2),1,rh*(r+1)+rh/2,'left','middle');
-    const rad=Math.min(cw,rh)*.32;for(let r=0;r<rows;r++)for(let d=0;d<days;d++)mark(c,e.mk||'circle',lw+cw*d+cw/2,rh*(r+1)+rh/2,rad*2,{stroke:e.accent,fill:e.mfc||e.accent,mode:e.mfill||'none',sw:.25})},
+    const rad=Math.min(cw,rh)*.32;for(let r=0;r<rows;r++)for(let d=0;d<days;d++)mark(c,e.mk||'circle',lw+cw*d+cw/2,rh*(r+1)+rh/2,rad*2,{lsty:e.mst,mout:e.mout,stroke:e.accent,fill:e.mfc||e.accent,mode:e.mfill||'none',sw:.25})},
   hours(c,e){const a=e.from|0,b=Math.max(a,e.to|0),n=b-a+1,rh=e.h/n,lw=Math.min(11,e.w*.16),fs=Math.min(rh*.42,3.4);
     c.beginPath();for(let i=0;i<=n;i++){c.moveTo(lw,i*rh);c.lineTo(e.w,i*rh)}strokeIf(c,e.stroke,.3);
     if(e.half){c.beginPath();for(let i=0;i<n;i++){c.moveTo(lw,i*rh+rh/2);c.lineTo(e.w,i*rh+rh/2)}strokeIf(c,e.stroke,.22,[.01,.9])}
@@ -1051,6 +1051,7 @@ const FIELDS={
 };
 const TYPE_NAME={text:'Texto',rect:'Retângulo',ellipse:'Círculo',line:'Linha',pattern:'Pautas e grades',calendar:'Calendário do mês',yearcal:'Calendário anual',table:'Tabela',checklist:'Lista de tarefas',habit:'Hábitos',hours:'Agenda por horas',water:'Copos de água',mood:'Humor',shape:'Forma',image:'Imagem',divider:'Divisor',tabs:'Abas laterais',path:'Forma livre'};
 function colorField(k,v,none){const isNone=!!none&&(v==='none'||!v);const hex=/^#[0-9a-f]{6}$/i.test(v||'')?v:'#ffffff';return `<div class="cfield cc${isNone?' isnone':''}">${none?`<button class="sw none${isNone?' cur':''}" data-cset="${k}" data-v="none" title="Sem cor" aria-label="Sem cor"></button>`:''}<input type="color" data-k="${k}" data-t="color" value="${hex}" aria-label="Cor atual. Clique para escolher qualquer cor"><button type="button" class="cct" title="Mostrar ou ocultar as cores da paleta" aria-label="Paleta de cores">▾</button>${BRAND.map(c=>`<button class="sw" data-cset="${k}" data-v="${c}" style="background:${c}" title="${c}" aria-label="${c}"></button>`).join('')}</div>`}
+const sideIco=(k,on)=>{const d={cbT:'M4 4h16',cbR:'M20 4v16',cbB:'M4 20h16',cbL:'M4 4v16',cellBorder:''}[k];return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1" stroke-dasharray="1.6 2.2" opacity=".5"/>${k==='cellBorder'?'<rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2.2"/>':`<path d="${d}" stroke="currentColor" stroke-width="2.6"/>`}</svg>`};
 function fieldsHTML(e){const F=(FIELDS[e.type]||[]).filter(f=>!f[4]||(typeof f[4]==='function'?f[4](e):e[f[4]])),sm=x=>x&&['sel','num','numa','font','color','colorN'].includes(x[2]),out=[],one=f=>{const o=f[5]!==undefined&&e[f[0]]===undefined?Object.assign({},e,{[f[0]]:typeof f[5]==='function'?f[5](e):f[5]}):e;return fieldHTML(f,o)};
   for(let i=0;i<F.length;i++){if(sm(F[i])&&sm(F[i+1])){out.push('<div class="crow">'+one(F[i])+one(F[i+1])+'</div>');i++}else out.push(one(F[i]))}return out.join('')}
 function fieldHTML(f,obj){const [k,l,t,x]=f,v=obj[k];let inner='';
@@ -1058,6 +1059,8 @@ function fieldHTML(f,obj){const [k,l,t,x]=f,v=obj[k];let inner='';
   else if(t==='text')inner=`<input type="text" data-k="${k}" data-t="text" value="${esc(v)}">`;
   else if(t==='num'||t==='numa')inner=`<input type="number" data-k="${k}" data-t="${t}" step="${x}" value="${t==='numa'?(v??-1)+1:(v??0)}">`;
   else if(t==='date')inner=`<input type="date" data-k="${k}" data-t="text" value="${esc(v)}">`;
+  else if(t==='sides'){const on=obj.cellBorder!==false,b=(k,tt)=>`<button type="button" class="sdb${obj[k]!==false&&(k==='cellBorder'||on)?' on':''}${k!=='cellBorder'&&!on?' off':''}" data-tg="${k}" title="${tt}" aria-label="${tt}" aria-pressed="${obj[k]!==false}">${sideIco(k)}</button>`;
+    return `<div class="pfield"><span>${l}</span><div class="sides">${b('cellBorder','Contorno de todas as células (ligar/desligar)')}<i></i>${b('cbT','Lado de cima')}${b('cbR','Lado direito')}${b('cbB','Lado de baixo')}${b('cbL','Lado esquerdo')}</div></div>`}
   else if(t==='chk')return `<label class="chk"><input type="checkbox" data-k="${k}" data-t="chk"${v?' checked':''}> ${l}</label>`;
   else if(t==='sel')inner=`<select data-k="${k}" data-t="sel">${x.map(([a,b])=>`<option value="${a}"${String(a)===String(v)?' selected':''}>${b}</option>`).join('')}</select>`;
   else if(t==='font'){const L=fontList();if(v&&!L.includes(v))L.push(v);inner=`<select data-k="${k}" data-t="sel">${L.map(n=>`<option${n===v?' selected':''} style="font-family:'${esc(n)}'">${esc(n)}</option>`).join('')}</select>`}

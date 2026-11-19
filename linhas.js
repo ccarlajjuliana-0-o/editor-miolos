@@ -49,5 +49,8 @@
     });
     c.restore();
   }
-  window.LN = { OPTS, seg, rect, stroke };
+  /* para formas quaisquer (marcadores): padrão de tracejado; dupla/tripla viram cópias da forma */
+  const MOPTS = OPTS.filter((o) => !['zigzag', 'wave'].includes(o[0]));
+  function dashOf(sty, lw) { const L = Math.max(lw, 0.22); switch (sty) { case 'dot': return { d: [0, L * 2.4], cap: 'round' }; case 'dash': return { d: [L * 4, L * 2.6], cap: 'butt' }; case 'long': return { d: [L * 9, L * 3.5], cap: 'butt' }; case 'dashdot': return { d: [L * 6, L * 2.2, 0.01, L * 2.2], cap: 'round' }; case 'dashdd': return { d: [L * 6, L * 2.2, 0.01, L * 2.2, 0.01, L * 2.2], cap: 'round' }; default: return { d: [], cap: 'butt' }; } }
+  window.LN = { OPTS, MOPTS, seg, rect, stroke, dashOf };
 })();

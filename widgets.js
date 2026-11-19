@@ -22,11 +22,18 @@
   function paintM(c, o) {
     if (o.mode === 'solid') fillIf(c, o.fill || o.stroke);
     else if (o.mode === 'soft') { c.save(); c.globalAlpha *= 0.3; fillIf(c, o.fill || o.stroke); c.restore(); }
-    strokeIf(c, o.stroke, o.sw || 0.3);
+    if (o.nostroke || o.mout === false) return;
+    const ds = LN.dashOf(o.lsty, o.sw || 0.3); c.lineCap = ds.cap; strokeIf(c, o.stroke, o.sw || 0.3, ds.d); c.lineCap = 'butt';
   }
   function mark(c, k, cx, cy, s, o) {
     o = o || {}; const sw = o.sw || 0.3;
     if (k === 'none' || !s) return;
+    if (!o._in && ['double', 'double2', 'triple'].includes(o.lsty) && o.mout !== false && ['square', 'rounded', 'circle', 'diamond', 'flower'].concat(Object.keys(MSHAPE)).includes(k)) {
+      const L = Math.max(sw, 0.22), offs = o.lsty === 'triple' ? [-L * 1.9, 0, L * 1.9] : o.lsty === 'double2' ? [-L * 1.5, L * 0.9] : [-L * 1.3, L * 1.3];
+      mark(c, k, cx, cy, s, Object.assign({}, o, { nostroke: true, _in: 1 }));
+      offs.forEach((d, i) => mark(c, k, cx, cy, s + 2 * d, Object.assign({}, o, { mode: 'none', lsty: 'solid', _in: 1, sw: o.lsty === 'double2' ? (i ? sw * 1.6 : sw * 0.55) : sw })));
+      return;
+    }
     if (k === 'square' || k === 'rounded') { rr(c, cx - s / 2, cy - s / 2, s, s, s * (k === 'square' ? 0.22 : 0.42)); paintM(c, o); return; }
     if (k === 'circle') { c.beginPath(); c.arc(cx, cy, s / 2, 0, 7); paintM(c, o); return; }
     if (k === 'dot') { c.beginPath(); c.arc(cx, cy, s * 0.32, 0, 7); fillIf(c, o.stroke); return; }
@@ -49,7 +56,7 @@
     const fam = e.font || 'Nunito';
     for (let i = 0; i < n; i++) {
       const y = i * rh, by = y + (rh - bs) / 2, cy = y + rh / 2;
-      mark(c, mk, bs / 2, cy, bs, { stroke: e.color, fill: e.mfc || e.color, mode: e.mfill || 'none', sw, num: i + (e.num0 || 1), font: fam });
+      mark(c, mk, bs / 2, cy, bs, { lsty: e.mst, mout: e.mout, stroke: e.color, fill: e.mfc || e.color, mode: e.mfill || 'none', sw, num: i + (e.num0 || 1), font: fam });
       const lb = Array.isArray(e.items) ? e.items[i] : '';
       const gap = mk === 'none' ? 0 : 1.6;
       let lx = bs + (mk === 'none' ? 0.4 : 1.8);
@@ -74,13 +81,13 @@
     const n = Math.max(1, e.n | 0), cols = Math.max(1, Math.min(e.cols | 0 || 7, n)), rows = Math.ceil(n / cols), cw = e.w / cols, ch = e.h / rows, s = Math.min(cw, ch) * 0.86, st = e.start || 1;
     for (let i = 0; i < n; i++) {
       const cx = (i % cols) * cw + cw / 2, cy = Math.floor(i / cols) * ch + ch / 2;
-      mark(c, e.mk || 'rounded', cx, cy, s, { stroke: e.color, fill: e.mfc || e.color, mode: e.mfill || 'none', sw: e.sw || 0.28, num: st + i, font: e.font });
+      mark(c, e.mk || 'rounded', cx, cy, s, { lsty: e.mst, mout: e.mout, stroke: e.color, fill: e.mfc || e.color, mode: e.mfill || 'none', sw: e.sw || 0.28, num: st + i, font: e.font });
       if (e.numbers !== false && (e.mk || 'rounded') !== 'num') { font(c, s * 0.42, e.font, 600); c.fillStyle = e.textColor || e.color; T(c, String(st + i), cx, cy + (['heart', 'drop'].includes(e.mk) ? s * 0.04 : 0), 'center', 'middle'); }
     }
   };
   R.rate = function (c, e) {
     const n = Math.max(1, e.n | 0), s = Math.min(e.h, e.w / n * 0.9), gap = n > 1 ? (e.w - s * n) / (n - 1) : 0;
-    for (let i = 0; i < n; i++) mark(c, e.mk || 'star', i * (s + gap) + s / 2, e.h / 2, s * 0.9, { stroke: e.color, fill: e.mfc || e.color, mode: e.mfill || 'none', sw: e.sw || 0.3, num: i + 1, font: e.font });
+    for (let i = 0; i < n; i++) mark(c, e.mk || 'star', i * (s + gap) + s / 2, e.h / 2, s * 0.9, { lsty: e.mst, mout: e.mout, stroke: e.color, fill: e.mfc || e.color, mode: e.mfill || 'none', sw: e.sw || 0.3, num: i + 1, font: e.font });
   };
   Object.assign(TYPE_NAME, { progress: 'Barras de progresso', numgrid: 'Grade numerada', rate: 'Sequência de símbolos' });
   FIELDS.checklist = [['n', 'Itens', 'num', 1], ['items', 'Texto dos itens (um por linha)', 'lines'], ['font', 'Fonte', 'font'], ['size', 'Tamanho do texto (pt, 0 = automático)', 'num', 0.5], ['lines', 'Linha para escrever', 'chk'], ['textColor', 'Texto', 'color'], ['stroke', 'Linhas', 'colorN'], ['sw', 'Espessura (mm)', 'num', 0.05]];

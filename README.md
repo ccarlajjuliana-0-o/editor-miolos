@@ -259,3 +259,7 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 ## Ajuste 51
 - Estilos de linha (contínua, pontilhada, tracejada, tracejada longa, traço e ponto, traço-ponto-ponto, dupla igual, dupla fina+grossa, tripla, serrilhada, ondulada) para a grade, o cabeçalho, a faixa dos dias, as células e a linha do título do widget. Arquivo novo: `linhas.js`.
 - "Contorno das células" liga/desliga o contorno total ou lado a lado (cima, direita, baixo, esquerda) em calendários e tabelas.
+
+## Ajuste 52
+- Contorno das células agora é uma fileira de ícones (geral, cima, direita, baixo, esquerda), em calendários e tabelas.
+- Marcadores (checklist, hábitos, grade numerada, avaliação): contorno ligar/desligar e tipo de linha (pontilhada, tracejada, traço e ponto, dupla, dupla fina/grossa, tripla) no acordeão Marcadores; entra também no restaurar.

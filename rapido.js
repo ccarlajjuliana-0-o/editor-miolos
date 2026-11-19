@@ -288,7 +288,7 @@
       ['hdWeight', 'Peso', 'sel', [[400, 'Normal'], [600, 'Semi-negrito'], [700, 'Negrito']], null, 600], ['hdAlign', 'Alinhamento', 'sel', [['center', 'Centro'], ['left', 'Esquerda'], ['right', 'Direita']], null, 'center'],
       ['hdLs', 'Espaço entre letras', 'num', 0.01], ['hdLine', 'Linhas do cabeçalho', 'sel', [['none', 'Nenhuma'], ['bottom', 'Embaixo'], ['top', 'Em cima'], ['both', 'Em cima e embaixo'], ['sides', 'Laterais'], ['box', 'Contorno todo']], null, 'none'],
       ['hdLc', 'Cor das linhas', 'colorN', 0, null, (x) => x.stroke], ['hdLw', 'Espessura (mm)', 'num', 0.05], ['hdLnStyle', 'Tipo de linha do cabeçalho', 'sel', LN.OPTS, null, 'solid'], ['hdGrid', 'Divisórias entre colunas', 'chk'], ['hdR', 'Cantos arredondados (mm)', 'num', 0.5]];
-    FIELDS._tc = [['cellGap', 'Espaço entre células (mm)', 'num', 0.2], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['cellFill', 'Fundo das células', 'colorN'], ['cellFill2', 'Cor alternada (linhas)', 'colorN'], ['gridH', 'Linhas horizontais', 'chk', 0, null, true], ['gridV', 'Linhas verticais', 'chk', 0, null, true], ['lnStyle', 'Tipo de linha', 'sel', LN.OPTS, null, 'solid'], ['cellBorder', 'Contorno das células', 'chk', 0, null, true], ['cbT', '↑ Em cima', 'chk', 0, (x) => x.cellBorder !== false, true], ['cbR', '→ Direita', 'chk', 0, (x) => x.cellBorder !== false, true], ['cbB', '↓ Embaixo', 'chk', 0, (x) => x.cellBorder !== false, true], ['cbL', '← Esquerda', 'chk', 0, (x) => x.cellBorder !== false, true]];
+    FIELDS._tc = [['cellGap', 'Espaço entre células (mm)', 'num', 0.2], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['cellFill', 'Fundo das células', 'colorN'], ['cellFill2', 'Cor alternada (linhas)', 'colorN'], ['gridH', 'Linhas horizontais', 'chk', 0, null, true], ['gridV', 'Linhas verticais', 'chk', 0, null, true], ['lnStyle', 'Tipo de linha', 'sel', LN.OPTS, null, 'solid'], ['cellBorder', 'Contorno das células', 'sides']];
     const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
     const mk = (id, title, hint, type) => { const open = !(Pref.acc && Pref.acc[id] === false), w = document.createElement('div'); w.className = 'wacc' + (open ? ' open' : ''); w.dataset.acc = id;
       w.innerHTML = `<button class="wah" type="button" aria-expanded="${open}"><i class="wtri"></i><b>${title}</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><p class="hint">${hint}</p><div class="pgrp">${fieldsHTML(Object.assign({}, e, { type }))}</div></div>`; return w; };
@@ -299,7 +299,7 @@
     P.querySelectorAll('[data-acc="dcells"]').forEach((x) => x.remove());
     const sel = selEls(); if (sel.length !== 1 || sel[0].type !== 'calendar') return;
     const e = sel[0], anchor = P.querySelector('[data-acc="wdays"]') || P.querySelector('[data-acc="cont"]'); if (!anchor) return;
-    FIELDS._dc = [['cellGap', 'Espaço entre os dias (mm)', 'num', 0.2], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['cellFill', 'Fundo de cada dia', 'colorN'], ['cellHide', 'Ocultar células sem dia', 'chk'], ['lnStyle', 'Tipo de linha', 'sel', LN.OPTS, null, 'solid'], ['cellBorder', 'Contorno das células', 'chk', 0, null, true], ['cbT', '↑ Em cima', 'chk', 0, (x) => x.cellBorder !== false, true], ['cbR', '→ Direita', 'chk', 0, (x) => x.cellBorder !== false, true], ['cbB', '↓ Embaixo', 'chk', 0, (x) => x.cellBorder !== false, true], ['cbL', '← Esquerda', 'chk', 0, (x) => x.cellBorder !== false, true]];
+    FIELDS._dc = [['cellGap', 'Espaço entre os dias (mm)', 'num', 0.2], ['cellR', 'Cantos arredondados (mm)', 'num', 0.5], ['cellFill', 'Fundo de cada dia', 'colorN'], ['cellHide', 'Ocultar células sem dia', 'chk'], ['lnStyle', 'Tipo de linha', 'sel', LN.OPTS, null, 'solid'], ['cellBorder', 'Contorno das células', 'sides']];
     const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
     const open = !(Pref.acc && Pref.acc.dcells === false), w = document.createElement('div'); w.className = 'wacc' + (open ? ' open' : ''); w.dataset.acc = 'dcells';
     w.innerHTML = `<button class="wah" type="button" aria-expanded="${open}"><i class="wtri"></i><b>Células dos dias</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><p class="hint">Com espaço ou cantos arredondados, cada dia vira um quadradinho individual. O tipo de linha vale para a grade e para o contorno das células; o contorno pode ser total ou só de alguns lados.</p><div class="pgrp">${fieldsHTML(Object.assign({}, e, { type: '_dc' }))}</div></div>`;
@@ -321,7 +321,7 @@
       case 'tcells': return ['cellGap', 'cellR', 'cellFill', 'cellFill2', 'gridH', 'gridV', 'lnStyle', 'cellBorder', 'cbT', 'cbR', 'cbB', 'cbL'];
       case 'curva': return ['cvOn', 'cvDir', 'cvR', 'cvSpan', 'cvStart', 'cvLs'];
       case 'dcells': return ['cellGap', 'cellR', 'cellFill', 'cellHide', 'lnStyle', 'cellBorder', 'cbT', 'cbR', 'cbB', 'cbL'];
-      case 'mark': return ['box', 'mk', 'mfill', 'mfc', 'msize'];
+      case 'mark': return ['box', 'mk', 'mfill', 'mfc', 'msize', 'mst', 'mout'];
       case 'hd': return ['wx.hd']; case 'bg': return ['wx.bg']; case 'fr': return ['wx.fr']; case 'sty': return ['wx'];
       case 'size': return ['opacity', 'w', 'h'];
       case 'all': return Array.from(new Set(Object.keys(e).concat(Object.keys(e._b || {})))).filter((k) => !SKIP.includes(k));
@@ -349,6 +349,11 @@
   function wireRs() {
     const P0 = document.getElementById('props'); if (!P0 || P0._rs) return; P0._rs = 1;
     const go = (ev) => { const b = ev.target.closest('[data-rs]'); if (!b || !P0.contains(b)) return false; ev.stopPropagation(); ev.preventDefault(); restore(b.dataset.rs); return true; };
+    P0.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-tg]'); if (!b || !P0.contains(b)) return; ev.stopPropagation(); ev.preventDefault();
+      const p = curPage(), e = selEls()[0]; if (!p || !e) return; const k = b.dataset.tg; if (k !== 'cellBorder' && e.cellBorder === false) return;
+      change([p.id], () => { e[k] = !(e[k] !== false); }); redraw(); renderProps(); thumbRefresh(p.id);
+    }, true);
     P0.addEventListener('click', go, true);
     P0.addEventListener('keydown', (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches && ev.target.matches('.wrs')) go(ev); }, true);
   }

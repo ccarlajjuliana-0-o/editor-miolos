@@ -41,6 +41,8 @@
     const f = MKF[e.type], cur = e[f] || (e.type === 'habit' ? 'circle' : e.type === 'rate' ? 'star' : e.type === 'numgrid' ? 'rounded' : 'square');
     return `<div class="mkgrid">${WX.MARKS.map(([k, n]) => `<button type="button" class="mkb${cur === k ? ' on' : ''}" data-wxmk="${k}" title="${n}" aria-label="${n}"><canvas data-mkc="${k}"></canvas></button>`).join('')}</div>
       ${inSeg(e, 'mfill', 'Preenchimento', [['', 'Contorno'], ['solid', 'Cheio'], ['soft', 'Suave']])}
+      ${inChk(e, 'mout', 'Contorno do marcador', e.mout !== false)}
+      ${e.mout !== false ? fld('Tipo de linha do contorno', `<select ${A('mst')} data-t="sel">${LN.MOPTS.map(([k, n]) => `<option value="${k}"${(e.mst || 'solid') === k ? ' selected' : ''}>${n}</option>`).join('')}</select>`) : ''}
       ${inCol(e, MKC[e.type], 'Cor do marcador', false)}
       ${e.mfill ? inCol(e, 'mfc', 'Cor do preenchimento', false) : ''}
       ${e.type === 'checklist' ? inRng(e, 'msize', 'Tamanho do marcador', 0.5, 2, 0.05, 1, (v) => '×' + (+v).toFixed(2)) : ''}
