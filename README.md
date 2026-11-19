@@ -280,3 +280,9 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 ## Ajuste 56
 - Aba Bordas: botões **Padrão** e **Preenchimento**. Padrão: estampas (ladrilho) e imagens, "Só a borda" ou "Página toda", tamanho do padrão, e em duas páginas lado a lado **Contínuo** ou **Invertido** (espelhado). Preenchimento: cor sólida ou gradiente (borda ou página toda). Aplica em uma, várias ou todas as páginas.
 - ModuLab → novo tipo **Padrão**: editor de imagem (enviar ou usar dos Uploads, zoom, mover, girar, espelhar, brilho/contraste/saturação, fundo, "sem emenda") que salva o ladrilho e aparece em Bordas → Padrão.
+
+## Ajuste 57
+- Bordas v2 (novo arquivo bordas.js): a imagem/padrão/cor entra inteira na página (não repetida; "Repetir" opcional) e só aparece onde o posicionamento deixa. A faixa vai do extremo da página até a margem de segurança, com barra de largura (↺ volta à margem) que se adapta ao tamanho da página.
+- Posicionamentos com miniatura por categoria: Completo, Moldura, Faixas, Ondulado, Renda, Cantos. Chaves Contínuo / Invertido (duas páginas), Opacidade e Forrado (fio fino por dentro).
+- Envio de imagem de borda checa o mínimo (150 dpi para cobrir a página) e avisa antes de usar.
+- Bordas antigas continuam funcionando.
