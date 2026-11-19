@@ -296,3 +296,10 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 
 ## Ajuste 59 — Novos estilos em "Moldura"
 - 13 novos estilos na categoria Moldura: cantos diagonais, oval, meia página + contorno, linhas no extremo, dupla no extremo, contorno com canto grosso, moldura dupla interna, moldura grossa (reta e arredondada), barra grossa lateral, barra grossa + linhas, meia página + linha, borda lateral.
+
+## Ajuste 60 — Bordas: laterais na dupla, forrado por lados, aplicar por página
+- Bordas só de lateral (Só esquerda/direita, barra lateral, meia página…) aplicadas na dupla vão para o meio (lado interno) das duas páginas — a da direita é espelhada automaticamente.
+- Forrado: espessura, linha e cor numa só linha; botões de lados (todos/cima/direita/baixo/esquerda), por padrão acompanha a borda ("Auto").
+- Chaves Contínuo / Inverter recorte na mesma linha; chips de categoria centralizados.
+- "Aplicar": novas opções "Só a página N" e "Só a página N+1" (individual, mesmo na vista dupla).
+- Copiar esquerda → direita (e direita → esquerda) e Trocar lados mantêm a borda lateral do lado interno (espelha).

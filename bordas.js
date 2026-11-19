@@ -13,6 +13,11 @@
     ['renda', 'Renda', [['t:', 'Arcos em cima'], ['b:', 'Arcos embaixo'], ['tb:', 'Arcos em cima e embaixo'], ['ring:', 'Arcos na moldura'], ['t^', 'Pontas em cima'], ['b^', 'Pontas embaixo'], ['tb^', 'Pontas em cima e embaixo'], ['ring^', 'Pontas na moldura']]],
     ['cantos', 'Cantos', [['cArc', 'Cantos em leque'], ['cTri', 'Cantos em triângulo'], ['cSq', 'Cantos quadrados'], ['cL', 'Cantos em L'], ['sc', 'Canto arredondado'], ['scL', 'Canto arredondado (outro lado)'], ['sc2', 'Canto arredondado + contorno']]],
   ];
+  const LATERAL = ['l', 'r', 'kB4', 'kBd', 'kB5', 'kOE', 'kSplit', 'sL', 'sR'];
+  const isLat = (id) => LATERAL.includes(id);
+  const autoSd = (id, right) => { const base = /[~)^:]$/.test(id) ? id.slice(0, -1) : id, ring = ['ring', 'ringR', 'thin'].includes(base), sd = { t: ring || ['t', 'tb'].includes(base), b: ring || ['b', 'tb'].includes(base), l: ring || ['l', 'lr'].includes(base), r: ring || ['r', 'lr'].includes(base) };
+    if (base === 'out') { sd.l = !right; sd.r = right; } if (base === 'in') { sd.l = right; sd.r = !right; }
+    return { sd, known: ['ring', 'ringR', 'thin', 't', 'b', 'tb', 'lr', 'l', 'r', 'out', 'in'].includes(base) }; };
   const nameOf = (id) => { for (const [, , L] of LAY) { const f = L.find((x) => x[0] === id); if (f) return f[1]; } return 'Moldura inteira'; };
   const catOf = (id) => (LAY.find((c) => c[2].some((x) => x[0] === id)) || LAY[1])[0];
   const DEF = () => ({ v: 2, kind: 'img', src: null, color: '#C398C8', lay: 'ring', w: null, op: 1, fit: 'cover', span: 'cont', ps: 20, tile: false, liner: 0, lc: '#4A4E79', lw: 0.4, ls: 'solid', inv: false, ofs: null });
@@ -69,7 +74,8 @@
   const hole = (P) => P.slice().reverse();
   const ringOf = (x, y, w, h, R, th) => (w <= 2 * th || h <= 2 * th ? [] : [rrPoly(x, y, w, h, [R, R, R, R]), hole(rrPoly(x + th, y + th, w - 2 * th, h - 2 * th, [Math.max(0, R - th), Math.max(0, R - th), Math.max(0, R - th), Math.max(0, R - th)]))]);
   function region(pg, b) {
-    const polys = region0(pg, b); if (!b.inv || /^(full|fade)/.test(b.lay || '')) return polys;
+    let polys = region0(pg, b); if (b.flip && isLat(b.lay)) polys = polys.map((P) => P.map(([x, y]) => [pg.w - x, y]).reverse());
+    if (!b.inv || /^(full|fade)/.test(b.lay || '')) return polys;
     return [pos([[0, 0], [pg.w, 0], [pg.w, pg.h], [0, pg.h]])].concat(polys.map(hole));
   }
   function region0(pg, b) {
@@ -180,11 +186,13 @@
     } else { c.save(); fillPolys(c, polys); c.clip(); paintSrc(c, pg, b); c.restore(); }
     if (b.liner) { // forrado: fio fino acompanhando a borda por dentro
       const d = [0, 1.5, 3, 5][b.liner] || 0, S0 = safeOf(pg), T = b.w != null ? { l: b.w, t: b.w, r: b.w, b: b.w } : S0, avg = (T.l + T.t + T.r + T.b) / 4, A = /[~)^:]$/.test(id) ? Math.max(1.4, Math.min(avg * 0.35, 7)) : 0, o = A + d + 0.8;
-      const base = sidesOfLay(id), ring = ['ring', 'ringR', 'thin'].includes(base), sd = { t: ring || ['t', 'tb'].includes(base), b: ring || ['b', 'tb'].includes(base), l: ring || ['l', 'lr'].includes(base), r: ring || ['r', 'lr'].includes(base) };
-      if (b.inv || !['ring', 'ringR', 'thin', 't', 'b', 'tb', 'lr', 'l', 'r', 'out', 'in'].includes(base)) { /* sem forrado */ }
+      const idx0 = S.order.indexOf(pg.id), right0 = idx0 >= 0 && (idx0 + 1) % 2 === 1, au = autoSd(id, right0);
+      let sd = au.sd, show = au.known && !b.inv;
+      if (typeof b.lsd === 'string') { sd = { t: b.lsd.includes('T'), r: b.lsd.includes('R'), b: b.lsd.includes('B'), l: b.lsd.includes('L') }; show = true; }
+      if (b.flip && isLat(id)) sd = { t: sd.t, b: sd.b, l: sd.r, r: sd.l };
+      if (!show || !(sd.t || sd.b || sd.l || sd.r)) { /* sem forrado */ }
       else {
-        const L = [], l = T.l + o, t = T.t + o, r = pg.w - T.r - o, bt = pg.h - T.b - o, idx = S.order.indexOf(pg.id), right = idx >= 0 && (idx + 1) % 2 === 1;
-        if (base === 'out') { sd.l = !right; sd.r = right; } if (base === 'in') { sd.l = right; sd.r = !right; }
+        const L = [], l = T.l + o, t = T.t + o, r = pg.w - T.r - o, bt = pg.h - T.b - o;
         if (sd.t) L.push({ p: [[sd.l ? l : 0, t], [sd.r ? r : pg.w, t]], closed: false }); if (sd.b) L.push({ p: [[sd.l ? l : 0, bt], [sd.r ? r : pg.w, bt]], closed: false });
         if (sd.l) L.push({ p: [[l, sd.t ? t : 0], [l, sd.b ? bt : pg.h]], closed: false }); if (sd.r) L.push({ p: [[r, sd.t ? t : 0], [r, sd.b ? bt : pg.h]], closed: false });
         window.__fb = { w: pg.w, h: pg.h }; c.globalAlpha = 1 * (b.op ?? 1); if (window.LN) LN.stroke(c, L, b.ls || 'solid', b.lc || '#4A4E79', b.lw || 0.4);
@@ -230,14 +238,15 @@
         ${b.tile ? `<label class="pfield"><span>Tamanho de cada repetição (mm)</span><input type="number" id="bdPs" min="6" max="150" step="1" value="${b.ps || 20}"></label>` : ''}</div>`
       : `<div class="bdsec"><div class="bdh"><b>Cor ou gradiente</b></div><div class="bdrow">${colorField('bcor', b.color, true)}</div></div>`}
       <div class="wacc${open ? ' open' : ''}" data-bdacc="bdpos"><button type="button" class="wah" aria-expanded="${open}"><i class="wtri"></i><b>Posicionamento · <em>${esc(nameOf(b.lay))}</em></b></button>
-        <div class="wab"><div class="bdsws">${sw('bdCont', b.span !== 'inv', 'Contínuo')}<small>${b.span !== 'inv' ? 'a borda atravessa as duas páginas' : 'a página da direita fica espelhada'}</small>${cat === 'completo' ? '' : sw('bdInvC', !!b.inv, 'Inverter o recorte')}</div><div class="bdchips">${LAY.map(([k, n]) => `<button type="button" class="chip${cat === k ? ' on' : ''}" data-bc="${k}">${n}</button>`).join('')}</div>
+        <div class="wab"><div class="bdsws" title="${b.span !== 'inv' ? 'Contínuo: o desenho segue de uma página para a outra' : 'Invertido: a página da direita espelha a da esquerda'}">${sw('bdCont', b.span !== 'inv', 'Contínuo')}${cat === 'completo' ? '' : sw('bdInvC', !!b.inv, 'Inverter recorte')}</div><div class="bdchips">${LAY.map(([k, n]) => `<button type="button" class="chip${cat === k ? ' on' : ''}" data-bc="${k}">${n}</button>`).join('')}</div>
         <div class="bdthumbs">${(LAY.find((c) => c[0] === cat) || LAY[1])[2].map(([k, n]) => `<button type="button" class="bdt${b.lay === k ? ' on' : ''}" data-bl="${k}" title="${n}"><canvas data-bpc="${k}" width="54" height="72"></canvas><span>${n}</span></button>`).join('')}</div></div></div>
       <div class="bdsec"><label class="bdsl"><span>Opacidade</span><input type="range" id="bO" min="0.1" max="1" step="0.05" value="${b.op ?? 1}"><b id="bOv">${Math.round((b.op ?? 1) * 100)}%</b></label>
         <label class="bdsl"><span>${thinCat ? 'Espessura das linhas' : 'Largura da borda'}</span><input type="range" id="bW" min="${thinCat ? 0.3 : 1}" max="${thinCat ? Math.round(mx / 4) : mx}" step="${thinCat ? 0.1 : 0.5}" value="${thinCat ? (b.lt != null ? b.lt : 1.4) : Math.min(cur, mx)}"><input type="number" id="bWn" min="${thinCat ? 0.3 : 1}" max="${mx}" step="${thinCat ? 0.1 : 0.5}" value="${thinCat ? r1(b.lt != null ? b.lt : 1.4) : r1(cur)}"> <button type="button" class="btn sm ghost" id="bWr" title="Voltar até a margem de segurança">↺</button></label>
         ${thinCat ? `<label class="bdsl"><span>Afastamento do extremo</span><input type="range" id="bOf" min="0" max="${Math.round(mx / 2)}" step="0.5" value="${b.ofs != null ? b.ofs : Math.max(2, r1(mm * 0.5))}"><b id="bOfv">${r1(b.ofs != null ? b.ofs : Math.max(2, mm * 0.5))} mm</b></label>` : ''}
         <p class="hint" style="margin:0">${thinCat ? 'Linhas finas acompanham a página; ajuste a espessura e o afastamento.' : b.w == null ? 'Vai do extremo da página até a margem de segurança' : 'Margem de segurança em ' + mm + ' mm'}. Arraste para diminuir (para fora) ou aumentar (para dentro).</p>
         <div class="pfield"><span>Forrado</span><div class="segf sm">${[[0, 'Desativado'], [1, 'Perto'], [2, 'Médio'], [3, 'Longe']].map(([k, n]) => `<button type="button" data-bld="${k}" class="${(b.liner || 0) === k ? 'on' : ''}">${n}</button>`).join('')}</div></div>
-        ${b.liner ? `<label class="pfield"><span>Cor do forrado</span>${colorField('blc', b.lc, false)}</label><div class="fgrid"><label class="pfield"><span>Espessura (mm)</span><input type="number" id="bLw" min="0.1" max="3" step="0.1" value="${b.lw || 0.4}"></label><label class="pfield"><span>Tipo de linha</span><select id="bLs">${LN.OPTS.map(([k, n]) => `<option value="${k}"${(b.ls || 'solid') === k ? ' selected' : ''}>${n}</option>`).join('')}</select></label></div>` : ''}</div>
+        ${b.liner ? `<div class="bdl"><div class="bdlrow"><div class="bdlc"><span>Cor</span>${colorField('blc', b.lc, false)}</div><label class="bdlf"><span>Espessura</span><input type="number" id="bLw" min="0.1" max="3" step="0.1" value="${b.lw || 0.4}"></label><label class="bdlf"><span>Linha</span><select id="bLs">${LN.OPTS.map(([k, n]) => `<option value="${k}"${(b.ls || 'solid') === k ? ' selected' : ''}>${n}</option>`).join('')}</select></label></div>
+          <div class="bdlrow"><span class="bdlt">Lados</span><div class="sides">${(() => { const au = autoSd(b.lay || 'ring', false), cur = typeof b.lsd === 'string' ? b.lsd : ['T', 'R', 'B', 'L'].filter((k) => au.known && !b.inv && au.sd[{ T: 't', R: 'r', B: 'b', L: 'l' }[k]]).join(''), bt = (k, t) => `<button type="button" class="sdb${(k === 'A' ? cur === 'TRBL' : cur.includes(k)) ? ' on' : ''}" data-bls="${k}" title="${t}">${sideIco({ A: 'cellBorder', T: 'cbT', R: 'cbR', B: 'cbB', L: 'cbL' }[k])}</button>`; return bt('A', 'Todos os lados') + '<i></i>' + bt('T', 'Em cima') + bt('R', 'À direita') + bt('B', 'Embaixo') + bt('L', 'À esquerda'); })()}${typeof b.lsd === 'string' ? '<button type="button" class="btn sm ghost" id="bLsAuto" title="Voltar a acompanhar o estilo da borda">Auto</button>' : '<small class="hint">acompanha a borda</small>'}</div></div></div>` : ''}</div>
       <div class="pgrp"><h3>APLICAR</h3>${scopeHTML('bd', true)}<div class="row"><button class="btn pri" id="bdGo">Aplicar</button><button class="btn ghost danger" id="bdRm">Remover borda</button></div><p class="hint" id="bdMsg">${p.border ? 'Esta página já tem uma borda.' : ''}</p></div>`;
     },
     mount(P) {
@@ -256,6 +265,10 @@
       const co = $('#bdCont', P); co.onchange = () => { b.span = co.checked ? 'cont' : 'inv'; redo(); };
       const ic = $('#bdInvC', P); if (ic) ic.onchange = () => { b.inv = ic.checked; redo(); };
       const ofs = $('#bOf', P); if (ofs) ofs.oninput = () => { b.ofs = +ofs.value; $('#bOfv', P).textContent = r1(b.ofs) + ' mm'; preview(); };
+      $$('[data-bls]', P).forEach((x) => x.onclick = () => { const au = autoSd(b.lay || 'ring', false), cur = typeof b.lsd === 'string' ? b.lsd : ['T', 'R', 'B', 'L'].filter((k) => au.known && !b.inv && au.sd[{ T: 't', R: 'r', B: 'b', L: 'l' }[k]]).join(''), k = x.dataset.bls; let s;
+        if (k === 'A') s = cur === 'TRBL' ? '' : 'TRBL'; else { const set = new Set(cur.split('').filter(Boolean)); set.has(k) ? set.delete(k) : set.add(k); s = ['T', 'R', 'B', 'L'].filter((q) => set.has(q)).join(''); }
+        b.lsd = s; redo(); });
+      const lau = $('#bLsAuto', P); if (lau) lau.onclick = () => { b.lsd = null; redo(); };
       const lws = $('#bLw', P); if (lws) lws.onchange = () => { b.lw = cl(+lws.value || 0.4, 0.1, 3); }; const lss = $('#bLs', P); if (lss) lss.onchange = () => { b.ls = lss.value; };
       const bo = $('#bO', P); bo.oninput = () => { b.op = +bo.value; $('#bOv', P).textContent = Math.round(b.op * 100) + '%'; };
       const bw = $('#bW', P), bn = $('#bWn', P); const kk = thinCat ? 'lt' : 'w'; bw.oninput = () => { b[kk] = +bw.value; bn.value = r1(b[kk]); preview(); }; bn.onchange = () => { b[kk] = cl(+bn.value || 1, thinCat ? 0.3 : 1, +bw.max); bw.value = b[kk]; preview(); };
@@ -265,13 +278,18 @@
       if (ci) { ci.oninput = () => { b.color = ci.dataset.gv || ci.value; preview(); }; ci.onchange = () => { b.color = ci.dataset.gv || ci.value; redo(); }; }
       const lc = $('input[data-k="blc"]', P); $$('[data-cset="blc"]', P).forEach((x) => x.onclick = () => { b.lc = x.dataset.v; redo(); }); if (lc) { lc.oninput = () => { b.lc = lc.dataset.gv || lc.value; }; lc.onchange = () => { b.lc = lc.dataset.gv || lc.value; redo(); }; }
       mountScope(P, 'bd'); mountLib(P, 'border'); if (S.meta.view === 'spread') { const o = $('#bdSc option[value="cur"]', P); if (o) o.textContent = 'Esta dupla (as 2 páginas)'; }
+      const sp = S.meta.view === 'spread' ? curSpread() : [], scSel = $('#bdSc', P);
+      if (sp.length === 2 && scSel) { const mk = (v, i) => { const o = document.createElement('option'); o.value = v; o.textContent = 'Só a página ' + (i + 1); scSel.insertBefore(o, scSel.options[1]); }; mk('pgB', sp[1]); mk('pgA', sp[0]); }
       const up = $('[data-up]', P); if (up) up.onchange = async () => { const fs = await checkUpload([...up.files]); up.value = ''; if (fs.length) await uploadFiles(fs, 'border'); };
       const mk = $('#bdMk', P); if (mk) mk.onclick = () => { if (window.ModuLab && ModuLab.openPat) ModuLab.openPat(null); };
-      $('#bdGo', P).onclick = () => { if (b.kind !== 'cor' && !b.src) { $('#bdMsg', P).textContent = 'Escolha uma imagem ou um padrão para a borda.'; return; } let ids = readScope(P, 'bd'); if (!ids.length) { $('#bdMsg', P).textContent = 'Escolha pelo menos uma página.'; return; }
-        if ($('#bdSc', P).value === 'cur' && S.meta.view === 'spread') ids = curSpread().map((i) => S.order[i]).filter(Boolean);
-        applyBorder(ids, b); $('#bdMsg', P).textContent = `Borda aplicada em ${ids.length} página${ids.length === 1 ? '' : 's'}. 🌸`; };
+      $('#bdGo', P).onclick = () => { if (b.kind !== 'cor' && !b.src) { $('#bdMsg', P).textContent = 'Escolha uma imagem ou um padrão para a borda.'; return; } let ids = ['pgA', 'pgB'].includes($('#bdSc', P).value) ? [curPage().id] : readScope(P, 'bd'); if (!ids.length) { $('#bdMsg', P).textContent = 'Escolha pelo menos uma página.'; return; }
+        const sv = $('#bdSc', P).value, spr = S.meta.view === 'spread';
+        if (sv === 'cur' && spr) ids = curSpread().map((i) => S.order[i]).filter(Boolean);
+        else if (sv === 'pgA' || sv === 'pgB') ids = [S.order[curSpread()[sv === 'pgA' ? 0 : 1]]].filter(Boolean);
+        const mirror = isLat(b.lay) && (spr || ids.length > 1) && sv !== 'pgA' && sv !== 'pgB';
+        change(ids, () => ids.forEach((id) => { const bb = clone(b), ix = S.order.indexOf(id); bb.flip = !!(mirror && (ix + 1) % 2 === 1); S.pages[id].border = bb; })); redraw(); refreshThumbs(); renderProps(); $('#bdMsg', P).textContent = `Borda aplicada em ${ids.length} página${ids.length === 1 ? '' : 's'}. 🌸`; };
       $('#bdRm', P).onclick = () => { const ids = readScope(P, 'bd'); applyBorder(ids, null); $('#bdMsg', P).textContent = `Borda removida de ${ids.length} página${ids.length === 1 ? '' : 's'}.`; };
     },
   };
-  window.Bordas = { draw2, region, safeOf };
+  window.Bordas = { draw2, region, safeOf, isLat };
 })();

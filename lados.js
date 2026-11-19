@@ -11,6 +11,7 @@
   };
   function copy(from, to) {
     const k = Paginas.copyDesign(from.id, [to.id], { replace: true, fit: true, remap: true, parts: ALL });
+    if (k && from.border && from.border.v === 2) { const bb = clone(from.border); if (window.Bordas && Bordas.isLat(bb.lay)) bb.flip = !bb.flip; change([to.id], () => { to.border = bb; }); redraw(); }
     if (k) toast('Conteúdo copiado para a página ' + (S.order.indexOf(to.id) + 1) + '. Ctrl+Z desfaz.');
   }
   function pack(pg) { const o = { els: clone(pg.els), name: pg.name, w: pg.w, h: pg.h, props: {} }; Object.keys(pg).forEach((k) => { if (!KEEP.has(k)) o.props[k] = clone(pg[k]); }); return o; }
@@ -30,6 +31,7 @@
     if (!a || !b || a.id === b.id) return;
     const A = pack(a), B = pack(b), sa = { w: a.w, h: a.h, id: a.id, mg: a.mg }, sb = { w: b.w, h: b.h, id: b.id, mg: b.mg };
     change([a.id, b.id], () => { put(a, B, sb); put(b, A, sa); });
+    [a, b].forEach((q) => { if (q.border && q.border.v === 2 && window.Bordas && Bordas.isLat(q.border.lay)) q.border.flip = !q.border.flip; });
     thumbRefresh(a.id); thumbRefresh(b.id); refreshAll();
     toast('Páginas ' + (S.order.indexOf(a.id) + 1) + ' e ' + (S.order.indexOf(b.id) + 1) + ' trocadas. Ctrl+Z desfaz.');
   }
