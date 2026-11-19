@@ -171,9 +171,10 @@
   /* ---------- seleção ---------- */
   const TS = () => S.tcell;
   const curEl = () => { const t = TS(); if (!t) return null; const p = curPage(); return p ? p.els.find((x) => x.id === t.id) || null : null; };
+  const tblEl = () => { const e = curEl(); if (e) return e; const x = selEls(); return x.length === 1 && x[0].type === 'table' ? x[0] : null; };
   const rng = (t) => ({ r0: Math.min(t.a[0], t.b[0]), r1: Math.max(t.a[0], t.b[0]), c0: Math.min(t.a[1], t.b[1]), c1: Math.max(t.a[1], t.b[1]) });
-  const exit = () => { if (S.tcell) { S.tcell = null; try { drawOverlaysOnly(); renderProps(); } catch (er) { /* */ } } };
-  function enter(e, r, c) { S.sel = [e.id]; S.tcell = { id: e.id, a: [r, c], b: [r, c], hover: null, drag: null, title: false }; redraw(); renderProps(); }
+  const exit = () => { if (S.tcell) { try { const ae = document.activeElement; if (ae && ae.matches && ae.matches('input,textarea,select')) ae.blur(); } catch (er) { /* */ } S.tcell = null; try { drawOverlaysOnly(); renderProps(); } catch (er) { /* */ } } };
+  function enter(e, r, c) { try { const ae = document.activeElement; if (ae && ae.matches && ae.matches('input,textarea,select')) ae.blur(); } catch (er) { /* */ } S.sel = [e.id]; S.tcell = { id: e.id, a: [r, c], b: [r, c], hover: null, drag: null, title: false }; redraw(); renderProps(); }
   const local = (e, pt) => { const I = inn(e), a = -(e.rot || 0) * Math.PI / 180, dx = pt.x - (e.x + e.w / 2), dy = pt.y - (e.y + e.h / 2); return { x: dx * Math.cos(a) - dy * Math.sin(a) + e.w / 2 - I.ox, y: dx * Math.sin(a) + dy * Math.cos(a) + e.h / 2 - I.oy }; };
   const findIdx = (arr, v) => { for (let i = 0; i < arr.length - 1; i++) if (v < arr[i + 1]) return i; return arr.length - 2; };
   const clampRC = (e, r, c) => [Math.max(0, Math.min(nR(e) - 1, r)), Math.max(0, Math.min(e.cols - 1, c))];
@@ -240,7 +241,7 @@
   }
 
   /* ---------- ações (botões + e −, painel) ---------- */
-  function mutate(fn, msg) { const p = curPage(), e = curEl(); if (!e) return; const b = snapOf([p.id]); const ok = fn(e); if (ok === false) return; pushHist(b, snapOf([p.id])); redraw(); renderProps(); try { thumbRefresh(p.id); } catch (er) { /* */ } if (msg) toast(msg); }
+  function mutate(fn, msg) { const p = curPage(), e = tblEl(); if (!e) return; const b = snapOf([p.id]); const ok = fn(e); if (ok === false) return; pushHist(b, snapOf([p.id])); redraw(); renderProps(); try { thumbRefresh(p.id); } catch (er) { /* */ } if (msg) toast(msg); }
   function act(a, i) {
     const t = TS(), e = curEl(); if (!e) return; const q = t ? rng(t) : null;
     if (a === 'inscol') mutate((x) => { insCol(x, i); t.a = [t.a[0], i]; t.b = [t.b[0], i]; });
@@ -248,6 +249,10 @@
     else if (a === 'insrow') mutate((x) => { insRow(x, i); const nr = Math.max(hasH(x) ? 1 : 0, i); t.a = [nr, t.a[1]]; t.b = [nr, t.b[1]]; });
     else if (a === 'delrow') mutate((x) => { if (!delRow(x, i)) return false; t.a = clampRC(x, Math.min(t.a[0], nR(x) - 1), t.a[1]); t.b = t.a.slice(); });
     else if (a === 'insrowA') act('insrow', q.r0); else if (a === 'insrowB') act('insrow', q.r1 + 1); else if (a === 'inscolA') act('inscol', q.c0); else if (a === 'inscolB') act('inscol', q.c1 + 1);
+    else if (a === 'delrowT') mutate((x) => { if (!delRow(x, q.r0)) return false; t.a = clampRC(x, Math.min(q.r0, nR(x) - 1), t.a[1]); t.b = t.a.slice(); });
+    else if (a === 'delrowB') mutate((x) => { if (!delRow(x, q.r1)) return false; t.a = clampRC(x, Math.min(q.r1, nR(x) - 1), t.a[1]); t.b = t.a.slice(); });
+    else if (a === 'delcolL') mutate((x) => { if (!delCol(x, q.c0)) return false; t.a = clampRC(x, t.a[0], Math.min(q.c0, x.cols - 1)); t.b = t.a.slice(); });
+    else if (a === 'delcolR') mutate((x) => { if (!delCol(x, q.c1)) return false; t.a = clampRC(x, t.a[0], Math.min(q.c1, x.cols - 1)); t.b = t.a.slice(); });
     else if (a === 'delrows') mutate((x) => { let n = 0; for (let r = q.r1; r >= q.r0; r--) if (delRow(x, r)) n++; if (!n) return false; t.a = clampRC(x, Math.min(q.r0, nR(x) - 1), t.a[1]); t.b = t.a.slice(); });
     else if (a === 'delcols') mutate((x) => { let n = 0; for (let c = q.c1; c >= q.c0; c--) if (delCol(x, c)) n++; if (!n) return false; t.a = clampRC(x, t.a[0], Math.min(q.c0, x.cols - 1)); t.b = t.a.slice(); });
   }
@@ -404,7 +409,7 @@
       const sidesBtn = (mode) => `<div class="sides tsides">${[['A', 'Todos os lados', 'cellBorder'], ['T', 'Em cima', 'cbT'], ['R', 'À direita', 'cbR'], ['B', 'Embaixo', 'cbB'], ['L', 'À esquerda', 'cbL']].map(([s2, tt, ic]) => `<button type="button" class="sdb${mode === 'x' ? ' tx' : ''}" data-tb="${mode}${s2}" title="${tt}">${sideIco(ic)}</button>`).join('')}</div>`;
       const seg = (name, opts, cur) => `<div class="segf tseg">${opts.map(([v, tt]) => `<button type="button" class="${cur === v ? 'on' : ''}" data-tal="${name}:${v}" title="${tt}">${tt}</button>`).join('')}</div>`;
       body += `<div class="tselh"><b>${esc(label(e, t))}</b><small>${n} célula${n > 1 ? 's' : ''} · ativa ${colName(a[1])}${a[0] + 1}</small><button type="button" class="btn sm ghost" data-ta="off">Sair</button></div>
-        <div class="row tbtn"><button type="button" class="btn sm" data-ta="insrowA">＋ Linha acima</button><button type="button" class="btn sm" data-ta="insrowB">＋ Linha abaixo</button><button type="button" class="btn sm" data-ta="inscolA">＋ Coluna à esq.</button><button type="button" class="btn sm" data-ta="inscolB">＋ Coluna à dir.</button><button type="button" class="btn sm danger" data-ta="delrows">− Linha(s)</button><button type="button" class="btn sm danger" data-ta="delcols">− Coluna(s)</button></div>
+        <div class="tinsdel">${[['Linha', [['insrowA', 'up', '＋', 'Inserir linha acima da seleção'], ['delrowT', 'up', '−', 'Excluir a linha de cima da seleção'], ['insrowB', 'down', '＋', 'Inserir linha abaixo da seleção'], ['delrowB', 'down', '−', 'Excluir a linha de baixo da seleção']]], ['Coluna', [['inscolA', 'left', '＋', 'Inserir coluna à esquerda da seleção'], ['delcolL', 'left', '−', 'Excluir a coluna da esquerda da seleção'], ['inscolB', 'right', '＋', 'Inserir coluna à direita da seleção'], ['delcolR', 'right', '−', 'Excluir a coluna da direita da seleção']]]].map(([nmz, bs]) => `<div class="tid"><span>${nmz}</span>${bs.map(([ac, dir, sg, tt]) => `<button type="button" class="btn sm tidb${sg === '−' ? ' danger' : ''}" data-ta="${ac}" title="${tt}" aria-label="${tt}"><svg viewBox="0 0 10 10" width="9" height="9" fill="currentColor">${{ up: '<path d="M5 2l4 5H1z"/>', down: '<path d="M5 8L1 3h8z"/>', left: '<path d="M2 5l5-4v8z"/>', right: '<path d="M8 5L3 1v8z"/>' }[dir]}</svg>${sg}</button>`).join('')}</div>`).join('')}</div>
         <div class="row tbtn"><button type="button" class="btn sm${allLockedCells ? ' pri' : ''}" data-ta="lockcell">${allLockedCells ? 'Destravar' : 'Travar'} célula(s)</button><button type="button" class="btn sm${allR ? ' pri' : ''}" data-ta="lockrow">${allR ? 'Destravar' : 'Travar'} altura da linha</button><button type="button" class="btn sm${allC ? ' pri' : ''}" data-ta="lockcol">${allC ? 'Destravar' : 'Travar'} largura da coluna</button></div>
         <p class="hint">Célula travada não muda texto nem formato. Linha travada mantém a altura e coluna travada mantém a largura, mesmo ao esticar a tabela.</p>${sizes()}
         ${H4('Formato da seleção')}<h5 class="tsh2">Fundo</h5><div class="pfield">${cf('tcFill', cl.fill === undefined ? 'none' : cl.fill, true)}</div><button type="button" class="btn sm ghost" data-ta="fillreset">Voltar ao padrão da tabela</button>
@@ -422,6 +427,10 @@
     }
     body += H4('Texto da tabela') + fx('_tx2') + H4('Linhas e células') + fx('_tx3') + after;
     const w = block('tab', 'Tabela', body); cont.replaceWith(w); wire(w, e, t);
+    /* posição, tamanho, rotação e opacidade passam a viver dentro do bloco Tabela (uma configuração só) */
+    const fg = P.querySelector(':scope > .fgrid'), rp2 = P.querySelector(':scope > button[data-a="rep"]'), h2 = P.querySelector(':scope > h2'), wb = w.querySelector('.tpan');
+    if (fg && wb) { const h = document.createElement('h4'); h.className = 'tsh'; h.textContent = 'Posição e tamanho'; wb.prepend(...[h, fg, rp2].filter(Boolean)); }
+    if (h2) h2.remove();
   }
   function wire(w, e, t) {
     const on = (sel, ev, fn) => w.querySelectorAll(sel).forEach((x) => x.addEventListener(ev, (E) => { E.stopPropagation(); fn(x, E); }));
@@ -438,12 +447,13 @@
       else if (a === 'fillreset') fmtApply((z, r, c) => setCell(z, r, c, { fill: undefined }));
       else if (a === 'bdreset') fmtApply((z, r, c) => setCell(z, r, c, { bd: undefined }));
     });
-    on('[data-tsz]', 'change', (x) => { const ax = x.dataset.tsz[0], i = +x.dataset.tsz.slice(1), v = parseFloat(x.value); if (!(v > 0)) return; mutate((z) => { const ok = ax === 'c' ? sizeCol(z, i, v, false) : sizeRow(z, i, v, false); if (!ok) { toast(ax === 'c' ? 'Coluna travada.' : 'Linha travada.'); return false; } }); });
-    on('[data-tlk]', 'change', (x) => { const ax = x.dataset.tlk[0], i = +x.dataset.tlk.slice(1); mutate((z) => { bake(z); const k = ax === 'c' ? 'lockC' : 'lockR'; z[k] = z[k] || {}; if (x.checked) z[k][i] = true; else delete z[k][i]; }); });
+    on('[data-tsz]', 'change', (x) => { x.blur(); const ax = x.dataset.tsz[0], i = +x.dataset.tsz.slice(1), v = parseFloat(x.value); if (!(v > 0)) return; mutate((z) => { const ok = ax === 'c' ? sizeCol(z, i, v, false) : sizeRow(z, i, v, false); if (!ok) { toast(ax === 'c' ? 'Coluna travada.' : 'Linha travada.'); return false; } }); });
+    on('[data-tlk]', 'change', (x) => { x.blur(); const ax = x.dataset.tlk[0], i = +x.dataset.tlk.slice(1); mutate((z) => { bake(z); const k = ax === 'c' ? 'lockC' : 'lockR'; z[k] = z[k] || {}; if (x.checked) z[k][i] = true; else delete z[k][i]; }); });
     // linha do título
     const ti = (fn) => mutate((z) => { if (!(z.wx && z.wx.hd)) return false; fn(z.wx.hd, z); });
     w.querySelectorAll('input[data-ti],button[data-ti]').forEach((x) => {
       const k = x.dataset.ti;
+      if (x.tagName !== 'BUTTON') x.addEventListener('change', () => x.blur());
       if (x.tagName === 'BUTTON') x.addEventListener('click', (E) => { E.stopPropagation(); const [kk, v] = k.split(':'); ti((hd) => { hd[kk] = v; }); });
       else x.addEventListener('change', (E) => { E.stopPropagation(); if (k === 'text') ti((hd) => { hd.text = x.value; }); else if (k === 'lock') ti((hd) => { hd.lock = x.checked || undefined; }); else if (k === 'h') { const v = Math.max(3, parseFloat(x.value) || 0); if (!v) return; ti((hd, z) => { if (hd.lock) { toast('Linha do título travada.'); return false; } bake(z); const d = v - (hd.h || 7); hd.h = v; z.h = r2(z.h + d); }); } else ti((hd) => { hd[k] = x.value; }); });
       x.addEventListener('input', (E) => E.stopPropagation());

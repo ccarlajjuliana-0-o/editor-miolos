@@ -353,3 +353,9 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Ordem do painel em todos os widgets: 1 Título do widget, 2 Cabeçalho (da tabela / dos dias da semana, quando existir), 3 conteúdo principal e demais (marcadores, células dos dias etc.).
 - "Restaurar" do bloco Tabela cobre tudo (inclusive tamanhos, travas e formatos por célula).
 - Cache `estudio-miolos-v74`.
+
+## Ajuste 69 · Tabela: uma configuração só
+- O bloco do topo (posição, tamanho, rotação, opacidade, "Repetir em outras páginas") foi mesclado dentro de **Tabela** (3ª posição, depois de Título do widget e Cabeçalho); o título duplicado "Tabela" saiu.
+- Inserir/excluir no painel: linha = ▲＋ ▲− ▼＋ ▼−; coluna = ◀＋ ◀− ▶＋ ▶− (relativo à seleção: ＋ insere desse lado, − exclui a linha/coluna desse lado da seleção).
+- Corrigido: largura/altura (e travas) no painel não funcionavam fora do modo "Editar células", e o painel não atualizava após Enter no campo.
+- Cache `estudio-miolos-v75`.

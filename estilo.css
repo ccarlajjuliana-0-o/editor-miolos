@@ -994,3 +994,6 @@ body.qm-on #qbar{display:none!important}
 .tpan .tsh{margin:16px 0 6px;padding-top:10px;border-top:1px solid var(--line);font:700 13px var(--f-title);color:#6a4f7a}
 .tpan .tsh:first-child{border-top:0;padding-top:0;margin-top:2px}
 .tpan .tsh2{margin:10px 0 4px;font:700 11px var(--f-title);color:#9168A0;text-transform:none}
+.tinsdel{display:grid;gap:6px;margin:8px 0}
+.tid{display:flex;align-items:center;gap:5px;flex-wrap:wrap}.tid>span{width:48px;font:700 11px var(--f-title);color:#9168A0}
+.tidb{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;min-width:0}.tidb svg{flex:none}
