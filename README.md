@@ -303,3 +303,9 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Chaves Contínuo / Inverter recorte na mesma linha; chips de categoria centralizados.
 - "Aplicar": novas opções "Só a página N" e "Só a página N+1" (individual, mesmo na vista dupla).
 - Copiar esquerda → direita (e direita → esquerda) e Trocar lados mantêm a borda lateral do lado interno (espelha).
+
+## Ajuste 61 — Catálogo (base + histórico)
+- Nova aba **Catálogo** no menu da esquerda: **Catálogo** (padrão do app + itens guardados + espelho do ModuLab), **Minhas coisas** e **Histórico** (data e hora de criado/modificado/excluído/movido).
+- Envio ao catálogo de widgets, adesivos, bordas, fundos e fontes, com aviso de resolução mínima (300 px nos adesivos/widgets; página a 150 dpi nos fundos/bordas).
+- O que é enviado pelas outras abas continua em "Minhas coisas"; itens do catálogo aparecem também nas abas Widgets/Adesivos e são lidos pelo ModuLab e pelas Bordas. Mover entre catálogo e Minhas coisas com ↥/↧.
+- Nuvem opcional: rode `supabase/catalogo.sql` uma vez e use "Sincronizar agora" (catálogo e histórico vão para a pasta privada `estudio`).

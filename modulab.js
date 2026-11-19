@@ -876,6 +876,6 @@
     const lh2 = window.loadHome; if (typeof lh2 === 'function' && !lh2._ml2) { const w = async function () { const r = await lh2.apply(this, arguments); dock(); return r; }; w._ml = 1; w._ml2 = 1; window.loadHome = w; }
     sync();
   }
-  window.ModuLab = { openPat, soltar, piecesOf, openFree, freeModal, dock, mount, sync, openEditor, themeModal, IA, refresh() { const b = $('#mlBox'); if (b && $('#vModulab') && !$('#vModulab').hidden) mount(b); }, applyTheme, colorsFromText, dominant, palFrom };
+  window.ModuLab = { itemPrev, openPat, soltar, piecesOf, openFree, freeModal, dock, mount, sync, openEditor, themeModal, IA, refresh() { const b = $('#mlBox'); if (b && $('#vModulab') && !$('#vModulab').hidden) mount(b); }, applyTheme, colorsFromText, dominant, palFrom };
   boot();
 })();
