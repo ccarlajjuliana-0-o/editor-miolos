@@ -209,3 +209,10 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - **Duplo clique dentro do widget** (checklist, hábitos, abas, tabela, divisor e título do widget) abre o menu rápido: texto, fonte, tamanho, cor, alinhamento, incluir/excluir item, linha ou coluna.
 - **Conjunto de widgets**: ao agrupar widgets, a seção "Conjunto de widgets" cria um fundo comum (fundo, borda, estilo e título valem para o todo); os textos continuam individuais.
 - Arquivo novo: `rapido.js` (já listado no index, sw.js v45 e publicar.yml).
+
+## Ajuste 40 — Edição direta no widget, cadeado, zoom e aba Fonte
+- **Duplo clique no widget**: o cursor aparece direto na linha/coluna clicada (sem caixa sobre o widget). A barra rápida traz fonte, tamanho, cor, negrito/alinhamento (título), **＋ acima**, **＋ abaixo** e **✕ linha**. Enter inclui uma linha abaixo; Backspace numa linha vazia a exclui.
+- **Checklist com linhas**: o texto assenta sobre a linha e a linha recomeça depois dele.
+- **Cadeado**: ao passar o mouse sobre qualquer objeto travado aparece um cadeado; clicar nele destrava.
+- **Zoom**: a roda do mouse amplia/reduz (Shift + roda rola; configurável) e o botão de porcentagem abre um menu (Ajustar, 50%…300%).
+- **Aba Fonte** (antes "Texto"): combinações e níveis H1–H6; "Minhas fontes" e "Minhas combinações" são botões no topo e a configuração de combinação é um segundo nível com botão Voltar. Os modelos de texto agora ficam em Widgets › Textos.

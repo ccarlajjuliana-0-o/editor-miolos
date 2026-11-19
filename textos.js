@@ -170,20 +170,25 @@
 
   /* ---------- painel Fontes ---------- */
   function fontesHTML() {
-    const st = S.meta.style || {}, cur = styleOf(), combos = Object.entries(PAIRS || {}), mine = S.lib.filter((x) => x.kind === 'fontes'), tipos = S.lib.filter((x) => x.kind === 'tipos'), fu = S.lib.filter((x) => x.kind === 'font');
-    const combo = (k, n, f, on0) => { const on = S.fcSel === k; return `<button type="button" class="tcard fcb${on ? ' on' : ''}" data-fcb="${k}"><span style="font-family:'${esc(f.title)}';font-size:20px;line-height:1.1">${esc(n)}</span><span style="font-family:'${esc(f.script)}';font-size:18px">Planner</span><span class="hint" style="font-family:'${esc(f.body)}'">To-do · Habits</span></button>`; };
-    return `<h2>Fontes</h2><button type="button" class="btn sm ghost" data-fback>← Voltar para Texto</button>
+    const cur = styleOf(), combos = Object.entries(PAIRS || {}), mine = S.lib.filter((x) => x.kind === 'fontes'), tipos = S.lib.filter((x) => x.kind === 'tipos'), fu = S.lib.filter((x) => x.kind === 'font');
+    const combo = (k, n, f) => { const on = S.fcSel === k; return `<button type="button" class="tcard fcb${on ? ' on' : ''}" data-fcb="${k}"><span style="font-family:'${esc(f.title)}';font-size:20px;line-height:1.1">${esc(n)}</span><span style="font-family:'${esc(f.script)}';font-size:18px">Planner</span><span class="hint" style="font-family:'${esc(f.body)}'">To-do · Habits</span></button>`; };
+    const back = (t) => `<h2>${t}</h2><button type="button" class="btn sm ghost" data-fsback>← Voltar para Fonte</button>`;
+    if (S.txSub === 'combo' && S.fcSel) return `${back('Combinação de fontes')}${comboDetail()}`;
+    if (S.txSub === 'fontes') return `${back('Minhas fontes')}<p class="hint">As fontes enviadas aparecem em todas as listas de fonte e nas combinações.</p><div class="row"><span class="btn sm upl">Enviar fontes (TTF/OTF)<input type="file" accept=".ttf,.otf,font/ttf,font/otf" multiple data-fup aria-label="Enviar fontes"></span></div>
+      ${fu.length ? fu.map((f) => `<div class="fontrow"><span class="pvw" style="font-family:'${esc(f.family)}'">${esc(f.family)} · Aa Bb 123</span><button class="btn sm ghost danger" data-ld="${f.id}">Excluir</button></div>`).join('') : '<p class="hint">Você ainda não enviou nenhuma fonte.</p>'}`;
+    if (S.txSub === 'comb') return `${back('Minhas combinações')}<button type="button" class="btn sm pri" data-fnew>Nova combinação…</button>
+      <h3>COMBINAÇÕES DE FONTES</h3>${mine.length ? `<div class="plist">${mine.map((m) => combo('m:' + m.id, m.name, m.f)).join('')}</div>` : '<p class="hint">Suas combinações guardadas aparecem aqui.</p>'}
+      <h3>CONFIGURAÇÕES DE NÍVEIS</h3>${tipos.length ? tipos.map((t) => `<div class="fontrow"><span>${esc(t.name)}</span><span><button class="btn sm" data-ftu="${t.id}">Aplicar</button> <button class="btn sm ghost danger" data-ftd="${t.id}">Excluir</button></span></div>`).join('') : '<p class="hint">Configure os níveis e use “Guardar esta configuração como padrão…”.</p>'}`;
+    return `<h2>Fonte</h2><div class="row fsub"><button type="button" class="btn sm" data-fsub="fontes">Minhas fontes</button><button type="button" class="btn sm" data-fsub="comb">Minhas combinações</button></div>
       <h3>COMBINAÇÃO DE FONTES</h3><p class="hint">Clique numa combinação para ver as fontes e escolher onde aplicar.</p>
-      <div class="plist">${combos.map(([k, v]) => combo(k, v.nome || k, v)).join('')}${mine.map((m) => combo('m:' + m.id, m.name, m.f)).join('')}</div>${comboDetail()}
-      <button type="button" class="btn sm pri" data-fnew>Nova combinação…</button>
+      <div class="plist">${combos.map(([k, v]) => combo(k, v.nome || k, v)).join('')}</div>
       <h3>NÍVEIS DE TEXTO</h3><p class="hint">Clique num nível para configurar fonte, tamanho, cor e mais. Vale para todo o projeto.</p>
       <div class="plist">${KEYS.map((k) => { const o = hs(k); return `<button type="button" class="tcard lvcard${S.lvEdit === k ? ' on' : ''}" data-flv="${k}"><span style="font-family:'${esc(o.font || (k === 'h1' || k === 'h2' ? cur.title : cur.body))}';font-size:${Math.min(26, (o.size || 8) * 1.6)}px;font-weight:${o.weight || 400};${o.italic ? 'font-style:italic;' : ''}text-decoration:${[o.ul ? 'underline' : '', o.st ? 'line-through' : ''].join(' ').trim() || 'none'};color:${o.color || 'var(--text)'}">${LV[k][0]} · ${LV[k][1]}</span><span class="hint">${LV[k][2]}</span></button>`; }).join('')}</div>
-      <h3>MINHAS CONFIGURAÇÕES</h3>${tipos.length ? tipos.map((t) => `<div class="fontrow"><span>${esc(t.name)}</span><span><button class="btn sm" data-ftu="${t.id}">Aplicar</button> <button class="btn sm ghost danger" data-ftd="${t.id}">Excluir</button></span></div>`).join('') : '<p class="hint">Configure os níveis e use “Guardar esta configuração como padrão…”.</p>'}
-      <h3>MINHAS FONTES</h3><div class="row"><span class="btn sm upl">Enviar fontes (TTF/OTF)<input type="file" accept=".ttf,.otf,font/ttf,font/otf" multiple data-fup aria-label="Enviar fontes"></span></div>
-      ${fu.length ? fu.map((f) => `<div class="fontrow"><span class="pvw" style="font-family:'${esc(f.family)}'">${esc(f.family)} · Aa Bb 123</span><button class="btn sm ghost danger" data-ld="${f.id}">Excluir</button></div>`).join('') : '<p class="hint">As fontes enviadas aparecem em todas as listas de fonte e nas combinações.</p>'}`;
+      <p class="hint">Os modelos de texto (título, citação, caixa…) ficam em Widgets › Textos.</p>`;
   }
   function fontesMount(P) {
-    $$('[data-fback]', P).forEach((b) => b.onclick = () => { S.txView = null; S.lvEdit = null; renderPanel(); renderProps(); });
+    $$('[data-fsback]', P).forEach((b) => b.onclick = () => { S.txSub = null; S.fcDraft = null; renderPanel(); });
+    $$('[data-fsub]', P).forEach((b) => b.onclick = () => { S.txSub = b.dataset.fsub; renderPanel(); });
     comboMount(P);
     $$('[data-flv]', P).forEach((b) => b.onclick = () => { S.lvEdit = b.dataset.flv; S.sel = []; redraw(); renderPanel(); renderProps(); });
     const nw = $('[data-fnew]', P); if (nw) nw.onclick = () => comboModal();
@@ -303,8 +308,8 @@
       <p class="hint">A troca substitui as fontes da combinação atual do projeto pelas desta, só onde você escolher. “Tudo” também muda a combinação do projeto.</p></div>`;
   }
   function comboMount(P) {
-    $$('[data-fcb]', P).forEach((b) => b.onclick = () => { S.fcSel = b.dataset.fcb; S.fcDraft = null; renderPanel(); });
-    const x = $('[data-fcx]', P); if (x) x.onclick = () => { S.fcSel = null; S.fcDraft = null; renderPanel(); };
+    $$('[data-fcb]', P).forEach((b) => b.onclick = () => { S.fcSel = b.dataset.fcb; S.fcDraft = null; S.txSub = 'combo'; renderPanel(); });
+    const x = $('[data-fcx]', P); if (x) x.onclick = () => { S.fcSel = null; S.fcDraft = null; S.txSub = null; renderPanel(); };
     $$('[data-fcf]', P).forEach((s) => s.onchange = () => { const c = comboList().find((q) => q.key === S.fcSel); if (!c) return; S.fcDraft = S.fcDraft && S.fcDraft.key === c.key ? S.fcDraft : { key: c.key, f: clone(c.f) }; S.fcDraft.f[s.dataset.fcf] = s.value; renderPanel(); });
     $$('[data-fcs]', P).forEach((s) => s.onclick = () => { S.fcScope = s.dataset.fcs; renderPanel(); });
     const go = $('[data-fcgo]', P); if (go) go.onclick = () => { const c = comboList().find((q) => q.key === S.fcSel); if (!c) return; const f = (S.fcDraft && S.fcDraft.key === c.key ? S.fcDraft.f : c.f); const n = applyCombo(f, S.fcScope || 'pages'); if (n === false) return; toast(n ? `Combinação aplicada (${n} ${n > 1 ? 'trocas' : 'troca'}). ✨` : 'Combinação aplicada. Nada precisou mudar nesse alvo.'); renderPanel(); };
@@ -411,6 +416,11 @@
     C('txt-destaque', 'Destaque misto', 'destaque misto fontes cores', (p, st) => [T0(st, 0, 0, wide(p, 0.8), 18, '', { font: st.script, size: 24, align: 'center', valign: 'middle', color: st.pal.a, runs: [{ t: 'Meu ' }, { t: 'planner', font: 'Playfair Display', color: st.pal.ink, italic: true }] })]);
   }
 
+  function moveTextp() {
+    if (!window.WX || typeof TEXTP === 'undefined' || WX.CAT.some((x) => x.k === 'tp-0')) return;
+    TEXTP.forEach((t, i) => WX.CAT.unshift({ k: 'tp-' + i, n: t[0], cats: ['textos'], kw: 'texto modelo ' + t[0].toLowerCase(), fn: (p, st) => { const o = t[1], f = o.font === '@script' ? st.script : o.font === '@title' ? st.title : o.font === '@body' ? st.body : o.font; return tx(0, 0, o.w, o.h, o.text, Object.assign({}, o, { font: f, color: o.color === '@a' ? st.pal.a : o.color === '@ink' ? st.pal.ink : '#3E3550' })); } }));
+  }
+
   /* =====================================================================
      Configuração de texto no ModuLab (níveis + combinação de fontes)
      ===================================================================== */
@@ -439,11 +449,11 @@
 
   /* ---------- encaixes ---------- */
   function boot() {
-    wireProps(); wireLevel(); hfWire(); addTextWidgets();
+    wireProps(); wireLevel(); hfWire(); addTextWidgets(); moveTextp();
     if (typeof PANELS !== 'undefined' && PANELS.texto && !PANELS.texto._lv) {
       const t = PANELS.texto, h0 = t.html, m0 = t.mount;
-      t.html = function () { if (S.txView === 'fontes') return fontesHTML(); return h0.apply(this, arguments).replace('<h2>Texto</h2>', '<h2>Texto</h2><button type="button" class="btn sm" data-fopen style="margin-bottom:10px">Fontes e níveis de texto (H1–H6)</button>'); };
-      t.mount = function (P) { if (S.txView === 'fontes') { fontesMount(P); return; } m0.apply(this, arguments); const o = $('[data-fopen]', P); if (o) o.onclick = () => { S.txView = 'fontes'; renderPanel(); }; };
+      t.html = function () { return fontesHTML(); };
+      t.mount = function (P) { fontesMount(P); };
       t._lv = 1;
     }
     if (typeof renderProps === 'function' && !renderProps._lv) {

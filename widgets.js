@@ -53,7 +53,7 @@
       const lb = Array.isArray(e.items) ? e.items[i] : '';
       const gap = mk === 'none' ? 0 : 1.6;
       let lx = bs + (mk === 'none' ? 0.4 : 1.8);
-      if (lb) { font(c, fsz, fam, 400); c.fillStyle = e.textColor || e.color; T(c, lb, bs + gap, cy, 'left', 'middle'); lx = bs + gap + M(c, lb) + 1.2; }
+      if (lb) { font(c, fsz, fam, 400); c.fillStyle = e.textColor || e.color; T(c, lb, bs + gap, e.lines ? by + bs - 0.5 : cy, 'left', e.lines ? 'alphabetic' : 'middle'); lx = bs + gap + M(c, lb) + 1.2; }
       if (e.lines && lx < e.w) { c.beginPath(); c.moveTo(lx, by + bs); c.lineTo(e.w, by + bs); strokeIf(c, e.stroke, sw * 0.85); }
     }
   };
