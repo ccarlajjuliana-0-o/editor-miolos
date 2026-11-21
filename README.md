@@ -393,3 +393,7 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Painel da direita mantém "Seções da página" no topo também com um objeto selecionado; painel compacto.
 - Mesclar com a seção ao lado, dividir em duas, excluir seção/coluna/linha, mover seções (setas ou arrastando o ⠿), botões rápidos (coluna/linha) e menu "···".
 - Medidas aparecem só ao ajustar (ou "sempre"). Em página dupla as seções valem para as duas páginas e reconhecem o conteúdo já existente. O "＋" da seção abre a aba Widgets.
+
+## Ajuste 74c
+- **Mesclar vertical**: "⧉ ↓" junta a seção com a de baixo (mesma largura); pode repetir para juntar várias linhas. "⫶ ↕" divide em duas linhas (as outras seções da linha continuam inteiras) ou, numa seção já mesclada, desfaz uma linha. Também no menu "···".
+- Em modo Independentes, linhas com mescla vertical bloqueiam inserir/excluir/mesclar/dividir colunas (desfaça antes); arrastar a divisão acompanha as linhas ligadas pela mescla.

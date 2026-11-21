@@ -1,6 +1,6 @@
 /* Estúdio de Miolos · Conteúdo da página por seções (Ajuste 74 / 74b)
    p.layout = 'free' | 'sections'
-   p.sec = { m, g, link, both, unit, dim, rh[] (altura de cada linha), rows[][] (larguras das seções de cada linha), rot{"r,c":deg} }
+   p.sec = { m, g, link, both, unit, dim, rh[] (altura de cada linha), rows[][] (larguras das seções de cada linha), rot{"r,c":deg}, mg[] ({a:"r,c", cov:["r,c",...]} = seção que ocupa também as de baixo) }
    e.slot = "r,c" (seção onde o elemento está encaixado) */
 (function () {
   'use strict';
@@ -23,15 +23,24 @@
       a.forEach((v) => { const w = aw * v / t; xs.push(x); ws.push(w); x += w + s.g; });
       return { xs, ws, n, aw, t };
     });
-    return { ys, hs, ah, sh, nR, rows };
+    const G = { ys, hs, ah, sh, nR, rows, anc: {}, cov: {} };
+    (s.mg || []).forEach((m) => {
+      const [ar, ac] = unkey(m.a); if (!rows[ar] || ac >= rows[ar].n) return;
+      const ks = m.cov.filter((k) => { const [r, c] = unkey(k); return rows[r] && c < rows[r].n; }); if (!ks.length) return;
+      const last = Math.max(ar, ...ks.map((k) => unkey(k)[0]));
+      G.anc[m.a] = { x: rows[ar].xs[ac], y: ys[ar], w: rows[ar].ws[ac], h: ys[last] + hs[last] - ys[ar] }; ks.forEach((k) => { G.cov[k] = m.a; });
+    });
+    return G;
   }
-  const rectOf = (G, r, c) => ({ x: G.rows[r].xs[c], y: G.ys[r], w: G.rows[r].ws[c], h: G.hs[r] });
+  const basic = (G, r, c) => ({ x: G.rows[r].xs[c], y: G.ys[r], w: G.rows[r].ws[c], h: G.hs[r] });
+  const rectOf = (G, r, c) => G.anc[keyOf(r, c)] || basic(G, r, c);
   function cellAt(p, G, pt) {
     const g = p.sec.g / 2; let r = -1;
     for (let i = 0; i < G.nR; i++) if (pt.y >= G.ys[i] - g && pt.y < G.ys[i] + G.hs[i] + g) r = i;
     if (r < 0) return null; const R = G.rows[r]; let c = -1;
     for (let i = 0; i < R.n; i++) if (pt.x >= R.xs[i] - g && pt.x < R.xs[i] + R.ws[i] + g) c = i;
-    return c < 0 ? null : { r, c };
+    if (c < 0) return null; const a = G.cov[keyOf(r, c)]; if (a) { const [ar, ac] = unkey(a); return { r: ar, c: ac }; }
+    return { r, c };
   }
   const ctr = (e) => ({ x: e.x + e.w / 2, y: e.y + e.h / 2 });
   const validKey = (G, k) => { const [r, c] = unkey(k); return r < G.nR && c < G.rows[r].n; };
@@ -47,14 +56,15 @@
   function fit(p, ids, fresh) {
     if (!on(p)) return; const s = p.sec, G = geom(p);
     p.els.forEach((e) => { if (e.slot && !validKey(G, e.slot)) delete e.slot; });
+    p.els.forEach((e) => { const a = e.slot && G.cov[e.slot]; if (a) { if (p.els.some((o) => o !== e && o.slot === a)) delete e.slot; else e.slot = a; } });
     const occ = (k, self) => p.els.find((o) => o !== self && o.slot === k);
     if (ids && ids.size) {
       p.els.forEach((e) => {
         if (!ids.has(e.id) || e.locked || e.free) return;
         if (fresh && fresh.has(e.id)) {
-          const pref = p === curPage() && S.secSel && validKey(G, S.secSel) && !occ(S.secSel, e) ? S.secSel : null;
+          const pref = p === curPage() && S.secSel && validKey(G, S.secSel) && !G.cov[S.secSel] && !occ(S.secSel, e) ? S.secSel : null;
           if (pref) { e.slot = pref; return; }
-          for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.rows[r].n; c++) { const kk = keyOf(r, c); if (!e.slot && !occ(kk, e)) e.slot = kk; }
+          for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.rows[r].n; c++) { const kk = keyOf(r, c); if (!e.slot && !G.cov[kk] && !occ(kk, e)) e.slot = kk; }
           if (e.slot) return;
         }
         const cell = cellAt(p, G, ctr(e));
@@ -64,7 +74,7 @@
         if (e.slot && e.slot !== k && !ids.has(other.id)) { other.slot = e.slot; e.slot = k; return; }
         if (e.slot === k) return;
         let best = null, bd = 1e9; const c0 = ctr(e);
-        for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.rows[r].n; c++) { const kk = keyOf(r, c); if (occ(kk, e)) continue; const R = rectOf(G, r, c), d = Math.hypot(R.x + R.w / 2 - c0.x, R.y + R.h / 2 - c0.y); if (d < bd) { bd = d; best = kk; } }
+        for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.rows[r].n; c++) { const kk = keyOf(r, c); if (G.cov[kk] || occ(kk, e)) continue; const R = rectOf(G, r, c), d = Math.hypot(R.x + R.w / 2 - c0.x, R.y + R.h / 2 - c0.y); if (d < bd) { bd = d; best = kk; } }
         if (best) e.slot = best; else delete e.slot;
       });
     }
@@ -96,7 +106,7 @@
 
   function edit(p, fn, ids) {
     const T = targets(p);
-    change(T.map((q) => q.id), () => { T.forEach((q) => { fn(q); fit(q, q === p ? ids : null); }); });
+    change(T.map((q) => q.id), () => { T.forEach((q) => { fn(q); cleanMg(q); fit(q, q === p ? ids : null); }); });
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     flash(); redraw(); renderProps(); T.forEach((q) => thumbRefresh(q.id));
   }
@@ -113,21 +123,52 @@
   }
 
   /* ---------- operações (sempre numa página) ---------- */
+  function remapMg(q, f) { // f(key) -> nova chave | null
+    const s = q.sec; if (!s.mg) return;
+    s.mg = s.mg.map((m) => { const a = f(m.a); if (!a) return null; const cov = m.cov.map(f).filter(Boolean); return cov.length ? { a, cov } : null; }).filter(Boolean);
+  }
+  function cleanMg(q) {
+    const s = q.sec; if (!s.mg || !s.mg.length) return; const G0 = geom(Object.assign({}, q, { sec: Object.assign({}, s, { mg: [] }) })), seen = new Set();
+    s.mg = s.mg.map((m) => {
+      const [ar, ac] = unkey(m.a); if (!G0.rows[ar] || ac >= G0.rows[ar].n || seen.has(m.a)) return null; const R = basic(G0, ar, ac); let cov = m.cov.filter((k) => {
+        const [r, c] = unkey(k); if (!G0.rows[r] || c >= G0.rows[r].n || r <= ar || seen.has(k)) return false; const b = basic(G0, r, c); return Math.abs(b.x - R.x) < 1.2 && Math.abs(b.w - R.w) < 1.2;
+      });
+      const rr = Array.from(new Set(cov.map((k) => unkey(k)[0]))).sort((x, y) => x - y); const ok = []; let want = ar + 1; rr.forEach((x) => { if (x === want) { ok.push(x); want++; } });
+      cov = cov.filter((k) => ok.includes(unkey(k)[0])); if (!cov.length) return null; seen.add(m.a); cov.forEach((k) => seen.add(k)); return { a: m.a, cov };
+    }).filter(Boolean);
+  }
+  const hasMgRow = (q, r) => (q.sec.mg || []).some((m) => unkey(m.a)[0] === r || m.cov.some((k) => unkey(k)[0] === r));
+  function groupRows(q, r, i) { // linhas ligadas por mesclas verticais nas colunas i e i+1
+    const s = q.sec, set = new Set([r]); let grow = true;
+    while (grow) {
+      grow = false;
+      (s.mg || []).forEach((m) => { const keys = [m.a].concat(m.cov), rs = keys.map((k) => unkey(k)); if (rs.some(([rr, cc]) => set.has(rr) && (cc === i || cc === i + 1))) rs.forEach(([rr]) => { if (!set.has(rr)) { set.add(rr); grow = true; } }); });
+    }
+    return Array.from(set).filter((rr) => s.rows[rr] && s.rows[rr].length > i);
+  }
   function remapRow(q, r, f) { // f(c) -> novo c ou null, só dentro da linha r
     const s = q.sec, rot = {};
     Object.keys(s.rot).forEach((k) => { const [rr, c] = unkey(k); if (rr !== r) { rot[k] = s.rot[k]; return; } const n = f(c); if (n !== null) rot[keyOf(r, n)] = s.rot[k]; });
     s.rot = rot;
     q.els.forEach((e) => { if (!e.slot) return; const [rr, c] = unkey(e.slot); if (rr !== r) return; const n = f(c); if (n !== null) e.slot = keyOf(r, n); else delete e.slot; });
+    remapMg(q, (k) => { const [rr, c] = unkey(k); if (rr !== r) return k; const n = f(c); return n === null ? null : keyOf(r, n); });
   }
   function remapAll(q, f) { // f(r,c) -> [r,c] | null
     const s = q.sec, rot = {};
     Object.keys(s.rot).forEach((k) => { const [r, c] = unkey(k), n = f(r, c); if (n) rot[keyOf(n[0], n[1])] = s.rot[k]; });
     s.rot = rot;
     q.els.forEach((e) => { if (!e.slot) return; const [r, c] = unkey(e.slot), n = f(r, c); if (n) e.slot = keyOf(n[0], n[1]); else delete e.slot; });
+    remapMg(q, (k) => { const [r, c] = unkey(k), n = f(r, c); return n ? keyOf(n[0], n[1]) : null; });
   }
   const rowsOf = (q, r) => (q.sec.link ? q.sec.rows.map((_, i) => i) : [r]);
-  function addRow(q, at) { const s = q.sec; at = Math.max(0, Math.min(s.rh.length, at)); const src = s.rows[Math.min(at, s.rows.length - 1)].slice(); s.rh.splice(at, 0, sum(s.rh) / s.rh.length); s.rows.splice(at, 0, src); remapAll(q, (r, c) => [r >= at ? r + 1 : r, c]); }
-  function delRow(q, i) { const s = q.sec; if (s.rh.length <= 1 || i < 0 || i >= s.rh.length) return; s.rh.splice(i, 1); s.rows.splice(i, 1); remapAll(q, (r, c) => (r === i ? null : [r > i ? r - 1 : r, c])); }
+  function addRow(q, at) { const s = q.sec; at = Math.max(0, Math.min(s.rh.length, at)); const src = s.rows[Math.min(at, s.rows.length - 1)].slice(); s.rh.splice(at, 0, sum(s.rh) / s.rh.length); s.rows.splice(at, 0, src); remapAll(q, (r, c) => [r >= at ? r + 1 : r, c]); fillMg(q); }
+  function fillMg(q) { // linha nova no meio de uma mescla vertical entra na mescla
+    const s = q.sec; (s.mg || []).forEach((m) => {
+      const [ar, ac] = unkey(m.a), last = Math.max(...m.cov.map((k) => unkey(k)[0])), G = geom(Object.assign({}, q, { sec: Object.assign({}, s, { mg: [] }) })), R = basic(G, ar, ac);
+      for (let rr = ar + 1; rr < last; rr++) { const k = keyOf(rr, ac); if (G.rows[rr] && ac < G.rows[rr].n && !m.cov.includes(k)) { const b = basic(G, rr, ac); if (Math.abs(b.x - R.x) < 1.2 && Math.abs(b.w - R.w) < 1.2) m.cov.push(k); } }
+    });
+  }
+  function delRow(q, i) { const s = q.sec; if (s.rh.length <= 1 || i < 0 || i >= s.rh.length) return; s.rh.splice(i, 1); s.rows.splice(i, 1); remapAll(q, (r, c) => (r === i ? null : [r > i ? r - 1 : r, c])); cleanMg(q); }
   function addCol(q, r, at) {
     const s = q.sec; if (!s.rows[r]) r = 0;
     rowsOf(q, r).forEach((rr) => { const a = s.rows[rr], a0 = Math.max(0, Math.min(a.length, at)); a.splice(a0, 0, sum(a) / a.length); remapRow(q, rr, (c) => (c >= a0 ? c + 1 : c)); });
@@ -146,9 +187,32 @@
     const s = q.sec; if (!s.rows[r]) return; const one = (rr) => { const a = s.rows[rr]; if (c >= a.length) return; a[c] /= 2; a.splice(c + 1, 0, a[c]); remapRow(q, rr, (x) => (x > c ? x + 1 : x)); };
     rowsOf(q, r).forEach(one);
   }
+  function mergeDown(q, r, c) {
+    const s = q.sec, G = geom(q); let key = keyOf(r, c); if (G.cov[key]) key = G.cov[key];
+    const [ar, ac] = unkey(key); s.mg = s.mg || []; let m = s.mg.find((x) => x.a === key); const last = m ? Math.max(...m.cov.map((k) => unkey(k)[0])) : ar;
+    if (last + 1 >= s.rh.length) return false;
+    const R = basic(G, ar, ac), row = G.rows[last + 1]; let nc = -1; for (let j = 0; j < row.n; j++) if (Math.abs(row.xs[j] - R.x) < 1.2 && Math.abs(row.ws[j] - R.w) < 1.2) nc = j;
+    if (nc < 0) return false; const nk = keyOf(last + 1, nc), m2 = s.mg.find((x) => x.a === nk);
+    if (!m) { m = { a: key, cov: [] }; s.mg.push(m); }
+    m.cov.push(nk); if (m2) { m.cov.push(...m2.cov); s.mg.splice(s.mg.indexOf(m2), 1); }
+    q.els.forEach((e) => { if (e.slot === nk) { if (q.els.some((o) => o !== e && o.slot === key)) delete e.slot; else e.slot = key; } });
+    if (s.rot[nk] !== undefined) { if (s.rot[key] === undefined) s.rot[key] = s.rot[nk]; delete s.rot[nk]; }
+    return true;
+  }
+  function splitV(q, r, c) {
+    const s = q.sec, G = geom(q); if (!s.rows[r]) return; let key = keyOf(r, c); if (G.cov[key]) key = G.cov[key];
+    const m0 = (s.mg || []).find((x) => x.a === key);
+    if (m0) { m0.cov.sort((a, b) => unkey(a)[0] - unkey(b)[0]); m0.cov.pop(); if (!m0.cov.length) s.mg.splice(s.mg.indexOf(m0), 1); return; } // já mesclada: desfaz uma linha
+    const hh = s.rh[r] / 2; s.rh[r] = hh; s.rh.splice(r + 1, 0, hh); s.rows.splice(r + 1, 0, s.rows[r].slice());
+    remapAll(q, (rr, cc) => [rr > r ? rr + 1 : rr, cc]); s.mg = s.mg || [];
+    for (let k = 0; k < s.rows[r].length; k++) {
+      if (k === c) continue; const kk = keyOf(r, k), nk = keyOf(r + 1, k), m = s.mg.find((x) => x.a === kk || x.cov.includes(kk));
+      if (m) m.cov.push(nk); else s.mg.push({ a: kk, cov: [nk] });
+    }
+  }
   function setColSize(q, r, i, mm) {
     const G = geom(q), s = q.sec;
-    rowsOf(q, r).forEach((rr) => {
+    (s.link ? rowsOf(q, r) : groupRows(q, r, Math.max(0, Math.min(i, i - 0)))).forEach((rr) => {
       const a = s.rows[rr], R = G.rows[rr], n = a.length; if (n < 2 || i >= n) return;
       const v = a.map((x) => R.aw * x / R.t), old = v[i], m2 = Math.max(MINMM, Math.min(R.aw - MINMM * (n - 1), mm)), rest = R.aw - m2, others = R.aw - old;
       v.forEach((_, j) => { if (j !== i) v[j] = others > 0.01 ? v[j] * rest / others : rest / (n - 1); }); v[i] = m2; s.rows[rr] = v;
@@ -173,6 +237,7 @@
   const rotKey = (s, k, d) => { s.rot[k] = (((s.rot[k] || 0) + d) % 360 + 360) % 360; };
   const fmt = (s, v) => (s.unit === 'cm' ? (Math.round(v) / 10).toFixed(1).replace('.', ',') + ' cm' : (Math.round(v * 10) / 10).toString().replace('.', ',') + ' mm');
 
+  const blocked = (p, r) => { if (!p.sec.link && hasMgRow(p, r)) { toast('Essa linha tem mescla vertical: desfaça-a (Dividir ↕) para mexer nas colunas.'); return true; } return false; };
   /* ação genérica a partir da seção selecionada (painel, menu "···" e botões rápidos) */
   function act(p, a, k) {
     if (!k) k = S.secSel; const [r, c] = k ? unkey(k) : [0, 0], run = (fn) => edit(p, fn);
@@ -181,12 +246,15 @@
       case 'clr': return run((q) => { q.els.forEach((e) => { if (e.slot === k) { delete e.slot; e.free = true; } }); });
       case 'ra': S.secSel = keyOf(r + 1, c); return run((q) => addRow(q, r));
       case 'rb': return run((q) => addRow(q, r + 1));
-      case 'ca': S.secSel = keyOf(r, c + 1); return run((q) => addCol(q, r, c));
-      case 'cb': return run((q) => addCol(q, r, c + 1));
+      case 'ca': if (blocked(p, r)) return; S.secSel = keyOf(r, c + 1); return run((q) => addCol(q, r, c));
+      case 'cb': if (blocked(p, r)) return; return run((q) => addCol(q, r, c + 1));
       case 'dr': S.secSel = null; return run((q) => delRow(q, r));
-      case 'dc': S.secSel = null; return run((q) => delCol(q, r, c));
-      case 'merge': { if (c + 1 >= p.sec.rows[r].length) { toast('Não há seção à direita para mesclar.'); return; } return run((q) => { mergeRight(q, r, c); }); }
-      case 'split': return run((q) => split(q, r, c));
+      case 'dc': if (blocked(p, r)) return; S.secSel = null; return run((q) => delCol(q, r, c));
+      case 'merge': { if (blocked(p, r)) return; if (c + 1 >= p.sec.rows[r].length) { toast('Não há seção à direita para mesclar.'); return; } return run((q) => { mergeRight(q, r, c); }); }
+      case 'split': if (blocked(p, r)) return; return run((q) => split(q, r, c));
+      case 'mergeD': { const ok = (() => { const q = p, G = geom(q); let key = keyOf(r, c); if (G.cov[key]) key = G.cov[key]; const R = basic(G, ...unkey(key)), m = (q.sec.mg || []).find((x) => x.a === key), last = m ? Math.max(...m.cov.map((x) => unkey(x)[0])) : unkey(key)[0]; if (last + 1 >= G.nR) return false; const row = G.rows[last + 1]; return row.xs.some((x, j) => Math.abs(x - R.x) < 1.2 && Math.abs(row.ws[j] - R.w) < 1.2); })();
+        if (!ok) { toast('Embaixo não há uma seção com a mesma largura para mesclar.'); return; } return run((q) => { mergeDown(q, r, c); }); }
+      case 'splitV': return run((q) => splitV(q, r, c));
       case 'mU': case 'mD': case 'mL': case 'mR': {
         const t = neighbor(p, r, c, a[1]); if (!t) return; S.secSel = t; return run((q) => { const t2 = neighbor(q, r, c, a[1]); if (t2) swapCells(q, k, t2); });
       }
@@ -210,9 +278,9 @@
       <div class="srow"><span class="sl">Medidas</span><div class="segf pgseg sm"><button type="button" data-sa="u-mm" class="${s.unit !== 'cm' ? 'on' : ''}">mm</button><button type="button" data-sa="u-cm" class="${s.unit === 'cm' ? 'on' : ''}">cm</button></div><label class="chk sm"><input type="checkbox" data-sa="dim"${s.dim ? ' checked' : ''}> sempre</label>${spread ? `<label class="chk sm"><input type="checkbox" data-sa="both"${s.both !== false ? ' checked' : ''}> nas 2 páginas</label>` : ''}</div>
       <details class="sdet"><summary>Tamanhos exatos${sel ? '' : ''}</summary><div class="szl"><small>Colunas${s.link ? '' : ' · linha ' + (rr + 1)}</small>${sz('c', s.rows[rr], G.rows[rr].ws)}</div><div class="szl"><small>Linhas</small>${sz('r', s.rh, G.hs)}</div></details>
       <div class="srow">${ib('eq', 'Igualar os tamanhos', 'Igualar')}${ib('rotall', 'Girar todas as seções', '↻ Todas')}</div>
-      ${sel ? `<div class="secsel"><div class="sh"><b>Seção ${sel.r + 1}·${sel.c + 1}</b><small>${fmt(s, G.rows[sel.r].ws[sel.c])} × ${fmt(s, G.hs[sel.r])}</small></div>
+      ${sel ? `<div class="secsel"><div class="sh"><b>Seção ${sel.r + 1}·${sel.c + 1}</b><small>${fmt(s, G.rows[sel.r].ws[sel.c])} × ${fmt(s, (G.anc[sel.k] || { h: G.hs[sel.r] }).h)}</small></div>
         <div class="srow"><span class="sl">Mover</span>${ib('mL', 'Mover para a esquerda', '←')}${ib('mU', 'Mover para cima', '↑')}${ib('mD', 'Mover para baixo', '↓')}${ib('mR', 'Mover para a direita', '→')}${ib('rot1', 'Girar a seção', '↻ Girar', 'pri')}</div>
-        <div class="srow"><span class="sl">Seção</span>${ib('merge', 'Mesclar com a seção da direita', '⧉ Mesclar')}${ib('split', 'Dividir em duas', '⫶ Dividir')}${ib('clr', 'Soltar o conteúdo da seção', 'Soltar')}</div>
+        <div class="srow"><span class="sl">Seção</span>${ib('merge', 'Mesclar com a seção da direita', '⧉ →')}${ib('mergeD', 'Mesclar com a seção de baixo', '⧉ ↓')}${ib('split', 'Dividir em duas colunas', '⫶ ↔')}${ib('splitV', 'Dividir em duas linhas (ou desfazer a mescla de baixo)', '⫶ ↕')}${ib('clr', 'Soltar o conteúdo da seção', 'Soltar')}</div>
         <div class="srow"><span class="sl">Inserir</span>${ib('ra', 'Linha acima', '＋ ↑')}${ib('rb', 'Linha abaixo', '＋ ↓')}${ib('ca', 'Coluna à esquerda', '＋ ←')}${ib('cb', 'Coluna à direita', '＋ →')}</div>
         <div class="srow"><span class="sl">Excluir</span>${ib('dc', s.link ? 'Excluir esta coluna' : 'Excluir esta seção', s.link ? 'Coluna' : 'Seção', 'dng')}${ib('dr', 'Excluir esta linha', 'Linha', 'dng')}</div></div>`
         : '<p class="hint">Clique numa seção para mover, girar, mesclar, dividir, inserir ou excluir.</p>'}
@@ -255,7 +323,8 @@
     const s = p.sec; migrate(s); const G = geom(p), cur = p === curPage(), sel = cur && S.secSel && validKey(G, S.secSel) ? S.secSel : null;
     const showDim = !!S.secDrag || s.dim === true || Date.now() < (S.secDimT || 0);
     for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.rows[r].n; c++) {
-      const R = rectOf(G, r, c), key = keyOf(r, c), full = p.els.some((e) => e.slot === key), rot = s.rot[key] || 0;
+      const key = keyOf(r, c); if (G.cov[key]) continue;
+      const R = rectOf(G, r, c), full = p.els.some((e) => e.slot === key), rot = s.rot[key] || 0;
       h += `<div class="sxc${sel === key ? ' on' : ''}${full ? ' full' : ''}${cur && S.secOver === key ? ' over' : ''}" style="left:${R.x * k}px;top:${R.y * k}px;width:${R.w * k}px;height:${R.h * k}px">${full ? '' : `<span${cur ? ` data-sadd="${key}" title="Adicionar um widget, adesivo ou objeto aqui"` : ''} style="transform:rotate(${rot}deg)">＋</span>`}${rot ? `<em>${rot}°</em>` : ''}</div>`;
       if (showDim) {
         h += `<div class="sxw" style="left:${R.x * k}px;top:${R.y * k + 2}px;width:${R.w * k}px"><b>${fmt(s, R.w)}</b></div>`;
@@ -263,7 +332,7 @@
       }
     }
     if (cur) {
-      for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.rows[r].n - 1; c++) { const R = rectOf(G, r, c); h += `<i class="sdv v" data-sdv="c${r}_${c}" title="Arraste para mudar a largura" style="left:${(R.x + R.w + s.g / 2) * k - 7}px;top:${R.y * k}px;height:${R.h * k}px"></i>`; }
+      for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.rows[r].n - 1; c++) { if (G.cov[keyOf(r, c)]) continue; const R = rectOf(G, r, c); h += `<i class="sdv v" data-sdv="c${r}_${c}" title="Arraste para mudar a largura" style="left:${(R.x + R.w + s.g / 2) * k - 7}px;top:${R.y * k}px;height:${R.h * k}px"></i>`; }
       for (let r = 0; r < G.nR - 1; r++) h += `<i class="sdv hz" data-sdv="r${r}" title="Arraste para mudar a altura" style="top:${(G.ys[r] + G.hs[r] + s.g / 2) * k - 7}px;left:${s.m * k}px;width:${(p.w - 2 * s.m) * k}px"></i>`;
       if (sel) {
         const [r, c] = unkey(sel), R = rectOf(G, r, c), cx = (R.x + R.w / 2) * k;
@@ -271,7 +340,7 @@
         h += `<i class="spill" data-smenu="1" title="Mais opções da seção" style="left:${cx - 16}px;top:${R.y * k - 9}px">···</i>`;
         if (S.secMenu === sel) {
           const it = (a, l) => `<button type="button" data-sm="${a}">${l}</button>`;
-          h += `<div class="smenu" style="left:${cx}px;top:${R.y * k + 14}px">${it('dc', s.link ? 'Excluir coluna' : 'Excluir seção')}${it('dr', 'Excluir linha')}${it('merge', 'Mesclar com a da direita')}${it('split', 'Dividir em duas')}${it('rot1', 'Girar seção')}</div>`;
+          h += `<div class="smenu" style="left:${cx}px;top:${R.y * k + 14}px">${it('dc', s.link ? 'Excluir coluna' : 'Excluir seção')}${it('dr', 'Excluir linha')}${it('merge', 'Mesclar com a da direita')}${it('mergeD', 'Mesclar com a de baixo')}${it('split', 'Dividir em colunas')}${it('splitV', 'Dividir em linhas')}${it('rot1', 'Girar seção')}</div>`;
         }
         h += `<button type="button" class="sq col" data-sq="col" title="Adicionar coluna" aria-label="Adicionar coluna" style="left:${cx - 16}px;top:-42px">${QI.col}</button>`;
         h += `<button type="button" class="sq row" data-sq="row" title="Adicionar linha" aria-label="Adicionar linha" style="top:${(R.y + R.h / 2) * k - 16}px;left:-42px">${QI.row}</button>`;
@@ -299,7 +368,7 @@
     if (dv) {
       stop(); try { w.setPointerCapture(ev.pointerId); } catch (_) { /* */ }
       const id = dv.dataset.sdv, ax = id[0], pt = toMM(ev, w), s = p.sec;
-      if (ax === 'c') { const [r, i] = id.slice(1).split('_').map(Number); drag = { ax, r, i, p, w, b: snapOf([p.id]), a0: s.rows.map((x) => x.slice()), p0: pt.x, G: geom(p), moved: false }; }
+      if (ax === 'c') { const [r, i] = id.slice(1).split('_').map(Number); drag = { ax, r, i, p, w, b: snapOf([p.id]), a0: s.rows.map((x) => x.slice()), p0: pt.x, G: geom(p), moved: false, grp: s.link ? s.rows.map((_, k) => k) : groupRows(p, r, i).filter((k) => s.rows[k].length > i + 1) }; }
       else { const i = +id.slice(1); drag = { ax, i, p, w, b: snapOf([p.id]), a0: s.rh.slice(), p0: pt.y, G: geom(p), moved: false }; }
       S.secDrag = true; drawOverlaysOnly(); return;
     }
@@ -312,9 +381,9 @@
     if (d.kind === 'move') { const c = cellAt(d.p, geom(d.p), pt), k = c ? keyOf(c.r, c.c) : null; if (k !== S.secOver) { S.secOver = k; drawOverlaysOnly(); } return; }
     const s = d.p.sec, G = d.G;
     if (d.ax === 'c') {
-      const R = G.rows[d.r], u = R.t / R.aw, delta = (pt.x - d.p0) * u, lo = MINMM * u, base = d.a0[d.r], pair = base[d.i] + base[d.i + 1], na = Math.max(lo, Math.min(pair - lo, base[d.i] + delta));
-      if (Math.abs(na - base[d.i]) > 1e-6) d.moved = true;
-      (s.link ? s.rows.map((_, i) => i) : [d.r]).forEach((rr) => { const a = s.rows[rr]; a[d.i] = na; a[d.i + 1] = pair - na; });
+      const R0 = G.rows[d.r], pair0 = R0.ws[d.i] + R0.ws[d.i + 1], na0 = Math.max(MINMM, Math.min(pair0 - MINMM, R0.ws[d.i] + (pt.x - d.p0)));
+      if (Math.abs(na0 - R0.ws[d.i]) > 1e-6) d.moved = true;
+      d.grp.forEach((rr) => { const R = G.rows[rr], u = R.t / R.aw, pr = R.ws[d.i] + R.ws[d.i + 1], na = Math.max(MINMM, Math.min(pr - MINMM, R.ws[d.i] + (na0 - R0.ws[d.i]))), a = s.rows[rr]; a[d.i] = na * u; a[d.i + 1] = (pr - na) * u; });
     } else {
       const u = G.sh / G.ah, delta = (pt.y - d.p0) * u, lo = MINMM * u, pair = d.a0[d.i] + d.a0[d.i + 1], na = Math.max(lo, Math.min(pair - lo, d.a0[d.i] + delta));
       if (Math.abs(na - d.a0[d.i]) > 1e-6) d.moved = true; s.rh[d.i] = na; s.rh[d.i + 1] = pair - na;
