@@ -374,3 +374,10 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 ## Ajuste 72 · Seletor de cor nos campos de "Fundo"
 - Em todo campo de cor cujo nome é "Fundo" (fundo do widget, do título, das células, da seleção, ModuLab etc.), a setinha ▾ agora abre o mesmo seletor completo do quadradinho (caixa de cor, matiz, HEX, conta-gotas, cores da página e da marca) em vez da paleta pequena. Os demais campos de cor mantêm a paleta.
 - Cache `estudio-miolos-v78`.
+
+## Ajuste 73
+- **Mostrador de cor** agora acompanha a cor escolhida (inclusive ao sair de gradiente para cor lisa) e mostra "sem cor".
+- **Fundo do widget** passou a aceitar "sem cor"; **fundo da página** usa o seletor completo (gradiente + sem cor).
+- **Configuração da página** reorganizada em blocos com ocultar/expandir: Página (nome, página única/dupla, modo de conteúdo), Tamanho e orientação (retrato/paisagem, esta página/dupla ou todas), Estilo da página (muda o estilo de todos os widgets), Fundo, Duplicar.
+- **Duplicar**: sem calendário → "Duplicar página"; com calendário (mensal, anual ou data) → "Duplicar páginas e mudar datas…" (quantidade manual ou 1, 4, 5, 7, 28, 29, 30, 31, 52, 65, 100, 150, 200, 365, 1500; avanço automático/dia/semana/mês/ano).
+- Novo arquivo `paginacfg.js`. Próximos: conteúdo "por seções" e menus flutuantes do calendário.

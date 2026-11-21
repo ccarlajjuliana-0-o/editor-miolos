@@ -63,7 +63,7 @@
   function secBg(e) {
     const bg = (e.wx && e.wx.bg) || { t: 'none' };
     let s = inSeg(e, 'wx.bg.t', 'Fundo do widget', [['none', 'Nenhum'], ['cor', 'Cor'], ['img', 'Imagem']]);
-    if (bg.t === 'cor') s += inCol(e, 'wx.bg.c', 'Cor de fundo', false) + inRng(e, 'wx.bg.op', 'Opacidade do fundo', 0, 1, 0.05, 1);
+    if (bg.t === 'cor') s += inCol(e, 'wx.bg.c', 'Cor de fundo', true) + inRng(e, 'wx.bg.op', 'Opacidade do fundo', 0, 1, 0.05, 1);
     if (bg.t === 'img') {
       const imgs = S.lib.filter((x) => ['background', 'sticker', 'widget', 'border'].includes(x.kind) && x.src).slice(0, 18);
       s += `<div class="pfield"><span>Imagem de fundo</span><div class="wimgs">${imgs.map((it) => `<button type="button" class="wimg${bg.src === it.src ? ' on' : ''}" data-wxi="${esc(it.src)}" title="${esc(it.name || '')}"><img src="${esc(srcUrl(it.src))}" alt="" loading="lazy"></button>`).join('') || '<span class="hint">Envie uma imagem para usar aqui.</span>'}</div><span class="btn sm upl">Enviar PNG/JPEG<input type="file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" data-wxup aria-label="Enviar imagem de fundo"></span></div>`;

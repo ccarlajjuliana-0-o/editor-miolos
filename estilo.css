@@ -1000,3 +1000,8 @@ body.qm-on #qbar{display:none!important}
 .crow .pfield>span,.fgrid .pfield>span{white-space:normal;overflow-wrap:anywhere;line-height:1.15}
 .crow>*{min-width:0}
 .tpan .crow .pfield>span{white-space:normal;line-height:1.15;min-height:27px;display:flex;align-items:flex-end}
+
+/* Ajuste 73 · configuração da página */
+.pgseg{display:flex;gap:4px;flex-wrap:wrap}.pgseg button{flex:1 1 auto}.pgseg button:disabled{opacity:.45;cursor:not-allowed}
+.dupn{display:flex;align-items:center;gap:8px;margin:8px 0}.dupn input{width:90px;text-align:center}
+.dpre{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}.dpre .btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}

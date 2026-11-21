@@ -29,7 +29,12 @@
     return { inP, none: !!(cf && cf.querySelector('.sw.none')), grad: el.dataset.gr === '1' };
   }
   /* aplica um valor de texto (gradiente) pelo mesmo caminho dos campos de cor da barra lateral */
-  function applyVal(val, type) { const el = resolve(); if (!el) return; if (val) el.dataset.gv = val; else delete el.dataset.gv; el.dispatchEvent(new Event(type, { bubbles: true })); }
+  function syncSw(el) {
+    const cf = el.closest && el.closest('.cfield'); if (!cf) return; const g = el.dataset.gv, isG = !!(g && window.GR && GR.is(g));
+    cf.classList.toggle('isgrad', isG); if (isG) cf.style.setProperty('--gr', GR.css(g)); else cf.style.removeProperty('--gr');
+    cf.classList.remove('isnone'); const nb = cf.querySelector('.sw.none'); if (nb) nb.classList.remove('cur');
+  }
+  function applyVal(val, type) { const el = resolve(); if (!el) return; if (val) el.dataset.gv = val; else delete el.dataset.gv; syncSw(el); el.dispatchEvent(new Event(type, { bubbles: true })); }
   function html() {
     const pc = pageColors(), br = (typeof window.BRAND_COLORS !== 'undefined' ? window.BRAND_COLORS : []);
     const cx = ctxOf(st.el);
@@ -50,7 +55,7 @@
   function send(type) {
     const el = resolve(); if (!el) return;
     if (type === 'input' && el.value.toLowerCase() === st.hex) return;
-    delete el.dataset.gv; el.value = st.hex; el.dispatchEvent(new Event(type, { bubbles: true })); if (type === 'input') st.dirty = true;
+    delete el.dataset.gv; el.value = st.hex; syncSw(el); el.dispatchEvent(new Event(type, { bubbles: true })); if (type === 'input') st.dirty = true;
   }
   const commit = () => { if (st && st.dirty) { send('change'); st.dirty = false; } };
   function setHex(h, live) { const [r, g, b] = hex2rgb(h); [st.h, st.s, st.v] = rgb2hsv(r, g, b); if (!st.s) st.h = st.h0 || 0; paint(); send('input'); if (!live) commit(); }
