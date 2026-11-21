@@ -662,7 +662,7 @@ $('#stage').addEventListener('pointermove',ev=>{if(S.tool){const w=ev.target.clo
   scheduleRedraw();updGeom()});
 const bb=a=>{const x=Math.min(...a.map(e=>e.x)),y=Math.min(...a.map(e=>e.y));return{x,y,w:Math.max(...a.map(e=>e.x+e.w))-x,h:Math.max(...a.map(e=>e.y+e.h))-y}};
 function endDrag(){if(S.tool&&S.tool.kind==='free'&&S.tool.drawing){S.tool.drawing=false;finishTool(undefined);return}
-  if(!D)return;const d=D;D=null;if(d.mode==='vtx'&&d.moved)renorm(d.e);if(d.moved&&d.mode!=='marq'){if(window.WX&&WX.guard)WX.guard(d);pushHist(d.b,snapOf([d.p.id]));thumbRefresh(d.p.id)}redraw();renderProps()}
+  if(!D)return;const d=D;D=null;if(d.mode==='vtx'&&d.moved)renorm(d.e);if(d.moved&&d.mode!=='marq'){if(window.WX&&WX.guard)WX.guard(d);if(window.Secoes)Secoes.drop(d.p,S.sel);pushHist(d.b,snapOf([d.p.id]));thumbRefresh(d.p.id)}redraw();renderProps()}
 $('#stage').addEventListener('pointerup',endDrag);$('#stage').addEventListener('pointercancel',endDrag);
 $('#stage').addEventListener('dblclick',ev=>{const w=ev.target.closest('.pg');if(!w)return;
   if(S.tool){if(S.tool.kind!=='free'){S.tool.pts=S.tool.pts.filter((q,i,a)=>i===0||Math.hypot(q[0]-a[i-1][0],q[1]-a[i-1][1])>1);finishTool(false)}return}

@@ -139,7 +139,9 @@
     root.appendChild(block('pg_ger', 'Página', `
       <label class="pfield"><span>Nome</span><input type="text" data-pk="name" value="${esc(p.name || '')}"></label>
       <div class="pfield"><span>Visualização</span>${seg('view', [['single', 'Página única'], ['spread', 'Página dupla']], spread ? 'spread' : 'single')}</div>
-      <div class="pfield"><span>Conteúdo da página</span>${seg('mode', [['free', 'Livre'], ['sections', 'Por seções', true, 'Chega no próximo ajuste']], p.layout || 'free')}<small class="hint">Livre: arraste e redimensione qualquer coisa. “Por seções” (espaços prontos para encaixar widgets) chega em breve.</small></div>`));
+      <div class="pfield"><span>Conteúdo da página</span>${seg('mode', [['free', 'Livre'], ['sections', 'Por seções']], p.layout || 'free')}<small class="hint">Livre: arraste e redimensione qualquer coisa. Por seções: a página é dividida em espaços e cada widget, adesivo ou objeto se encaixa em um deles.</small></div>`));
+
+    if (window.Secoes && Secoes.on(p)) root.appendChild(Secoes.block(p));
 
     root.appendChild(block('pg_tam', 'Tamanho e orientação', `
       <label class="pfield"><span>Formato</span><select id="psz">${Object.keys(SIZES).map((n) => `<option${n === sn ? ' selected' : ''}>${n}</option>`).join('')}<option value="custom"${SIZES[sn] ? '' : ' selected'}>Personalizado</option></select></label>
@@ -174,7 +176,8 @@
     $$('[data-pgseg]', P).forEach((g) => {
       g.addEventListener('click', (ev) => {
         const b = ev.target.closest('button'); if (!b || b.disabled) return; const v = b.dataset.v;
-        if (g.dataset.pgseg === 'view') { S.meta.view = v; Saver.m(); renderStage(); updNav(); markStrip(); renderProps(); }
+        if (g.dataset.pgseg === 'mode') { if (window.Secoes) Secoes.setMode(p, v); }
+        else if (g.dataset.pgseg === 'view') { S.meta.view = v; Saver.m(); renderStage(); updNav(); markStrip(); renderProps(); }
         else if (g.dataset.pgseg === 'scope') { Pref.pgScope = v; try { savePref(); } catch (_) { /* */ } $$('button', g).forEach((x) => x.classList.toggle('on', x === b)); }
         else if (g.dataset.pgseg === 'ori') {
           const ids = scopeIds(scopeNow()), big = Math.max(p.w, p.h), sm = Math.min(p.w, p.h), w = v === 'land' ? big : sm, h = v === 'land' ? sm : big;

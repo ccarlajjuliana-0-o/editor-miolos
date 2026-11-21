@@ -381,3 +381,9 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - **Configuração da página** reorganizada em blocos com ocultar/expandir: Página (nome, página única/dupla, modo de conteúdo), Tamanho e orientação (retrato/paisagem, esta página/dupla ou todas), Estilo da página (muda o estilo de todos os widgets), Fundo, Duplicar.
 - **Duplicar**: sem calendário → "Duplicar página"; com calendário (mensal, anual ou data) → "Duplicar páginas e mudar datas…" (quantidade manual ou 1, 4, 5, 7, 28, 29, 30, 31, 52, 65, 100, 150, 200, 365, 1500; avanço automático/dia/semana/mês/ano).
 - Novo arquivo `paginacfg.js`. Próximos: conteúdo "por seções" e menus flutuantes do calendário.
+
+## Ajuste 74
+- **Conteúdo por seções** (Configuração da página → Página → Conteúdo: Livre / Por seções). A página vira uma grade de linhas × colunas; widgets, adesivos e objetos se encaixam sozinhos na seção (novos vão para a primeira vazia; ao arrastar, encaixam na seção onde soltar, trocando de lugar se estiver ocupada).
+- Bloco "Seções da página": linhas/colunas (＋/−), espaço e margem, medidas em mm ou cm (setas de tamanho na página), tamanhos exatos por coluna/linha, igualar, girar todas.
+- Arraste as linhas tracejadas entre as seções para mudar largura/altura. Clique numa seção para girar (↻), inserir linha/coluna antes/depois, excluir linha/coluna ou soltar o conteúdo. Com um widget selecionado: "Girar seção", "Soltar da seção" / "Encaixar numa seção".
+- Voltar para "Livre" mantém tudo onde está. Novo arquivo `secoes.js`; cache v80.
