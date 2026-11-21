@@ -387,3 +387,9 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 - Bloco "Seções da página": linhas/colunas (＋/−), espaço e margem, medidas em mm ou cm (setas de tamanho na página), tamanhos exatos por coluna/linha, igualar, girar todas.
 - Arraste as linhas tracejadas entre as seções para mudar largura/altura. Clique numa seção para girar (↻), inserir linha/coluna antes/depois, excluir linha/coluna ou soltar o conteúdo. Com um widget selecionado: "Girar seção", "Soltar da seção" / "Encaixar numa seção".
 - Voltar para "Livre" mantém tudo onde está. Novo arquivo `secoes.js`; cache v80.
+
+## Ajuste 74b
+- Seções por linha: cada linha pode ter suas próprias colunas (Independentes) ou todas as linhas seguem as mesmas colunas (Juntas).
+- Painel da direita mantém "Seções da página" no topo também com um objeto selecionado; painel compacto.
+- Mesclar com a seção ao lado, dividir em duas, excluir seção/coluna/linha, mover seções (setas ou arrastando o ⠿), botões rápidos (coluna/linha) e menu "···".
+- Medidas aparecem só ao ajustar (ou "sempre"). Em página dupla as seções valem para as duas páginas e reconhecem o conteúdo já existente. O "＋" da seção abre a aba Widgets.

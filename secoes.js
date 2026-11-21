@@ -1,6 +1,7 @@
-/* Estúdio de Miolos · Conteúdo da página por seções (Ajuste 74)
-   Página dividida em linhas × colunas; cada seção recebe um widget/adesivo/objeto que se encaixa sozinho.
-   p.layout = 'free' | 'sections'; p.sec = { m, g, cw[], rh[], rot{"r,c":deg}, unit, dim }; e.slot = "r,c" */
+/* Estúdio de Miolos · Conteúdo da página por seções (Ajuste 74 / 74b)
+   p.layout = 'free' | 'sections'
+   p.sec = { m, g, link, both, unit, dim, rh[] (altura de cada linha), rows[][] (larguras das seções de cada linha), rot{"r,c":deg} }
+   e.slot = "r,c" (seção onde o elemento está encaixado) */
 (function () {
   'use strict';
   const UNF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l4-4 4 4M8 16l4 4 4-4M5 12h14"/></svg>';
@@ -9,43 +10,53 @@
   const on = (p) => !!(p && p.layout === 'sections' && p.sec);
   const keyOf = (r, c) => r + ',' + c;
   const unkey = (k) => k.split(',').map(Number);
-  const def = (p) => ({ m: r1(Math.min(p.w, p.h) * 0.04), g: 3, cw: [1, 1], rh: [1, 1], rot: {}, unit: 'mm', dim: true });
+  const def = (p) => ({ m: r1(Math.min(p.w, p.h) * 0.04), g: 3, link: true, both: true, unit: 'mm', dim: false, rh: [1, 1], rows: [[1, 1], [1, 1]], rot: {} });
+  function migrate(s) { if (s.cw && !s.rows) { s.rows = s.rh.map(() => s.cw.slice()); delete s.cw; } if (s.link === undefined) s.link = true; }
 
+  /* ---------- geometria ---------- */
   function geom(p) {
-    const s = p.sec, nC = s.cw.length, nR = s.rh.length;
-    const aw = Math.max(10, p.w - 2 * s.m - (nC - 1) * s.g), ah = Math.max(10, p.h - 2 * s.m - (nR - 1) * s.g), sw = sum(s.cw), sh = sum(s.rh);
-    const xs = [], ws = [], ys = [], hs = []; let x = s.m, y = s.m;
-    s.cw.forEach((v) => { const w = aw * v / sw; xs.push(x); ws.push(w); x += w + s.g; });
+    const s = p.sec; migrate(s); const nR = s.rh.length;
+    const ah = Math.max(10, p.h - 2 * s.m - (nR - 1) * s.g), sh = sum(s.rh), ys = [], hs = []; let y = s.m;
     s.rh.forEach((v) => { const h = ah * v / sh; ys.push(y); hs.push(h); y += h + s.g; });
-    return { xs, ws, ys, hs, aw, ah, sw, sh, nC, nR };
+    const rows = s.rows.map((a) => {
+      const n = a.length, aw = Math.max(10, p.w - 2 * s.m - (n - 1) * s.g), t = sum(a), xs = [], ws = []; let x = s.m;
+      a.forEach((v) => { const w = aw * v / t; xs.push(x); ws.push(w); x += w + s.g; });
+      return { xs, ws, n, aw, t };
+    });
+    return { ys, hs, ah, sh, nR, rows };
   }
-  const rectOf = (G, r, c) => ({ x: G.xs[c], y: G.ys[r], w: G.ws[c], h: G.hs[r] });
+  const rectOf = (G, r, c) => ({ x: G.rows[r].xs[c], y: G.ys[r], w: G.rows[r].ws[c], h: G.hs[r] });
   function cellAt(p, G, pt) {
-    const g = p.sec.g / 2; let c = -1, r = -1;
-    for (let i = 0; i < G.nC; i++) if (pt.x >= G.xs[i] - g && pt.x < G.xs[i] + G.ws[i] + g) c = i;
+    const g = p.sec.g / 2; let r = -1;
     for (let i = 0; i < G.nR; i++) if (pt.y >= G.ys[i] - g && pt.y < G.ys[i] + G.hs[i] + g) r = i;
-    return c < 0 || r < 0 ? null : { r, c };
+    if (r < 0) return null; const R = G.rows[r]; let c = -1;
+    for (let i = 0; i < R.n; i++) if (pt.x >= R.xs[i] - g && pt.x < R.xs[i] + R.ws[i] + g) c = i;
+    return c < 0 ? null : { r, c };
   }
   const ctr = (e) => ({ x: e.x + e.w / 2, y: e.y + e.h / 2 });
+  const validKey = (G, k) => { const [r, c] = unkey(k); return r < G.nR && c < G.rows[r].n; };
 
-  /* coloca o elemento dentro da seção */
   function place(e, R, rot, setRot) {
-    const sw = rot === 90 || rot === 270, cw = sw ? R.h : R.w, ch = sw ? R.w : R.h;
-    let w = cw, h = ch;
+    const sw = rot === 90 || rot === 270, cw = sw ? R.h : R.w, ch = sw ? R.w : R.h; let w = cw, h = ch;
     if (e.type === 'image') { const sc = Math.min(cw / Math.max(0.5, e.w), ch / Math.max(0.5, e.h)); w = e.w * sc; h = e.h * sc; }
     e.w = r1(w); e.h = r1(h); e.x = r1(R.x + R.w / 2 - e.w / 2); e.y = r1(R.y + R.h / 2 - e.h / 2);
     if (setRot) e.rot = rot;
   }
 
-  /* encaixa: ids = elementos "tocados" que podem trocar de seção; os já encaixados só são reajustados */
+  /* encaixa: ids = elementos "tocados" que podem trocar de seção; fresh = elementos novos (vão para a seção escolhida/primeira vazia) */
   function fit(p, ids, fresh) {
-    if (!on(p)) return; const s = p.sec, G = geom(p), valid = (k) => { const [r, c] = unkey(k); return r < G.nR && c < G.nC; };
-    p.els.forEach((e) => { if (e.slot && !valid(e.slot)) delete e.slot; });
+    if (!on(p)) return; const s = p.sec, G = geom(p);
+    p.els.forEach((e) => { if (e.slot && !validKey(G, e.slot)) delete e.slot; });
     const occ = (k, self) => p.els.find((o) => o !== self && o.slot === k);
     if (ids && ids.size) {
       p.els.forEach((e) => {
         if (!ids.has(e.id) || e.locked || e.free) return;
-        if (fresh && fresh.has(e.id)) { for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.nC; c++) { const kk = keyOf(r, c); if (!e.slot && !occ(kk, e)) e.slot = kk; } if (e.slot) return; }
+        if (fresh && fresh.has(e.id)) {
+          const pref = p === curPage() && S.secSel && validKey(G, S.secSel) && !occ(S.secSel, e) ? S.secSel : null;
+          if (pref) { e.slot = pref; return; }
+          for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.rows[r].n; c++) { const kk = keyOf(r, c); if (!e.slot && !occ(kk, e)) e.slot = kk; }
+          if (e.slot) return;
+        }
         const cell = cellAt(p, G, ctr(e));
         if (!cell) { delete e.slot; return; }
         const k = keyOf(cell.r, cell.c), other = occ(k, e);
@@ -53,135 +64,273 @@
         if (e.slot && e.slot !== k && !ids.has(other.id)) { other.slot = e.slot; e.slot = k; return; }
         if (e.slot === k) return;
         let best = null, bd = 1e9; const c0 = ctr(e);
-        for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.nC; c++) { const kk = keyOf(r, c); if (occ(kk, e)) continue; const R = rectOf(G, r, c), d = Math.hypot(R.x + R.w / 2 - c0.x, R.y + R.h / 2 - c0.y); if (d < bd) { bd = d; best = kk; } }
+        for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.rows[r].n; c++) { const kk = keyOf(r, c); if (occ(kk, e)) continue; const R = rectOf(G, r, c), d = Math.hypot(R.x + R.w / 2 - c0.x, R.y + R.h / 2 - c0.y); if (d < bd) { bd = d; best = kk; } }
         if (best) e.slot = best; else delete e.slot;
       });
     }
     p.els.forEach((e) => { if (!e.slot || e.free) return; const [r, c] = unkey(e.slot), rot = ((s.rot[e.slot] || 0) % 360 + 360) % 360; place(e, rectOf(G, r, c), rot, e.slot in s.rot); });
   }
 
-  /* ---------- mudanças ---------- */
+  /* ---------- reconhecer o conteúdo que já existe ---------- */
+  function infer(p) {
+    const els = p.els.filter((e) => !e.hidden && e.w > 1 && e.h > 1); if (!els.length) return null;
+    els.sort((a, b) => (a.y + a.h / 2) - (b.y + b.h / 2));
+    const rowsE = []; let cur = null;
+    els.forEach((e) => { const cy = e.y + e.h / 2; if (cur && cy <= cur.y1 && cy >= cur.y0) { cur.list.push(e); cur.y0 = Math.min(cur.y0, e.y); cur.y1 = Math.max(cur.y1, e.y + e.h); } else { cur = { list: [e], y0: e.y, y1: e.y + e.h }; rowsE.push(cur); } });
+    const s = def(p); s.rh = rowsE.map((r) => Math.max(10, r.y1 - r.y0)); s.rows = rowsE.map((r) => { r.list.sort((a, b) => a.x - b.x); return r.list.map((e) => Math.max(10, e.w)); });
+    s.m = r1(Math.max(2, Math.min(s.m, ...els.map((e) => Math.min(e.x, e.y)).filter((v) => v > 0)))); if (!isFinite(s.m)) s.m = def(p).m;
+    const n0 = s.rows[0].length; s.link = s.rows.every((a) => a.length === n0 && a.every((v, i) => Math.abs(v - s.rows[0][i]) < 0.5));
+    rowsE.forEach((r, ri) => r.list.forEach((e, ci) => { e.slot = keyOf(ri, ci); }));
+    return s;
+  }
+  const cloneStruct = (t, q) => { const s = JSON.parse(JSON.stringify(t)); s.rot = {}; s.m = Math.min(s.m, r1(Math.min(q.w, q.h) * 0.08)); return s; };
+
+  /* ---------- páginas da dupla ---------- */
+  const spreadPages = (p) => {
+    if ((S.meta.view || 'single') !== 'spread') return [p];
+    try { const a = curSpread().map((i) => S.pages[S.order[i]]).filter(Boolean); return a.includes(p) ? a : [p]; } catch (_) { return [p]; }
+  };
+  const targets = (p) => (p.sec && p.sec.both !== false ? spreadPages(p).filter((q) => on(q) || q === p) : [p]);
+
+  function flash(ms) { S.secDimT = Date.now() + (ms || 1600); setTimeout(() => { try { drawOverlaysOnly(); } catch (_) { /* */ } }, (ms || 1600) + 60); }
+
   function edit(p, fn, ids) {
-    change([p.id], () => { fn(p.sec); fit(p, ids); });
+    const T = targets(p);
+    change(T.map((q) => q.id), () => { T.forEach((q) => { fn(q); fit(q, q === p ? ids : null); }); });
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    redraw(); renderProps(); thumbRefresh(p.id);
+    flash(); redraw(); renderProps(); T.forEach((q) => thumbRefresh(q.id));
   }
   function setMode(p, mode) {
-    if (mode === 'sections') change([p.id], () => { p.layout = 'sections'; if (!p.sec) p.sec = def(p); fit(p); });
-    else change([p.id], () => { p.layout = 'free'; });
-    S.secSel = null; redraw(); renderProps(); thumbRefresh(p.id);
+    const T = spreadPages(p);
+    change(T.map((q) => q.id), () => {
+      if (mode === 'sections') {
+        T.forEach((q) => { if (!q.sec && q.els.length) q.sec = infer(q); });
+        const tmpl = (T.find((q) => q.sec && q.els.length) || {}).sec;
+        T.forEach((q) => { if (!q.sec) q.sec = tmpl ? cloneStruct(tmpl, q) : def(q); migrate(q.sec); q.layout = 'sections'; q.sec.both = T.length > 1; fit(q); });
+      } else T.forEach((q) => { q.layout = 'free'; });
+    });
+    S.secSel = null; S.secMenu = null; flash(); redraw(); renderProps(); T.forEach((q) => thumbRefresh(q.id));
   }
-  function remap(p, f) {
-    const s = p.sec, rot = {};
+
+  /* ---------- operações (sempre numa página) ---------- */
+  function remapRow(q, r, f) { // f(c) -> novo c ou null, só dentro da linha r
+    const s = q.sec, rot = {};
+    Object.keys(s.rot).forEach((k) => { const [rr, c] = unkey(k); if (rr !== r) { rot[k] = s.rot[k]; return; } const n = f(c); if (n !== null) rot[keyOf(r, n)] = s.rot[k]; });
+    s.rot = rot;
+    q.els.forEach((e) => { if (!e.slot) return; const [rr, c] = unkey(e.slot); if (rr !== r) return; const n = f(c); if (n !== null) e.slot = keyOf(r, n); else delete e.slot; });
+  }
+  function remapAll(q, f) { // f(r,c) -> [r,c] | null
+    const s = q.sec, rot = {};
     Object.keys(s.rot).forEach((k) => { const [r, c] = unkey(k), n = f(r, c); if (n) rot[keyOf(n[0], n[1])] = s.rot[k]; });
     s.rot = rot;
-    p.els.forEach((e) => { if (!e.slot) return; const [r, c] = unkey(e.slot), n = f(r, c); if (n) e.slot = keyOf(n[0], n[1]); else delete e.slot; });
+    q.els.forEach((e) => { if (!e.slot) return; const [r, c] = unkey(e.slot), n = f(r, c); if (n) e.slot = keyOf(n[0], n[1]); else delete e.slot; });
   }
-  function addRow(p, at) { const s = p.sec, avg = sum(s.rh) / s.rh.length; s.rh.splice(at, 0, avg); remap(p, (r, c) => [r >= at ? r + 1 : r, c]); }
-  function addCol(p, at) { const s = p.sec, avg = sum(s.cw) / s.cw.length; s.cw.splice(at, 0, avg); remap(p, (r, c) => [r, c >= at ? c + 1 : c]); }
-  function delRow(p, i) { const s = p.sec; if (s.rh.length <= 1) return; s.rh.splice(i, 1); remap(p, (r, c) => (r === i ? null : [r > i ? r - 1 : r, c])); }
-  function delCol(p, i) { const s = p.sec; if (s.cw.length <= 1) return; s.cw.splice(i, 1); remap(p, (r, c) => (c === i ? null : [r, c > i ? c - 1 : c])); }
-  function setSize(p, ax, i, mm) {
-    const s = p.sec, G = geom(p), a = ax === 'c' ? s.cw : s.rh, A = ax === 'c' ? G.aw : G.ah, S0 = ax === 'c' ? G.sw : G.sh, n = a.length;
-    if (n < 2) return; const v = a.map((x) => A * x / S0), old = v[i]; mm = Math.max(MINMM, Math.min(A - MINMM * (n - 1), mm));
-    const rest = A - mm, others = A - old; v.forEach((_, j) => { if (j !== i) v[j] = others > 0.01 ? v[j] * rest / others : rest / (n - 1); }); v[i] = mm;
-    if (ax === 'c') s.cw = v; else s.rh = v;
+  const rowsOf = (q, r) => (q.sec.link ? q.sec.rows.map((_, i) => i) : [r]);
+  function addRow(q, at) { const s = q.sec; at = Math.max(0, Math.min(s.rh.length, at)); const src = s.rows[Math.min(at, s.rows.length - 1)].slice(); s.rh.splice(at, 0, sum(s.rh) / s.rh.length); s.rows.splice(at, 0, src); remapAll(q, (r, c) => [r >= at ? r + 1 : r, c]); }
+  function delRow(q, i) { const s = q.sec; if (s.rh.length <= 1 || i < 0 || i >= s.rh.length) return; s.rh.splice(i, 1); s.rows.splice(i, 1); remapAll(q, (r, c) => (r === i ? null : [r > i ? r - 1 : r, c])); }
+  function addCol(q, r, at) {
+    const s = q.sec; if (!s.rows[r]) r = 0;
+    rowsOf(q, r).forEach((rr) => { const a = s.rows[rr], a0 = Math.max(0, Math.min(a.length, at)); a.splice(a0, 0, sum(a) / a.length); remapRow(q, rr, (c) => (c >= a0 ? c + 1 : c)); });
+  }
+  function delCol(q, r, i) {
+    const s = q.sec; if (!s.rows[r]) return;
+    if (s.link && s.rows[0].length <= 1) return;
+    const rs = rowsOf(q, r).slice().sort((a, b) => b - a);
+    rs.forEach((rr) => { const a = s.rows[rr]; if (i >= a.length) return; if (a.length <= 1) { delRow(q, rr); return; } a.splice(i, 1); remapRow(q, rr, (c) => (c === i ? null : c > i ? c - 1 : c)); });
+  }
+  function mergeRight(q, r, c) {
+    const s = q.sec, a = s.rows[r]; if (!a || c + 1 >= a.length) return false; s.link = false;
+    a[c] += a[c + 1]; a.splice(c + 1, 1); remapRow(q, r, (x) => (x === c + 1 ? null : x > c + 1 ? x - 1 : x)); return true;
+  }
+  function split(q, r, c) {
+    const s = q.sec; if (!s.rows[r]) return; const one = (rr) => { const a = s.rows[rr]; if (c >= a.length) return; a[c] /= 2; a.splice(c + 1, 0, a[c]); remapRow(q, rr, (x) => (x > c ? x + 1 : x)); };
+    rowsOf(q, r).forEach(one);
+  }
+  function setColSize(q, r, i, mm) {
+    const G = geom(q), s = q.sec;
+    rowsOf(q, r).forEach((rr) => {
+      const a = s.rows[rr], R = G.rows[rr], n = a.length; if (n < 2 || i >= n) return;
+      const v = a.map((x) => R.aw * x / R.t), old = v[i], m2 = Math.max(MINMM, Math.min(R.aw - MINMM * (n - 1), mm)), rest = R.aw - m2, others = R.aw - old;
+      v.forEach((_, j) => { if (j !== i) v[j] = others > 0.01 ? v[j] * rest / others : rest / (n - 1); }); v[i] = m2; s.rows[rr] = v;
+    });
+  }
+  function setRowSize(q, i, mm) {
+    const G = geom(q), s = q.sec, n = s.rh.length; if (n < 2) return;
+    const v = s.rh.map((x) => G.ah * x / G.sh), old = v[i], m2 = Math.max(MINMM, Math.min(G.ah - MINMM * (n - 1), mm)), rest = G.ah - m2, others = G.ah - old;
+    v.forEach((_, j) => { if (j !== i) v[j] = others > 0.01 ? v[j] * rest / others : rest / (n - 1); }); v[i] = m2; s.rh = v;
+  }
+  function swapCells(q, k1, k2) {
+    const s = q.sec, a = q.els.filter((e) => e.slot === k1), b = q.els.filter((e) => e.slot === k2);
+    a.forEach((e) => { e.slot = k2; }); b.forEach((e) => { e.slot = k1; });
+    const r1v = s.rot[k1], r2v = s.rot[k2]; delete s.rot[k1]; delete s.rot[k2]; if (r1v !== undefined) s.rot[k2] = r1v; if (r2v !== undefined) s.rot[k1] = r2v;
+  }
+  function neighbor(q, r, c, dir) {
+    const s = q.sec; let nr = r, nc = c;
+    if (dir === 'L') nc = c - 1; else if (dir === 'R') nc = c + 1;
+    else { nr = r + (dir === 'U' ? -1 : 1); if (nr < 0 || nr >= s.rows.length) return null; const R = s.rows[nr]; nc = Math.min(c, R.length - 1); }
+    if (nr < 0 || nc < 0 || nr >= s.rows.length || nc >= s.rows[nr].length) return null; return keyOf(nr, nc);
   }
   const rotKey = (s, k, d) => { s.rot[k] = (((s.rot[k] || 0) + d) % 360 + 360) % 360; };
   const fmt = (s, v) => (s.unit === 'cm' ? (Math.round(v) / 10).toFixed(1).replace('.', ',') + ' cm' : (Math.round(v * 10) / 10).toString().replace('.', ',') + ' mm');
 
-  /* ---------- painel (bloco "Seções") ---------- */
+  /* ação genérica a partir da seção selecionada (painel, menu "···" e botões rápidos) */
+  function act(p, a, k) {
+    if (!k) k = S.secSel; const [r, c] = k ? unkey(k) : [0, 0], run = (fn) => edit(p, fn);
+    switch (a) {
+      case 'rot1': return run((q) => rotKey(q.sec, k, 90));
+      case 'clr': return run((q) => { q.els.forEach((e) => { if (e.slot === k) { delete e.slot; e.free = true; } }); });
+      case 'ra': S.secSel = keyOf(r + 1, c); return run((q) => addRow(q, r));
+      case 'rb': return run((q) => addRow(q, r + 1));
+      case 'ca': S.secSel = keyOf(r, c + 1); return run((q) => addCol(q, r, c));
+      case 'cb': return run((q) => addCol(q, r, c + 1));
+      case 'dr': S.secSel = null; return run((q) => delRow(q, r));
+      case 'dc': S.secSel = null; return run((q) => delCol(q, r, c));
+      case 'merge': { if (c + 1 >= p.sec.rows[r].length) { toast('Não há seção à direita para mesclar.'); return; } return run((q) => { mergeRight(q, r, c); }); }
+      case 'split': return run((q) => split(q, r, c));
+      case 'mU': case 'mD': case 'mL': case 'mR': {
+        const t = neighbor(p, r, c, a[1]); if (!t) return; S.secSel = t; return run((q) => { const t2 = neighbor(q, r, c, a[1]); if (t2) swapCells(q, k, t2); });
+      }
+      default:
+    }
+  }
+
+  /* ---------- painel ---------- */
   function block(p) {
-    const s = p.sec, G = geom(p), o = Pref.acc && Pref.acc.pg_sec !== undefined ? Pref.acc.pg_sec !== false : true;
-    const sel = S.secSel && (() => { const [r, c] = unkey(S.secSel); return r < G.nR && c < G.nC ? { r, c } : null; })();
-    const stp = (k, l, n) => `<div class="pfield"><span>${l}</span><div class="stp"><button type="button" class="btn sm" data-sa="${k}-" aria-label="Menos">−</button><b>${n}</b><button type="button" class="btn sm" data-sa="${k}+" aria-label="Mais">＋</button></div></div>`;
-    const sizes = (ax, arr, ws) => arr.map((_, i) => `<label class="szi"><span>${ax === 'c' ? 'Col.' : 'Lin.'} ${i + 1}</span><input type="number" step="0.5" min="${MINMM}" data-ss="${ax}${i}" value="${r1(ws[i])}"></label>`).join('');
+    const s = p.sec; migrate(s); const G = geom(p), o = Pref.acc && Pref.acc.pg_sec !== undefined ? Pref.acc.pg_sec !== false : true;
+    const sel = S.secSel && validKey(G, S.secSel) ? (() => { const [r, c] = unkey(S.secSel); return { r, c, k: S.secSel }; })() : null;
+    const rr = sel ? sel.r : 0, cols = s.rows[rr].length, spread = spreadPages(p).length > 1;
+    const stp = (k, l, n) => `<div class="stp"><span>${l}</span><button type="button" class="btn xs" data-sa="${k}-" aria-label="Menos ${l}">−</button><b>${n}</b><button type="button" class="btn xs" data-sa="${k}+" aria-label="Mais ${l}">＋</button></div>`;
+    const sz = (ax, arr, ws) => arr.map((_, i) => `<label class="szi"><span>${ax === 'c' ? 'C' : 'L'}${i + 1}</span><input type="number" step="0.5" min="${MINMM}" data-ss="${ax}${i}" value="${r1(ws[i])}"></label>`).join('');
+    const ib = (a, t, l, cls) => `<button type="button" class="btn xs${cls ? ' ' + cls : ''}" data-sa="${a}" title="${t}" aria-label="${t}">${l}</button>`;
     const w = document.createElement('div'); w.className = 'wacc' + (o ? ' open' : ''); w.dataset.acc = 'pg_sec';
-    w.innerHTML = `<button class="wah" type="button" aria-expanded="${o}"><i class="wtri"></i><b>Seções da página</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><div class="pgrp tpan">
-      <div class="fgrid">${stp('r', 'Linhas', G.nR)}${stp('c', 'Colunas', G.nC)}</div>
-      <div class="fgrid"><label class="pfield"><span>Espaço entre seções (mm)</span><input type="number" step="0.5" min="0" data-sn="g" value="${r1(s.g)}"></label><label class="pfield"><span>Margem da página (mm)</span><input type="number" step="0.5" min="0" data-sn="m" value="${r1(s.m)}"></label></div>
-      <div class="pfield"><span>Medidas</span><div class="segf pgseg"><button type="button" data-sa="u-mm" class="${s.unit !== 'cm' ? 'on' : ''}">mm</button><button type="button" data-sa="u-cm" class="${s.unit === 'cm' ? 'on' : ''}">cm</button><button type="button" data-sa="dim" class="${s.dim !== false ? 'on' : ''}">${s.dim !== false ? 'Mostrando' : 'Ocultas'}</button></div></div>
-      <div class="pfield"><span>Largura das colunas (mm)</span><div class="szl">${sizes('c', s.cw, G.ws)}</div></div>
-      <div class="pfield"><span>Altura das linhas (mm)</span><div class="szl">${sizes('r', s.rh, G.hs)}</div></div>
-      <p class="hint">Dica: arraste as linhas tracejadas entre as seções para mudar largura e altura.</p>
-      <div class="row"><button type="button" class="btn sm" data-sa="eq">Igualar tamanhos</button><button type="button" class="btn sm" data-sa="rotall">↻ Girar todas</button></div>
-      ${sel ? `<div class="secsel"><b>Seção selecionada · linha ${sel.r + 1}, coluna ${sel.c + 1}</b><small>${fmt(s, G.ws[sel.c])} × ${fmt(s, G.hs[sel.r])}</small>
-        <div class="row"><button type="button" class="btn sm pri" data-sa="rot1">↻ Girar seção</button><button type="button" class="btn sm" data-sa="clr">Soltar o conteúdo</button></div>
-        <div class="row"><button type="button" class="btn sm" data-sa="ra">＋ linha acima</button><button type="button" class="btn sm" data-sa="rb">＋ linha abaixo</button></div>
-        <div class="row"><button type="button" class="btn sm" data-sa="ca">＋ coluna à esquerda</button><button type="button" class="btn sm" data-sa="cb">＋ coluna à direita</button></div>
-        <div class="row"><button type="button" class="btn sm ghost danger" data-sa="dr">Excluir esta linha</button><button type="button" class="btn sm ghost danger" data-sa="dc">Excluir esta coluna</button></div></div>` : '<p class="hint">Clique numa seção da página para girar, inserir ou excluir linhas e colunas.</p>'}
+    w.innerHTML = `<button class="wah" type="button" aria-expanded="${o}"><i class="wtri"></i><b>Seções da página</b><span class="wcol" title="Ocultar ou expandir">${UNF}</span></button><div class="wab"><div class="pgrp tpan secp">
+      <div class="srow">${stp('r', 'Linhas', G.nR)}${stp('c', 'Colunas', cols)}</div>
+      <div class="srow"><span class="sl">Linhas e colunas</span><div class="segf pgseg sm"><button type="button" data-sa="lk1" class="${s.link ? 'on' : ''}" title="Alterar uma coluna altera todas as linhas">Juntas</button><button type="button" data-sa="lk0" class="${s.link ? '' : 'on'}" title="Cada linha tem as suas colunas">Independentes</button></div></div>
+      <div class="srow"><label class="sin"><span>Espaço (mm)</span><input type="number" step="0.5" min="0" data-sn="g" value="${r1(s.g)}"></label><label class="sin"><span>Margem (mm)</span><input type="number" step="0.5" min="0" data-sn="m" value="${r1(s.m)}"></label></div>
+      <div class="srow"><span class="sl">Medidas</span><div class="segf pgseg sm"><button type="button" data-sa="u-mm" class="${s.unit !== 'cm' ? 'on' : ''}">mm</button><button type="button" data-sa="u-cm" class="${s.unit === 'cm' ? 'on' : ''}">cm</button></div><label class="chk sm"><input type="checkbox" data-sa="dim"${s.dim ? ' checked' : ''}> sempre</label>${spread ? `<label class="chk sm"><input type="checkbox" data-sa="both"${s.both !== false ? ' checked' : ''}> nas 2 páginas</label>` : ''}</div>
+      <details class="sdet"><summary>Tamanhos exatos${sel ? '' : ''}</summary><div class="szl"><small>Colunas${s.link ? '' : ' · linha ' + (rr + 1)}</small>${sz('c', s.rows[rr], G.rows[rr].ws)}</div><div class="szl"><small>Linhas</small>${sz('r', s.rh, G.hs)}</div></details>
+      <div class="srow">${ib('eq', 'Igualar os tamanhos', 'Igualar')}${ib('rotall', 'Girar todas as seções', '↻ Todas')}</div>
+      ${sel ? `<div class="secsel"><div class="sh"><b>Seção ${sel.r + 1}·${sel.c + 1}</b><small>${fmt(s, G.rows[sel.r].ws[sel.c])} × ${fmt(s, G.hs[sel.r])}</small></div>
+        <div class="srow"><span class="sl">Mover</span>${ib('mL', 'Mover para a esquerda', '←')}${ib('mU', 'Mover para cima', '↑')}${ib('mD', 'Mover para baixo', '↓')}${ib('mR', 'Mover para a direita', '→')}${ib('rot1', 'Girar a seção', '↻ Girar', 'pri')}</div>
+        <div class="srow"><span class="sl">Seção</span>${ib('merge', 'Mesclar com a seção da direita', '⧉ Mesclar')}${ib('split', 'Dividir em duas', '⫶ Dividir')}${ib('clr', 'Soltar o conteúdo da seção', 'Soltar')}</div>
+        <div class="srow"><span class="sl">Inserir</span>${ib('ra', 'Linha acima', '＋ ↑')}${ib('rb', 'Linha abaixo', '＋ ↓')}${ib('ca', 'Coluna à esquerda', '＋ ←')}${ib('cb', 'Coluna à direita', '＋ →')}</div>
+        <div class="srow"><span class="sl">Excluir</span>${ib('dc', s.link ? 'Excluir esta coluna' : 'Excluir esta seção', s.link ? 'Coluna' : 'Seção', 'dng')}${ib('dr', 'Excluir esta linha', 'Linha', 'dng')}</div></div>`
+        : '<p class="hint">Clique numa seção para mover, girar, mesclar, dividir, inserir ou excluir.</p>'}
       </div></div>`;
     const hd = w.querySelector('.wah');
     hd.onclick = () => { w.classList.toggle('open'); const v = w.classList.contains('open'); hd.setAttribute('aria-expanded', v); Pref.acc = Pref.acc || {}; Pref.acc.pg_sec = v; try { savePref(); } catch (_) { /* */ } };
-    w.addEventListener('click', (ev) => {
-      const b = ev.target.closest('[data-sa]'); if (!b) return; const a = b.dataset.sa, k = S.secSel, [r, c] = k ? unkey(k) : [0, 0];
-      const run = (fn, ids) => edit(p, fn, ids);
-      if (a === 'r+') run(() => addRow(p, G.nR)); else if (a === 'r-') run(() => delRow(p, G.nR - 1));
-      else if (a === 'c+') run(() => addCol(p, G.nC)); else if (a === 'c-') run(() => delCol(p, G.nC - 1));
-      else if (a === 'u-mm') run((x) => { x.unit = 'mm'; }); else if (a === 'u-cm') run((x) => { x.unit = 'cm'; });
-      else if (a === 'dim') run((x) => { x.dim = x.dim === false; });
-      else if (a === 'eq') run((x) => { x.cw = x.cw.map(() => 1); x.rh = x.rh.map(() => 1); });
-      else if (a === 'rotall') run((x) => { for (let i = 0; i < G.nR; i++) for (let j = 0; j < G.nC; j++) rotKey(x, keyOf(i, j), 90); });
-      else if (!k) return;
-      else if (a === 'rot1') run((x) => rotKey(x, k, 90));
-      else if (a === 'clr') run(() => { p.els.forEach((e) => { if (e.slot === k) { delete e.slot; e.free = true; } }); });
-      else if (a === 'ra') run(() => { addRow(p, r); }); else if (a === 'rb') run(() => { addRow(p, r + 1); S.secSel = keyOf(r, c); });
-      else if (a === 'ca') run(() => { addCol(p, c); }); else if (a === 'cb') run(() => { addCol(p, c + 1); S.secSel = keyOf(r, c); });
-      else if (a === 'dr') { run(() => delRow(p, r)); S.secSel = null; } else if (a === 'dc') { run(() => delCol(p, c)); S.secSel = null; }
-      if (a === 'ra') S.secSel = keyOf(r + 1, c); else if (a === 'ca') S.secSel = keyOf(r, c + 1);
-      renderProps();
-    });
+    const det = w.querySelector('.sdet'); if (det) { det.open = !!S.secDet; det.ontoggle = () => { S.secDet = det.open; }; }
+    const click = (ev) => {
+      const b = ev.target.closest('[data-sa]'); if (!b) return; const a = b.dataset.sa;
+      if (b.tagName === 'INPUT' && ev.type === 'click' && a !== 'dim' && a !== 'both') return;
+      if (b.tagName === 'INPUT' && ev.type === 'click') return; // checkboxes agem no "change"
+      const k = S.secSel;
+      if (a === 'r+') edit(p, (q) => addRow(q, q.sec.rh.length)); else if (a === 'r-') edit(p, (q) => delRow(q, q.sec.rh.length - 1));
+      else if (a === 'c+') edit(p, (q) => addCol(q, Math.min(rr, q.sec.rows.length - 1), q.sec.rows[Math.min(rr, q.sec.rows.length - 1)].length));
+      else if (a === 'c-') edit(p, (q) => delCol(q, Math.min(rr, q.sec.rows.length - 1), q.sec.rows[Math.min(rr, q.sec.rows.length - 1)].length - 1));
+      else if (a === 'lk1') {
+        const n0 = s.rows[0].length; if (!s.rows.every((x) => x.length === n0)) { toast('Para juntar, todas as linhas precisam ter o mesmo número de colunas.'); return; }
+        edit(p, (q) => { q.sec.link = true; const base = q.sec.rows[Math.min(rr, q.sec.rows.length - 1)].slice(); q.sec.rows = q.sec.rows.map(() => base.slice()); });
+      } else if (a === 'lk0') edit(p, (q) => { q.sec.link = false; });
+      else if (a === 'u-mm') edit(p, (q) => { q.sec.unit = 'mm'; }); else if (a === 'u-cm') edit(p, (q) => { q.sec.unit = 'cm'; });
+      else if (a === 'eq') edit(p, (q) => { q.sec.rh = q.sec.rh.map(() => 1); q.sec.rows = q.sec.rows.map((x) => x.map(() => 1)); });
+      else if (a === 'rotall') edit(p, (q) => { const g2 = geom(q); for (let i = 0; i < g2.nR; i++) for (let j = 0; j < g2.rows[i].n; j++) rotKey(q.sec, keyOf(i, j), 90); });
+      else if (k) { act(p, a, k); }
+    };
+    w.addEventListener('click', click);
     w.addEventListener('change', (ev) => {
-      const i = ev.target; if (i.dataset.sn) { const v = Math.max(0, +i.value || 0); edit(p, (x) => { x[i.dataset.sn] = Math.min(v, 40); }); }
-      else if (i.dataset.ss) { const ax = i.dataset.ss[0], n = +i.dataset.ss.slice(1); edit(p, () => setSize(p, ax, n, +i.value || MINMM)); }
+      const i = ev.target;
+      if (i.dataset.sa === 'dim') edit(p, (q) => { q.sec.dim = i.checked; });
+      else if (i.dataset.sa === 'both') { const v = i.checked; spreadPages(p).forEach((q) => { if (q.sec) q.sec.both = v; }); S.secDimT = 0; }
+      else if (i.dataset.sn) { const v = Math.min(40, Math.max(0, +i.value || 0)); edit(p, (q) => { q.sec[i.dataset.sn] = v; }); }
+      else if (i.dataset.ss) { const ax = i.dataset.ss[0], n = +i.dataset.ss.slice(1), v = +i.value || MINMM; edit(p, (q) => { if (ax === 'c') setColSize(q, Math.min(rr, q.sec.rows.length - 1), n, v); else setRowSize(q, n, v); }); }
     });
     return w;
   }
 
-  /* ---------- sobreposição: seções, medidas e alças ---------- */
+  /* ---------- sobreposição ---------- */
   const eo = window.extraOverlay;
   window.extraOverlay = function (p, k) {
     let h = eo(p, k); if (!on(p)) return h;
-    const s = p.sec, G = geom(p), cur = p === curPage(), sel = cur ? S.secSel : null;
-    for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.nC; c++) {
+    const s = p.sec; migrate(s); const G = geom(p), cur = p === curPage(), sel = cur && S.secSel && validKey(G, S.secSel) ? S.secSel : null;
+    const showDim = !!S.secDrag || s.dim === true || Date.now() < (S.secDimT || 0);
+    for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.rows[r].n; c++) {
       const R = rectOf(G, r, c), key = keyOf(r, c), full = p.els.some((e) => e.slot === key), rot = s.rot[key] || 0;
-      h += `<div class="sxc${sel === key ? ' on' : ''}${full ? ' full' : ''}" style="left:${R.x * k}px;top:${R.y * k}px;width:${R.w * k}px;height:${R.h * k}px">${full ? '' : `<span style="transform:rotate(${rot}deg)">＋</span>`}${rot ? `<em>${rot}°</em>` : ''}</div>`;
-    }
-    if (s.dim !== false) {
-      for (let c = 0; c < G.nC; c++) h += `<div class="sxw" style="left:${G.xs[c] * k}px;top:${G.ys[0] * k + 2}px;width:${G.ws[c] * k}px"><b>${fmt(s, G.ws[c])}</b></div>`;
-      for (let r = 0; r < G.nR; r++) h += `<div class="sxh" style="left:${G.xs[0] * k + 2}px;top:${G.ys[r] * k}px;height:${G.hs[r] * k}px"><b>${fmt(s, G.hs[r])}</b></div>`;
+      h += `<div class="sxc${sel === key ? ' on' : ''}${full ? ' full' : ''}${cur && S.secOver === key ? ' over' : ''}" style="left:${R.x * k}px;top:${R.y * k}px;width:${R.w * k}px;height:${R.h * k}px">${full ? '' : `<span${cur ? ` data-sadd="${key}" title="Adicionar um widget, adesivo ou objeto aqui"` : ''} style="transform:rotate(${rot}deg)">＋</span>`}${rot ? `<em>${rot}°</em>` : ''}</div>`;
+      if (showDim) {
+        h += `<div class="sxw" style="left:${R.x * k}px;top:${R.y * k + 2}px;width:${R.w * k}px"><b>${fmt(s, R.w)}</b></div>`;
+        if (c === 0) h += `<div class="sxh" style="left:${R.x * k + 2}px;top:${R.y * k}px;height:${R.h * k}px"><b>${fmt(s, R.h)}</b></div>`;
+      }
     }
     if (cur) {
-      for (let c = 0; c < G.nC - 1; c++) h += `<i class="sdv v" data-sdv="c${c}" title="Arraste para mudar a largura" style="left:${(G.xs[c] + G.ws[c] + s.g / 2) * k - 7}px;top:${s.m * k}px;height:${(p.h - 2 * s.m) * k}px"></i>`;
+      for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.rows[r].n - 1; c++) { const R = rectOf(G, r, c); h += `<i class="sdv v" data-sdv="c${r}_${c}" title="Arraste para mudar a largura" style="left:${(R.x + R.w + s.g / 2) * k - 7}px;top:${R.y * k}px;height:${R.h * k}px"></i>`; }
       for (let r = 0; r < G.nR - 1; r++) h += `<i class="sdv hz" data-sdv="r${r}" title="Arraste para mudar a altura" style="top:${(G.ys[r] + G.hs[r] + s.g / 2) * k - 7}px;left:${s.m * k}px;width:${(p.w - 2 * s.m) * k}px"></i>`;
+      if (sel) {
+        const [r, c] = unkey(sel), R = rectOf(G, r, c), cx = (R.x + R.w / 2) * k;
+        h += `<i class="sgrip" data-sgrip="1" title="Arraste para trocar esta seção de lugar" style="left:${R.x * k + 4}px;top:${R.y * k + 4}px">⠿</i>`;
+        h += `<i class="spill" data-smenu="1" title="Mais opções da seção" style="left:${cx - 16}px;top:${R.y * k - 9}px">···</i>`;
+        if (S.secMenu === sel) {
+          const it = (a, l) => `<button type="button" data-sm="${a}">${l}</button>`;
+          h += `<div class="smenu" style="left:${cx}px;top:${R.y * k + 14}px">${it('dc', s.link ? 'Excluir coluna' : 'Excluir seção')}${it('dr', 'Excluir linha')}${it('merge', 'Mesclar com a da direita')}${it('split', 'Dividir em duas')}${it('rot1', 'Girar seção')}</div>`;
+        }
+        h += `<button type="button" class="sq col" data-sq="col" title="Adicionar coluna" aria-label="Adicionar coluna" style="left:${cx - 16}px;top:-42px">${QI.col}</button>`;
+        h += `<button type="button" class="sq row" data-sq="row" title="Adicionar linha" aria-label="Adicionar linha" style="top:${(R.y + R.h / 2) * k - 16}px;left:-42px">${QI.row}</button>`;
+      }
     }
     return h;
   };
+  const QI = {
+    col: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="9" height="14" rx="2"/><path d="M18 9v6M15 12h6"/></svg>',
+    row: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="9" rx="2"/><path d="M12 16v6M9 19h6"/></svg>'
+  };
 
-  /* ---------- arrastar divisões / escolher seção ---------- */
+  /* ---------- interação ---------- */
   const stage = document.getElementById('stage'); let drag = null;
+  const curSec = (ev) => { const w = ev.target.closest && ev.target.closest('.pg'); if (!w || ev.button > 0) return null; const p = S.pages[w.dataset.id]; return on(p) && p === curPage() ? { w, p } : null; };
+  function openWidgets() { const b = document.querySelector('#rail button[data-tab="widgets"]'); if (b) b.click(); }
   stage.addEventListener('pointerdown', (ev) => {
-    const tg = ev.target, w = tg.closest && tg.closest('.pg'); if (!w || ev.button > 0) return;
-    const p = S.pages[w.dataset.id]; if (!on(p) || p !== curPage()) return;
-    const dv = tg.closest && tg.closest('[data-sdv]');
+    const ctx = curSec(ev); if (!ctx) return; const { w, p } = ctx, tg = ev.target, stop = () => { ev.preventDefault(); ev.stopPropagation(); };
+    const add = tg.closest('[data-sadd]'); if (add) { stop(); S.secSel = add.dataset.sadd; S.secMenu = null; S.sel = []; openWidgets(); redraw(); renderProps(); return; }
+    const sm = tg.closest('[data-sm]'); if (sm) { stop(); const a = sm.dataset.sm; S.secMenu = null; act(p, a, S.secSel); return; }
+    if (tg.closest('[data-smenu]')) { stop(); S.secMenu = S.secMenu === S.secSel ? null : S.secSel; drawOverlaysOnly(); return; }
+    const sq = tg.closest('[data-sq]'); if (sq) { stop(); act(p, sq.dataset.sq === 'col' ? 'cb' : 'rb', S.secSel); return; }
+    const gr = tg.closest('[data-sgrip]'); if (gr) { stop(); try { w.setPointerCapture(ev.pointerId); } catch (_) { /* */ } drag = { kind: 'move', p, w, from: S.secSel }; S.secDrag = true; return; }
+    const dv = tg.closest('[data-sdv]');
     if (dv) {
-      ev.preventDefault(); ev.stopPropagation(); try { w.setPointerCapture(ev.pointerId); } catch (_) { /* */ }
-      const ax = dv.dataset.sdv[0], i = +dv.dataset.sdv.slice(1), s = p.sec, pt = toMM(ev, w);
-      drag = { ax, i, p, w, b: snapOf([p.id]), a0: (ax === 'c' ? s.cw : s.rh).slice(), p0: ax === 'c' ? pt.x : pt.y, G: geom(p), moved: false };
-      return;
+      stop(); try { w.setPointerCapture(ev.pointerId); } catch (_) { /* */ }
+      const id = dv.dataset.sdv, ax = id[0], pt = toMM(ev, w), s = p.sec;
+      if (ax === 'c') { const [r, i] = id.slice(1).split('_').map(Number); drag = { ax, r, i, p, w, b: snapOf([p.id]), a0: s.rows.map((x) => x.slice()), p0: pt.x, G: geom(p), moved: false }; }
+      else { const i = +id.slice(1); drag = { ax, i, p, w, b: snapOf([p.id]), a0: s.rh.slice(), p0: pt.y, G: geom(p), moved: false }; }
+      S.secDrag = true; drawOverlaysOnly(); return;
     }
-    if (tg.closest && tg.closest('.sb,.hd,[data-tact],.tcedit')) return;
-    const cell = cellAt(p, geom(p), toMM(ev, w)); S.secSel = cell ? keyOf(cell.r, cell.c) : null;
+    if (tg.closest('.sb,.hd,[data-tact],.tcedit')) { S.secMenu = null; return; }
+    const cell = cellAt(p, geom(p), toMM(ev, w)); S.secSel = cell ? keyOf(cell.r, cell.c) : null; S.secMenu = null;
     setTimeout(() => { drawOverlaysOnly(); renderProps(); }, 0);
   }, true);
   stage.addEventListener('pointermove', (ev) => {
-    if (!drag) return; const d = drag, s = d.p.sec, pt = toMM(ev, d.w), G = d.G, ax = d.ax;
-    const A = ax === 'c' ? G.aw : G.ah, tot = sum(d.a0), u = tot / A, delta = ((ax === 'c' ? pt.x : pt.y) - d.p0) * u, a = ax === 'c' ? s.cw : s.rh, lo = MINMM * u;
-    const pair = d.a0[d.i] + d.a0[d.i + 1], na = Math.max(lo, Math.min(pair - lo, d.a0[d.i] + delta));
-    if (Math.abs(na - d.a0[d.i]) > 1e-6) d.moved = true;
-    a[d.i] = na; a[d.i + 1] = pair - na; fit(d.p); scheduleRedraw(); ev.preventDefault();
+    if (!drag) return; const d = drag, pt = toMM(ev, d.w);
+    if (d.kind === 'move') { const c = cellAt(d.p, geom(d.p), pt), k = c ? keyOf(c.r, c.c) : null; if (k !== S.secOver) { S.secOver = k; drawOverlaysOnly(); } return; }
+    const s = d.p.sec, G = d.G;
+    if (d.ax === 'c') {
+      const R = G.rows[d.r], u = R.t / R.aw, delta = (pt.x - d.p0) * u, lo = MINMM * u, base = d.a0[d.r], pair = base[d.i] + base[d.i + 1], na = Math.max(lo, Math.min(pair - lo, base[d.i] + delta));
+      if (Math.abs(na - base[d.i]) > 1e-6) d.moved = true;
+      (s.link ? s.rows.map((_, i) => i) : [d.r]).forEach((rr) => { const a = s.rows[rr]; a[d.i] = na; a[d.i + 1] = pair - na; });
+    } else {
+      const u = G.sh / G.ah, delta = (pt.y - d.p0) * u, lo = MINMM * u, pair = d.a0[d.i] + d.a0[d.i + 1], na = Math.max(lo, Math.min(pair - lo, d.a0[d.i] + delta));
+      if (Math.abs(na - d.a0[d.i]) > 1e-6) d.moved = true; s.rh[d.i] = na; s.rh[d.i + 1] = pair - na;
+    }
+    fit(d.p); scheduleRedraw(); ev.preventDefault();
   });
-  const endDrag = () => { if (!drag) return; const d = drag; drag = null; if (d.moved) { pushHist(d.b, snapOf([d.p.id])); thumbRefresh(d.p.id); } redraw(); renderProps(); };
+  const endDrag = () => {
+    if (!drag) return; const d = drag; drag = null; S.secDrag = false;
+    if (d.kind === 'move') {
+      const to = S.secOver; S.secOver = null;
+      if (to && d.from && to !== d.from) { S.secSel = to; edit(d.p, (q) => swapCells(q, d.from, to)); } else { redraw(); renderProps(); }
+      return;
+    }
+    if (d.moved) { pushHist(d.b, snapOf([d.p.id])); thumbRefresh(d.p.id); }
+    flash(900); redraw(); renderProps();
+  };
   stage.addEventListener('pointerup', endDrag, true); stage.addEventListener('pointercancel', endDrag, true);
 
   /* ---------- ganchos: soltar elemento, elemento novo ---------- */
@@ -195,29 +344,33 @@
   };
   function drop(p, ids) { if (on(p)) fit(p, new Set(ids || [])); }
 
-  /* ---------- painel do elemento: girar / soltar / encaixar ---------- */
+  /* ---------- coluna da direita: seções sempre no topo + cartão do elemento ---------- */
   const rp = window.renderProps;
   window.renderProps = function () {
     const r = rp.apply(this, arguments);
     try {
       const P = document.getElementById('props'), p = curPage(), els = selEls();
-      if (!P || !on(p) || els.length !== 1 || P.querySelector('#secEl')) return r;
-      const e = els[0], first = P.querySelector('.pact'); if (!first) return r;
-      const w = document.createElement('div'); w.id = 'secEl'; w.className = 'secsel';
-      const s = p.sec;
-      w.innerHTML = e.slot ? `<b>Seção · linha ${unkey(e.slot)[0] + 1}, coluna ${unkey(e.slot)[1] + 1}</b><div class="row"><button type="button" class="btn sm pri" data-se="rot">↻ Girar seção</button><button type="button" class="btn sm" data-se="free">Soltar da seção</button></div>`
-        : `<b>Fora das seções</b><div class="row"><button type="button" class="btn sm pri" data-se="fit">Encaixar numa seção</button></div>`;
-      first.insertAdjacentElement('afterend', w);
-      w.addEventListener('click', (ev) => {
-        const b = ev.target.closest('[data-se]'); if (!b) return; const a = b.dataset.se;
-        if (a === 'rot') edit(p, (x) => rotKey(x, e.slot, 90));
-        else if (a === 'free') edit(p, () => { delete e.slot; e.free = true; });
-        else if (a === 'fit') edit(p, () => { e.free = false; }, new Set([e.id]));
-      });
-      void s;
+      if (!P || !on(p) || !els.length || P.querySelector('[data-acc="pg_sec"]')) return r;
+      const blk = block(p), back = P.querySelector('#pbRow'), wrap = document.createElement('div'); wrap.className = 'secpin';
+      wrap.innerHTML = '<div class="secttl"><i></i><b>Configuração da página</b><i></i></div>'; wrap.appendChild(blk);
+      const tt = document.createElement('div'); tt.className = 'secttl'; tt.innerHTML = '<i></i><b>' + (els.length === 1 ? 'Objeto selecionado' : els.length + ' objetos') + '</b><i></i>'; wrap.appendChild(tt);
+      if (back) back.insertAdjacentElement('afterend', wrap); else P.insertBefore(wrap, P.firstChild);
+      if (els.length === 1) {
+        const e = els[0], first = P.querySelector('.pact'); if (!first) return r;
+        const w = document.createElement('div'); w.id = 'secEl'; w.className = 'secsel';
+        w.innerHTML = e.slot ? `<div class="srow"><b>Seção ${unkey(e.slot)[0] + 1}·${unkey(e.slot)[1] + 1}</b><button type="button" class="btn xs pri" data-se="rot">↻ Girar seção</button><button type="button" class="btn xs" data-se="free">Soltar da seção</button></div>`
+          : `<div class="srow"><b>Fora das seções</b><button type="button" class="btn xs pri" data-se="fit">Encaixar numa seção</button></div>`;
+        first.insertAdjacentElement('afterend', w);
+        w.addEventListener('click', (ev) => {
+          const b = ev.target.closest('[data-se]'); if (!b) return; const a = b.dataset.se;
+          if (a === 'rot') edit(p, (q) => rotKey(q.sec, e.slot, 90));
+          else if (a === 'free') edit(p, () => { delete e.slot; e.free = true; });
+          else if (a === 'fit') edit(p, () => { e.free = false; }, new Set([e.id]));
+        });
+      }
     } catch (err) { console.warn(err); }
     return r;
   };
 
-  window.Secoes = { block, setMode, fit, drop, on, geom };
+  window.Secoes = { block, setMode, fit, drop, on, geom, act, infer };
 })();
