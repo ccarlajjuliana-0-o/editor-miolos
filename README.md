@@ -397,3 +397,8 @@ No ModuLab → Novo widget → Assistente rápido: além do modelo-base, estilo 
 ## Ajuste 74c
 - **Mesclar vertical**: "⧉ ↓" junta a seção com a de baixo (mesma largura); pode repetir para juntar várias linhas. "⫶ ↕" divide em duas linhas (as outras seções da linha continuam inteiras) ou, numa seção já mesclada, desfaz uma linha. Também no menu "···".
 - Em modo Independentes, linhas com mescla vertical bloqueiam inserir/excluir/mesclar/dividir colunas (desfaça antes); arrastar a divisão acompanha as linhas ligadas pela mescla.
+
+## Ajuste 74d
+- Em página dupla, inserir/excluir/mesclar linhas e colunas vale só para a página atual (margem, espaço e medidas ainda podem valer para as duas).
+- Seleção de várias seções: Shift+clique ou arrastar o mouse sobre as seções (na forma livre, Shift+clique e o retângulo de seleção continuam valendo para os objetos).
+- Botões rápidos: ＋/− de coluna e de linha, "mesclar" quando há mais de uma seção selecionada e "dividir" quando a seção selecionada está mesclada na vertical. O ＋ de uma seção vazia agora abre Widgets só ao clicar (arrastar a partir dele seleciona).

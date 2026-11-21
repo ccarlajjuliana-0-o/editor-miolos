@@ -100,12 +100,12 @@
     if ((S.meta.view || 'single') !== 'spread') return [p];
     try { const a = curSpread().map((i) => S.pages[S.order[i]]).filter(Boolean); return a.includes(p) ? a : [p]; } catch (_) { return [p]; }
   };
-  const targets = (p) => (p.sec && p.sec.both !== false ? spreadPages(p).filter((q) => on(q) || q === p) : [p]);
+  const targets = (p, both) => (both && p.sec && p.sec.both !== false ? spreadPages(p).filter((q) => on(q) || q === p) : [p]);
 
   function flash(ms) { S.secDimT = Date.now() + (ms || 1600); setTimeout(() => { try { drawOverlaysOnly(); } catch (_) { /* */ } }, (ms || 1600) + 60); }
 
-  function edit(p, fn, ids) {
-    const T = targets(p);
+  function edit(p, fn, ids, both) {
+    const T = targets(p, both);
     change(T.map((q) => q.id), () => { T.forEach((q) => { fn(q); cleanMg(q); fit(q, q === p ? ids : null); }); });
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     flash(); redraw(); renderProps(); T.forEach((q) => thumbRefresh(q.id));
@@ -237,12 +237,30 @@
   const rotKey = (s, k, d) => { s.rot[k] = (((s.rot[k] || 0) + d) % 360 + 360) % 360; };
   const fmt = (s, v) => (s.unit === 'cm' ? (Math.round(v) / 10).toFixed(1).replace('.', ',') + ' cm' : (Math.round(v * 10) / 10).toString().replace('.', ',') + ' mm');
 
+  const keysOf = (p, G) => { G = G || geom(p); const base = S.secSet && S.secSet.includes(S.secSel) ? S.secSet : (S.secSel ? [S.secSel] : []); return base.filter((k) => validKey(G, k) && !G.cov[k]); };
+  function mergeKeys(q, ks) {
+    const pts = ks.map(unkey), rows = Array.from(new Set(pts.map((x) => x[0]))).sort((a, b) => a - b), cols = Array.from(new Set(pts.map((x) => x[1]))).sort((a, b) => a - b);
+    const contig = (a) => a.every((v, i) => i === 0 || v === a[i - 1] + 1);
+    if (!contig(rows) || (rows.length > 1 && !contig(cols))) return false;
+    if (pts.length !== rows.length * cols.length && !(cols.length === 1 || rows.length === 1)) return false;
+    const r0 = rows[0], c0 = cols[0];
+    for (let i = 0; i < cols.length - 1; i++) for (const r of rows) if (!mergeRight(q, r, c0)) return false;
+    for (let i = 0; i < rows.length - 1; i++) if (!mergeDown(q, r0, c0)) return false;
+    return true;
+  }
   const blocked = (p, r) => { if (!p.sec.link && hasMgRow(p, r)) { toast('Essa linha tem mescla vertical: desfaça-a (Dividir ↕) para mexer nas colunas.'); return true; } return false; };
   /* ação genérica a partir da seção selecionada (painel, menu "···" e botões rápidos) */
   function act(p, a, k) {
     if (!k) k = S.secSel; const [r, c] = k ? unkey(k) : [0, 0], run = (fn) => edit(p, fn);
     switch (a) {
-      case 'rot1': return run((q) => rotKey(q.sec, k, 90));
+      case 'rot1': { const ks = keysOf(p); return run((q) => (ks.length ? ks : [k]).forEach((kk) => rotKey(q.sec, kk, 90))); }
+      case 'mergeSel': {
+        const ks = keysOf(p), t = JSON.parse(JSON.stringify({ w: p.w, h: p.h, els: p.els, sec: p.sec, layout: p.layout, id: p.id }));
+        if (ks.length < 2 || !mergeKeys(t, ks)) { toast('Essas seções não formam um bloco que dê para mesclar.'); return; }
+        S.secSel = ks.map(unkey).sort((x, y) => x[0] - y[0] || x[1] - y[1]).map((x) => keyOf(x[0], x[1]))[0]; S.secSet = null; return run((q) => { mergeKeys(q, ks); });
+      }
+      case 'dcs': { const ks = keysOf(p).map(unkey).sort((x, y) => y[0] - x[0] || y[1] - x[1]); if (ks.some(([rr]) => blocked(p, rr))) return; S.secSel = null; S.secSet = null; return run((q) => { ks.forEach(([rr, cc]) => delCol(q, rr, cc)); }); }
+      case 'drs': { const rs = Array.from(new Set(keysOf(p).map((x) => unkey(x)[0]))).sort((a, b) => b - a); S.secSel = null; S.secSet = null; return run((q) => { rs.forEach((rr) => delRow(q, rr)); }); }
       case 'clr': return run((q) => { q.els.forEach((e) => { if (e.slot === k) { delete e.slot; e.free = true; } }); });
       case 'ra': S.secSel = keyOf(r + 1, c); return run((q) => addRow(q, r));
       case 'rb': return run((q) => addRow(q, r + 1));
@@ -266,7 +284,7 @@
   function block(p) {
     const s = p.sec; migrate(s); const G = geom(p), o = Pref.acc && Pref.acc.pg_sec !== undefined ? Pref.acc.pg_sec !== false : true;
     const sel = S.secSel && validKey(G, S.secSel) ? (() => { const [r, c] = unkey(S.secSel); return { r, c, k: S.secSel }; })() : null;
-    const rr = sel ? sel.r : 0, cols = s.rows[rr].length, spread = spreadPages(p).length > 1;
+    const nsel = sel ? keysOf(p, G).length : 0, rr = sel ? sel.r : 0, cols = s.rows[rr].length, spread = spreadPages(p).length > 1;
     const stp = (k, l, n) => `<div class="stp"><span>${l}</span><button type="button" class="btn xs" data-sa="${k}-" aria-label="Menos ${l}">−</button><b>${n}</b><button type="button" class="btn xs" data-sa="${k}+" aria-label="Mais ${l}">＋</button></div>`;
     const sz = (ax, arr, ws) => arr.map((_, i) => `<label class="szi"><span>${ax === 'c' ? 'C' : 'L'}${i + 1}</span><input type="number" step="0.5" min="${MINMM}" data-ss="${ax}${i}" value="${r1(ws[i])}"></label>`).join('');
     const ib = (a, t, l, cls) => `<button type="button" class="btn xs${cls ? ' ' + cls : ''}" data-sa="${a}" title="${t}" aria-label="${t}">${l}</button>`;
@@ -275,11 +293,11 @@
       <div class="srow">${stp('r', 'Linhas', G.nR)}${stp('c', 'Colunas', cols)}</div>
       <div class="srow"><span class="sl">Linhas e colunas</span><div class="segf pgseg sm"><button type="button" data-sa="lk1" class="${s.link ? 'on' : ''}" title="Alterar uma coluna altera todas as linhas">Juntas</button><button type="button" data-sa="lk0" class="${s.link ? '' : 'on'}" title="Cada linha tem as suas colunas">Independentes</button></div></div>
       <div class="srow"><label class="sin"><span>Espaço (mm)</span><input type="number" step="0.5" min="0" data-sn="g" value="${r1(s.g)}"></label><label class="sin"><span>Margem (mm)</span><input type="number" step="0.5" min="0" data-sn="m" value="${r1(s.m)}"></label></div>
-      <div class="srow"><span class="sl">Medidas</span><div class="segf pgseg sm"><button type="button" data-sa="u-mm" class="${s.unit !== 'cm' ? 'on' : ''}">mm</button><button type="button" data-sa="u-cm" class="${s.unit === 'cm' ? 'on' : ''}">cm</button></div><label class="chk sm"><input type="checkbox" data-sa="dim"${s.dim ? ' checked' : ''}> sempre</label>${spread ? `<label class="chk sm"><input type="checkbox" data-sa="both"${s.both !== false ? ' checked' : ''}> nas 2 páginas</label>` : ''}</div>
+      <div class="srow"><span class="sl">Medidas</span><div class="segf pgseg sm"><button type="button" data-sa="u-mm" class="${s.unit !== 'cm' ? 'on' : ''}">mm</button><button type="button" data-sa="u-cm" class="${s.unit === 'cm' ? 'on' : ''}">cm</button></div><label class="chk sm"><input type="checkbox" data-sa="dim"${s.dim ? ' checked' : ''}> sempre</label>${spread ? `<label class="chk sm"><input type="checkbox" data-sa="both"${s.both !== false ? ' checked' : ''}> margem e medidas nas 2</label>` : ''}</div>
       <details class="sdet"><summary>Tamanhos exatos${sel ? '' : ''}</summary><div class="szl"><small>Colunas${s.link ? '' : ' · linha ' + (rr + 1)}</small>${sz('c', s.rows[rr], G.rows[rr].ws)}</div><div class="szl"><small>Linhas</small>${sz('r', s.rh, G.hs)}</div></details>
       <div class="srow">${ib('eq', 'Igualar os tamanhos', 'Igualar')}${ib('rotall', 'Girar todas as seções', '↻ Todas')}</div>
-      ${sel ? `<div class="secsel"><div class="sh"><b>Seção ${sel.r + 1}·${sel.c + 1}</b><small>${fmt(s, G.rows[sel.r].ws[sel.c])} × ${fmt(s, (G.anc[sel.k] || { h: G.hs[sel.r] }).h)}</small></div>
-        <div class="srow"><span class="sl">Mover</span>${ib('mL', 'Mover para a esquerda', '←')}${ib('mU', 'Mover para cima', '↑')}${ib('mD', 'Mover para baixo', '↓')}${ib('mR', 'Mover para a direita', '→')}${ib('rot1', 'Girar a seção', '↻ Girar', 'pri')}</div>
+      ${sel ? `<div class="secsel"><div class="sh"><b>${nsel > 1 ? nsel + ' seções selecionadas' : 'Seção ' + (sel.r + 1) + '·' + (sel.c + 1)}</b><small>${fmt(s, G.rows[sel.r].ws[sel.c])} × ${fmt(s, (G.anc[sel.k] || { h: G.hs[sel.r] }).h)}</small></div>
+        ${nsel > 1 ? `<div class="srow">${ib('mergeSel', 'Mesclar as seções selecionadas', '⧉ Mesclar seleção', 'pri')}${ib('rot1', 'Girar as seções selecionadas', '↻ Girar todas as selecionadas')}</div>` : ''}<div class="srow"><span class="sl">Mover</span>${ib('mL', 'Mover para a esquerda', '←')}${ib('mU', 'Mover para cima', '↑')}${ib('mD', 'Mover para baixo', '↓')}${ib('mR', 'Mover para a direita', '→')}${ib('rot1', 'Girar a seção', '↻ Girar', 'pri')}</div>
         <div class="srow"><span class="sl">Seção</span>${ib('merge', 'Mesclar com a seção da direita', '⧉ →')}${ib('mergeD', 'Mesclar com a seção de baixo', '⧉ ↓')}${ib('split', 'Dividir em duas colunas', '⫶ ↔')}${ib('splitV', 'Dividir em duas linhas (ou desfazer a mescla de baixo)', '⫶ ↕')}${ib('clr', 'Soltar o conteúdo da seção', 'Soltar')}</div>
         <div class="srow"><span class="sl">Inserir</span>${ib('ra', 'Linha acima', '＋ ↑')}${ib('rb', 'Linha abaixo', '＋ ↓')}${ib('ca', 'Coluna à esquerda', '＋ ←')}${ib('cb', 'Coluna à direita', '＋ →')}</div>
         <div class="srow"><span class="sl">Excluir</span>${ib('dc', s.link ? 'Excluir esta coluna' : 'Excluir esta seção', s.link ? 'Coluna' : 'Seção', 'dng')}${ib('dr', 'Excluir esta linha', 'Linha', 'dng')}</div></div>`
@@ -300,7 +318,7 @@
         const n0 = s.rows[0].length; if (!s.rows.every((x) => x.length === n0)) { toast('Para juntar, todas as linhas precisam ter o mesmo número de colunas.'); return; }
         edit(p, (q) => { q.sec.link = true; const base = q.sec.rows[Math.min(rr, q.sec.rows.length - 1)].slice(); q.sec.rows = q.sec.rows.map(() => base.slice()); });
       } else if (a === 'lk0') edit(p, (q) => { q.sec.link = false; });
-      else if (a === 'u-mm') edit(p, (q) => { q.sec.unit = 'mm'; }); else if (a === 'u-cm') edit(p, (q) => { q.sec.unit = 'cm'; });
+      else if (a === 'u-mm') edit(p, (q) => { q.sec.unit = 'mm'; }, null, true); else if (a === 'u-cm') edit(p, (q) => { q.sec.unit = 'cm'; }, null, true);
       else if (a === 'eq') edit(p, (q) => { q.sec.rh = q.sec.rh.map(() => 1); q.sec.rows = q.sec.rows.map((x) => x.map(() => 1)); });
       else if (a === 'rotall') edit(p, (q) => { const g2 = geom(q); for (let i = 0; i < g2.nR; i++) for (let j = 0; j < g2.rows[i].n; j++) rotKey(q.sec, keyOf(i, j), 90); });
       else if (k) { act(p, a, k); }
@@ -308,9 +326,9 @@
     w.addEventListener('click', click);
     w.addEventListener('change', (ev) => {
       const i = ev.target;
-      if (i.dataset.sa === 'dim') edit(p, (q) => { q.sec.dim = i.checked; });
+      if (i.dataset.sa === 'dim') edit(p, (q) => { q.sec.dim = i.checked; }, null, true);
       else if (i.dataset.sa === 'both') { const v = i.checked; spreadPages(p).forEach((q) => { if (q.sec) q.sec.both = v; }); S.secDimT = 0; }
-      else if (i.dataset.sn) { const v = Math.min(40, Math.max(0, +i.value || 0)); edit(p, (q) => { q.sec[i.dataset.sn] = v; }); }
+      else if (i.dataset.sn) { const v = Math.min(40, Math.max(0, +i.value || 0)); edit(p, (q) => { q.sec[i.dataset.sn] = v; }, null, true); }
       else if (i.dataset.ss) { const ax = i.dataset.ss[0], n = +i.dataset.ss.slice(1), v = +i.value || MINMM; edit(p, (q) => { if (ax === 'c') setColSize(q, Math.min(rr, q.sec.rows.length - 1), n, v); else setRowSize(q, n, v); }); }
     });
     return w;
@@ -320,12 +338,12 @@
   const eo = window.extraOverlay;
   window.extraOverlay = function (p, k) {
     let h = eo(p, k); if (!on(p)) return h;
-    const s = p.sec; migrate(s); const G = geom(p), cur = p === curPage(), sel = cur && S.secSel && validKey(G, S.secSel) ? S.secSel : null;
+    const s = p.sec; migrate(s); const G = geom(p), cur = p === curPage(), sel = cur && S.secSel && validKey(G, S.secSel) ? S.secSel : null, selSet = cur ? keysOf(p, G) : [];
     const showDim = !!S.secDrag || s.dim === true || Date.now() < (S.secDimT || 0);
     for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.rows[r].n; c++) {
       const key = keyOf(r, c); if (G.cov[key]) continue;
       const R = rectOf(G, r, c), full = p.els.some((e) => e.slot === key), rot = s.rot[key] || 0;
-      h += `<div class="sxc${sel === key ? ' on' : ''}${full ? ' full' : ''}${cur && S.secOver === key ? ' over' : ''}" style="left:${R.x * k}px;top:${R.y * k}px;width:${R.w * k}px;height:${R.h * k}px">${full ? '' : `<span${cur ? ` data-sadd="${key}" title="Adicionar um widget, adesivo ou objeto aqui"` : ''} style="transform:rotate(${rot}deg)">＋</span>`}${rot ? `<em>${rot}°</em>` : ''}</div>`;
+      h += `<div class="sxc${selSet.includes(key) ? ' on' : ''}${full ? ' full' : ''}${cur && S.secOver === key ? ' over' : ''}" style="left:${R.x * k}px;top:${R.y * k}px;width:${R.w * k}px;height:${R.h * k}px">${full ? '' : `<span${cur ? ` data-sadd="${key}" title="Adicionar um widget, adesivo ou objeto aqui"` : ''} style="transform:rotate(${rot}deg)">＋</span>`}${rot ? `<em>${rot}°</em>` : ''}</div>`;
       if (showDim) {
         h += `<div class="sxw" style="left:${R.x * k}px;top:${R.y * k + 2}px;width:${R.w * k}px"><b>${fmt(s, R.w)}</b></div>`;
         if (c === 0) h += `<div class="sxh" style="left:${R.x * k + 2}px;top:${R.y * k}px;height:${R.h * k}px"><b>${fmt(s, R.h)}</b></div>`;
@@ -342,27 +360,36 @@
           const it = (a, l) => `<button type="button" data-sm="${a}">${l}</button>`;
           h += `<div class="smenu" style="left:${cx}px;top:${R.y * k + 14}px">${it('dc', s.link ? 'Excluir coluna' : 'Excluir seção')}${it('dr', 'Excluir linha')}${it('merge', 'Mesclar com a da direita')}${it('mergeD', 'Mesclar com a de baixo')}${it('split', 'Dividir em colunas')}${it('splitV', 'Dividir em linhas')}${it('rot1', 'Girar seção')}</div>`;
         }
-        h += `<button type="button" class="sq col" data-sq="col" title="Adicionar coluna" aria-label="Adicionar coluna" style="left:${cx - 16}px;top:-42px">${QI.col}</button>`;
-        h += `<button type="button" class="sq row" data-sq="row" title="Adicionar linha" aria-label="Adicionar linha" style="top:${(R.y + R.h / 2) * k - 16}px;left:-42px">${QI.row}</button>`;
+        const ks = keysOf(p, G), rects = ks.map((kk) => { const [rr, cc] = unkey(kk); return rectOf(G, rr, cc); });
+        const ux = Math.min(...rects.map((q) => q.x)), uy = Math.min(...rects.map((q) => q.y)), ux1 = Math.max(...rects.map((q) => q.x + q.w)), uy1 = Math.max(...rects.map((q) => q.y + q.h));
+        const bx = ((ux + ux1) / 2) * k, by = ((uy + uy1) / 2) * k, btn = (cls, a2, t, ic, st) => `<button type="button" class="sq ${cls}" data-sq="${a2}" title="${t}" aria-label="${t}" style="${st}">${ic}</button>`;
+        h += btn('col', 'col+', 'Adicionar coluna', QI.col, `left:${bx - 38}px;top:-42px`) + btn('col m', 'col-', 'Excluir coluna', QI.colm, `left:${bx - 2}px;top:-42px`);
+        h += btn('row', 'row+', 'Adicionar linha', QI.row, `top:${by - 38}px;left:-42px`) + btn('row m', 'row-', 'Excluir linha', QI.rowm, `top:${by - 2}px;left:-42px`);
+        if (ks.length > 1) h += btn('mg', 'mergeSel', 'Mesclar as seções selecionadas', QI.mg, `left:${bx + 34}px;top:-42px`);
+        else if (G.anc[ks[0]]) h += btn('mg', 'splitV', 'Dividir (desfazer a mescla)', QI.sp, `left:${bx + 34}px;top:-42px`);
       }
     }
     return h;
   };
   const QI = {
     col: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="9" height="14" rx="2"/><path d="M18 9v6M15 12h6"/></svg>',
+    colm: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="9" height="14" rx="2"/><path d="M15 12h6"/></svg>',
+    rowm: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="9" rx="2"/><path d="M9 19h6"/></svg>',
+    mg: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="7" height="12" rx="2"/><rect x="14" y="6" width="7" height="12" rx="2"/><path d="M10 12h4"/></svg>',
+    sp: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v14" stroke-dasharray="2 2"/></svg>',
     row: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="9" rx="2"/><path d="M12 16v6M9 19h6"/></svg>'
   };
 
   /* ---------- interação ---------- */
-  const stage = document.getElementById('stage'); let drag = null;
+  const stage = document.getElementById('stage'); let drag = null, msel = null;
   const curSec = (ev) => { const w = ev.target.closest && ev.target.closest('.pg'); if (!w || ev.button > 0) return null; const p = S.pages[w.dataset.id]; return on(p) && p === curPage() ? { w, p } : null; };
   function openWidgets() { const b = document.querySelector('#rail button[data-tab="widgets"]'); if (b) b.click(); }
   stage.addEventListener('pointerdown', (ev) => {
     const ctx = curSec(ev); if (!ctx) return; const { w, p } = ctx, tg = ev.target, stop = () => { ev.preventDefault(); ev.stopPropagation(); };
-    const add = tg.closest('[data-sadd]'); if (add) { stop(); S.secSel = add.dataset.sadd; S.secMenu = null; S.sel = []; openWidgets(); redraw(); renderProps(); return; }
+    const add = tg.closest('[data-sadd]'); if (add) { S.secSel = add.dataset.sadd; S.secSet = null; S.secMenu = null; const p0 = toMM(ev, w); msel = { w, p, x0: p0.x, y0: p0.y, base: [], moved: false, addKey: add.dataset.sadd }; return; }
     const sm = tg.closest('[data-sm]'); if (sm) { stop(); const a = sm.dataset.sm; S.secMenu = null; act(p, a, S.secSel); return; }
     if (tg.closest('[data-smenu]')) { stop(); S.secMenu = S.secMenu === S.secSel ? null : S.secSel; drawOverlaysOnly(); return; }
-    const sq = tg.closest('[data-sq]'); if (sq) { stop(); act(p, sq.dataset.sq === 'col' ? 'cb' : 'rb', S.secSel); return; }
+    const sq = tg.closest('[data-sq]'); if (sq) { stop(); const q = sq.dataset.sq; act(p, q === 'col+' ? 'cb' : q === 'row+' ? 'rb' : q === 'col-' ? 'dcs' : q === 'row-' ? 'drs' : q, S.secSel); return; }
     const gr = tg.closest('[data-sgrip]'); if (gr) { stop(); try { w.setPointerCapture(ev.pointerId); } catch (_) { /* */ } drag = { kind: 'move', p, w, from: S.secSel }; S.secDrag = true; return; }
     const dv = tg.closest('[data-sdv]');
     if (dv) {
@@ -373,10 +400,19 @@
       S.secDrag = true; drawOverlaysOnly(); return;
     }
     if (tg.closest('.sb,.hd,[data-tact],.tcedit')) { S.secMenu = null; return; }
-    const cell = cellAt(p, geom(p), toMM(ev, w)); S.secSel = cell ? keyOf(cell.r, cell.c) : null; S.secMenu = null;
+    const pt0 = toMM(ev, w), G0 = geom(p), cell = cellAt(p, G0, pt0), ck = cell ? keyOf(cell.r, cell.c) : null; S.secMenu = null;
+    if (ev.shiftKey && ck) { const cur0 = keysOf(p, G0); S.secSet = cur0.includes(ck) ? cur0.filter((x) => x !== ck) : cur0.concat(ck); S.secSel = S.secSet.length ? S.secSet[S.secSet.length - 1] : null; if (S.secSet.length && !S.secSet.includes(S.secSel)) S.secSel = S.secSet[0]; if (!S.secSet.length) S.secSet = null; }
+    else { S.secSel = ck; S.secSet = null; }
+    if (!hit(p, pt0)) msel = { w, p, x0: pt0.x, y0: pt0.y, base: ev.shiftKey ? (S.secSet || (S.secSel ? [S.secSel] : [])).slice() : [], moved: false };
     setTimeout(() => { drawOverlaysOnly(); renderProps(); }, 0);
   }, true);
   stage.addEventListener('pointermove', (ev) => {
+    if (msel && !drag) {
+      const m = msel, pt = toMM(ev, m.w); if (!m.moved && Math.hypot(pt.x - m.x0, pt.y - m.y0) * S.k < 5) return; m.moved = true;
+      const G = geom(m.p), x0 = Math.min(m.x0, pt.x), x1 = Math.max(m.x0, pt.x), y0 = Math.min(m.y0, pt.y), y1 = Math.max(m.y0, pt.y), hitk = [];
+      for (let r = 0; r < G.nR; r++) for (let c = 0; c < G.rows[r].n; c++) { const kk = keyOf(r, c); if (G.cov[kk]) continue; const R = rectOf(G, r, c); if (R.x < x1 && R.x + R.w > x0 && R.y < y1 && R.y + R.h > y0) hitk.push(kk); }
+      const all = Array.from(new Set(m.base.concat(hitk))); S.secSet = all.length > 1 ? all : null; S.secSel = all.length ? (hitk[0] || all[0]) : null; if (S.secSet && !S.secSet.includes(S.secSel)) S.secSel = S.secSet[0]; drawOverlaysOnly(); return;
+    }
     if (!drag) return; const d = drag, pt = toMM(ev, d.w);
     if (d.kind === 'move') { const c = cellAt(d.p, geom(d.p), pt), k = c ? keyOf(c.r, c.c) : null; if (k !== S.secOver) { S.secOver = k; drawOverlaysOnly(); } return; }
     const s = d.p.sec, G = d.G;
@@ -391,6 +427,7 @@
     fit(d.p); scheduleRedraw(); ev.preventDefault();
   });
   const endDrag = () => {
+    if (msel) { const m = msel; msel = null; if (m.moved) renderProps(); else if (m.addKey) { S.sel = []; S.secSel = m.addKey; openWidgets(); redraw(); renderProps(); } }
     if (!drag) return; const d = drag; drag = null; S.secDrag = false;
     if (d.kind === 'move') {
       const to = S.secOver; S.secOver = null;
